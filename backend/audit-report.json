@@ -1,0 +1,32 @@
+{
+  "timestamp": "2026-05-05T14:38:23.794Z",
+  "summary": {
+    "collections": {
+      "users": 11,
+      "projects": 4,
+      "tasks": 3,
+      "dailyLogs": 9,
+      "comments": 2
+    }
+  },
+  "rbacAudit": {
+    "admins": [
+      {
+        "_id": "69f9ce352145debc5bad441c",
+        "name": "Admin User",
+        "email": "admin@projectflow.io",
+        "status": "active"
+      }
+    ],
+    "executives": [
+      {
+        "_id": "69f9ce352145debc5bad441d",
+        "name": "Executive User",
+        "email": "executive@projectflow.io",
+        "status": "active"
+      }
+    ]
+  },
+  "integrityIssues": [],
+  "dataAnomalies": []
+}
