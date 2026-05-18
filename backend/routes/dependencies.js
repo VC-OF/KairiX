@@ -6,31 +6,47 @@ const Project = require('../models/Project');
 const { authenticateToken, hasProjectAccess } = require('../middleware/auth');
 const router = express.Router();
 
+// Helper: Get directed dependency edge for schedule flow (cycle detection and CPM)
+function getDirectedEdge(d) {
+  if (!d || !d.sourceTaskId || !d.targetTaskId) return null;
+  const src = (d.sourceTaskId._id || d.sourceTaskId.id || d.sourceTaskId).toString();
+  const tgt = (d.targetTaskId._id || d.targetTaskId.id || d.targetTaskId).toString();
+  
+  if (d.dependencyType === 'blocks') {
+    return { from: src, to: tgt };
+  } else if (d.dependencyType === 'depends-on' || d.dependencyType === 'blocked-by') {
+    return { from: tgt, to: src };
+  }
+  // related-to and parent-child do not form scheduling edges
+  return null;
+}
+
 // Helper: DFS cycle detection
-function detectCycle(sourceId, targetId, existingDependencies) {
-  if (sourceId.toString() === targetId.toString()) return true;
+function detectCycle(sourceId, targetId, dependencyType, existingDependencies) {
+  const proposedEdge = getDirectedEdge({ sourceTaskId: sourceId, targetTaskId: targetId, dependencyType });
+  if (!proposedEdge) return false; // Non-blocking links cannot form cycles
+
+  if (proposedEdge.from === proposedEdge.to) return true;
 
   // Build adjacency list
   const adj = new Map();
-  // Include all nodes
   const nodes = new Set();
   
   existingDependencies.forEach(d => {
-    const s = d.sourceTaskId.toString();
-    const t = d.targetTaskId.toString();
-    nodes.add(s);
-    nodes.add(t);
-    if (!adj.has(s)) adj.set(s, []);
-    adj.get(s).push(t);
+    const edge = getDirectedEdge(d);
+    if (edge) {
+      nodes.add(edge.from);
+      nodes.add(edge.to);
+      if (!adj.has(edge.from)) adj.set(edge.from, []);
+      adj.get(edge.from).push(edge.to);
+    }
   });
 
-  // Add the proposed new edge (sourceId -> targetId)
-  const sProposed = sourceId.toString();
-  const tProposed = targetId.toString();
-  nodes.add(sProposed);
-  nodes.add(tProposed);
-  if (!adj.has(sProposed)) adj.set(sProposed, []);
-  adj.get(sProposed).push(tProposed);
+  // Add the proposed new edge (from -> to)
+  nodes.add(proposedEdge.from);
+  nodes.add(proposedEdge.to);
+  if (!adj.has(proposedEdge.from)) adj.set(proposedEdge.from, []);
+  adj.get(proposedEdge.from).push(proposedEdge.to);
 
   const visited = new Set();
   const recStack = new Set();
@@ -117,7 +133,7 @@ router.post('/:projectId', authenticateToken, hasProjectAccess('projectId'), asy
     const currentDependencies = await TaskDependency.find({ projectId: req.project._id });
 
     // Cycle detection check
-    const isCyclic = detectCycle(sourceTaskId, targetTaskId, currentDependencies);
+    const isCyclic = detectCycle(sourceTaskId, targetTaskId, dependencyType, currentDependencies);
     if (isCyclic) {
       return res.status(400).json({ message: 'Circular dependency detected! This connection would create a closed loop.' });
     }
@@ -222,7 +238,7 @@ router.post('/:projectId/bulk-remap', authenticateToken, hasProjectAccess('proje
       if (d.targetTaskId.toString() === taskId.toString()) {
         return res.status(400).json({ message: 'Self-dependency is not permitted.' });
       }
-      const isCyclic = detectCycle(taskId, d.targetTaskId, otherDeps);
+      const isCyclic = detectCycle(taskId, d.targetTaskId, d.dependencyType, otherDeps);
       if (isCyclic) {
         return res.status(400).json({ message: `Circular dependency detected for link ${taskId} -> ${d.targetTaskId}` });
       }
@@ -289,11 +305,10 @@ router.get('/:projectId/critical-path', authenticateToken, hasProjectAccess('pro
     });
 
     dependencies.forEach(d => {
-      const source = d.sourceTaskId.toString();
-      const target = d.targetTaskId.toString();
-      if (adj.has(source) && adj.has(target)) {
-        adj.get(source).push(target);
-        indegree.set(target, indegree.get(target) + 1);
+      const edge = getDirectedEdge(d);
+      if (edge && adj.has(edge.from) && adj.has(edge.to)) {
+        adj.get(edge.from).push(edge.to);
+        indegree.set(edge.to, indegree.get(edge.to) + 1);
       }
     });
 
@@ -335,8 +350,9 @@ router.get('/:projectId/critical-path', authenticateToken, hasProjectAccess('pro
       // ES is max EF of all predecessors
       let maxPredecessorEF = 0;
       dependencies.forEach(d => {
-        if (d.targetTaskId.toString() === uId) {
-          const predEF = EF.get(d.sourceTaskId.toString()) || 0;
+        const edge = getDirectedEdge(d);
+        if (edge && edge.to === uId) {
+          const predEF = EF.get(edge.from) || 0;
           if (predEF > maxPredecessorEF) maxPredecessorEF = predEF;
         }
       });
@@ -450,10 +466,13 @@ router.get('/:projectId/ai-insights', authenticateToken, hasProjectAccess('proje
     });
 
     dependencies.forEach(d => {
-      const source = d.sourceTaskId.toString();
-      const target = d.targetTaskId.toString();
-      if (outgoingCount.has(source)) outgoingCount.set(source, outgoingCount.get(source) + 1);
-      if (incomingCount.has(target)) incomingCount.set(target, incomingCount.get(target) + 1);
+      const edge = getDirectedEdge(d);
+      if (edge) {
+        const source = edge.from;
+        const target = edge.to;
+        if (outgoingCount.has(source)) outgoingCount.set(source, outgoingCount.get(source) + 1);
+        if (incomingCount.has(target)) incomingCount.set(target, incomingCount.get(target) + 1);
+      }
     });
 
     // 1. Detect Bottlenecks (nodes blocking multiple tasks)
@@ -479,12 +498,16 @@ router.get('/:projectId/ai-insights', authenticateToken, hasProjectAccess('proje
       // Overdue blockers causing cascading delays
       if (isBlocked) {
         // Find blocker tasks
-        const blockers = dependencies.filter(d => d.targetTaskId.toString() === idStr);
+        const blockers = dependencies.filter(d => {
+          const edge = getDirectedEdge(d);
+          return edge && edge.to === idStr;
+        });
         let blockedByNames = [];
         let hasOverdueBlocker = false;
 
         blockers.forEach(b => {
-          const blockerTask = tasks.find(tk => tk._id.toString() === b.sourceTaskId.toString());
+          const edge = getDirectedEdge(b);
+          const blockerTask = tasks.find(tk => tk._id.toString() === edge.from);
           if (blockerTask && blockerTask.status !== 'completed') {
             blockedByNames.push(blockerTask.title);
             if (blockerTask.dueDate && new Date(blockerTask.dueDate) < new Date()) {

@@ -294,9 +294,16 @@ export const DependencyWorkspace: React.FC = () => {
       const tgtId = d.targetTaskId?._id || d.targetTaskId?.id || d.targetTaskId;
       const srcId = d.sourceTaskId?._id || d.sourceTaskId?.id || d.sourceTaskId;
       
-      if (tgtId === task.id) {
-        const blocker = tasks.find(t => t.id === srcId);
-        return blocker && blocker.status !== 'completed';
+      if (d.dependencyType === 'blocks') {
+        if (tgtId === task.id) {
+          const blocker = tasks.find(t => t.id === srcId);
+          return blocker && blocker.status !== 'completed';
+        }
+      } else if (d.dependencyType === 'depends-on' || d.dependencyType === 'blocked-by') {
+        if (srcId === task.id) {
+          const blocker = tasks.find(t => t.id === tgtId);
+          return blocker && blocker.status !== 'completed';
+        }
       }
       return false;
     });
@@ -325,14 +332,46 @@ export const DependencyWorkspace: React.FC = () => {
   const incomingDeps = selectedTaskId
     ? dependencies.filter(d => {
         const tgtId = d.targetTaskId?._id || d.targetTaskId?.id || d.targetTaskId;
+        const srcId = d.sourceTaskId?._id || d.sourceTaskId?.id || d.sourceTaskId;
+        
+        if (d.dependencyType === 'blocks') {
+          return tgtId === selectedTaskId;
+        } else if (d.dependencyType === 'depends-on' || d.dependencyType === 'blocked-by') {
+          return srcId === selectedTaskId;
+        }
         return tgtId === selectedTaskId;
+      }).map(d => {
+        if (d.dependencyType === 'depends-on' || d.dependencyType === 'blocked-by') {
+          return {
+            ...d,
+            sourceTaskId: d.targetTaskId,
+            targetTaskId: d.sourceTaskId
+          };
+        }
+        return d;
       })
     : [];
 
   const outgoingDeps = selectedTaskId
     ? dependencies.filter(d => {
+        const tgtId = d.targetTaskId?._id || d.targetTaskId?.id || d.targetTaskId;
         const srcId = d.sourceTaskId?._id || d.sourceTaskId?.id || d.sourceTaskId;
+        
+        if (d.dependencyType === 'blocks') {
+          return srcId === selectedTaskId;
+        } else if (d.dependencyType === 'depends-on' || d.dependencyType === 'blocked-by') {
+          return tgtId === selectedTaskId;
+        }
         return srcId === selectedTaskId;
+      }).map(d => {
+        if (d.dependencyType === 'depends-on' || d.dependencyType === 'blocked-by') {
+          return {
+            ...d,
+            sourceTaskId: d.targetTaskId,
+            targetTaskId: d.sourceTaskId
+          };
+        }
+        return d;
       })
     : [];
 
@@ -344,11 +383,25 @@ export const DependencyWorkspace: React.FC = () => {
     if (!taskObj || taskObj.status === 'completed') return { level: 'Low', color: 'text-emerald-400 bg-emerald-950/30' };
 
     // Check if any blocker is stuck or overdue
-    const blockers = dependencies.filter(d => (d.targetTaskId?._id || d.targetTaskId?.id || d.targetTaskId) === taskId);
+    const blockers = dependencies.filter(d => {
+      const tgtId = d.targetTaskId?._id || d.targetTaskId?.id || d.targetTaskId;
+      const srcId = d.sourceTaskId?._id || d.sourceTaskId?.id || d.sourceTaskId;
+      
+      if (d.dependencyType === 'blocks') {
+        return tgtId === taskId;
+      } else if (d.dependencyType === 'depends-on' || d.dependencyType === 'blocked-by') {
+        return srcId === taskId;
+      }
+      return false;
+    }).map(d => {
+      const tgtId = d.targetTaskId?._id || d.targetTaskId?.id || d.targetTaskId;
+      const srcId = d.sourceTaskId?._id || d.sourceTaskId?.id || d.sourceTaskId;
+      return d.dependencyType === 'blocks' ? srcId : tgtId;
+    });
+
     let hasOverdueBlocker = false;
-    blockers.forEach(b => {
-      const srcId = b.sourceTaskId?._id || b.sourceTaskId?.id || b.sourceTaskId;
-      const bTask = tasks.find(tk => tk.id === srcId);
+    blockers.forEach(blockerId => {
+      const bTask = tasks.find(tk => tk.id === blockerId);
       if (bTask && bTask.status !== 'completed') {
         if (bTask.status === 'stuck') hasOverdueBlocker = true;
         if (bTask.dueDate && new Date(bTask.dueDate) < new Date()) hasOverdueBlocker = true;
@@ -655,7 +708,8 @@ export const DependencyWorkspace: React.FC = () => {
                       d={path}
                       fill="none"
                       stroke="transparent"
-                      markerEnd={`url(#arrow-${d.dependencyType})`}
+                      markerEnd={(d.dependencyType === 'depends-on' || d.dependencyType === 'blocked-by') ? undefined : `url(#arrow-${d.dependencyType})`}
+                      markerStart={(d.dependencyType === 'depends-on' || d.dependencyType === 'blocked-by') ? `url(#arrow-${d.dependencyType})` : undefined}
                     />
                   </g>
                 );
