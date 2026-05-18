@@ -13,10 +13,6 @@ import {
   Edit3,
   Eye,
   MessageSquare,
-  AlertCircle,
-  CheckCircle2,
-  Clock,
-  Circle,
   Copy,
 } from 'lucide-react';
 import { format, isAfter, parseISO, differenceInDays } from 'date-fns';

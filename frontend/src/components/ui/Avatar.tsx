@@ -3,7 +3,7 @@ import { User } from '../../store/useStore';
 
 interface AvatarProps {
   user: User;
-  size?: 'xs' | 'sm' | 'md' | 'lg';
+  size?: 'xxs' | 'xs' | 'sm' | 'md' | 'lg';
   showTooltip?: boolean;
 }
 

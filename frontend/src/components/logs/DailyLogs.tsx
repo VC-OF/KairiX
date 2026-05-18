@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useStore, DailyLog } from '../../store/useStore';
 import { Avatar } from '../ui/Avatar';
-import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import {
   Plus,
@@ -15,8 +14,7 @@ import {
   ChevronUp,
   Filter,
   History,
-  Activity,
-  User as UserIcon
+  Activity
 } from 'lucide-react';
 import { format, parseISO, isToday, isYesterday } from 'date-fns';
 
@@ -160,15 +158,15 @@ const LogCard: React.FC<{ log: DailyLog }> = ({ log }) => {
   const linkedTasks = tasks.filter((t) => log.completedTasks.includes(t.id));
   const isOwner = currentUser?.id === log.userId || currentUser?.role === 'admin';
 
-  const logDate = parseISO(log.date);
-  const dateLabel = isToday(logDate) ? 'Today' : isYesterday(logDate) ? 'Yesterday' : format(logDate, 'EEEE, MMM d');
+
+
 
   return (
     <>
       <div className="group bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-violet-500/30 transition-all duration-500 overflow-hidden relative">
         <div className="flex items-start gap-4 p-6 md:p-8">
           <div className="flex-shrink-0 relative">
-            {author && <Avatar user={author} size="lg" className="shadow-lg" />}
+            {author && <Avatar user={author} size="lg" />}
             <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-4 border-white dark:border-slate-900 flex items-center justify-center ${
               log.blockers ? 'bg-amber-500' : 'bg-emerald-500'
             }`}>

@@ -9,7 +9,7 @@ graph TD
     User((User))
     Web[React Frontend - Vite]
     API[Express/Node.js Server]
-    DB[(MySQL/PostgreSQL)]
+    DB[(MongoDB)]
     State[Zustand State Management]
 
     User --> Web
@@ -21,10 +21,10 @@ graph TD
 ## 2. Technology Stack
 - **Frontend**: React, TypeScript, Vite.
 - **State Management**: Zustand.
-- **Styling**: Vanilla CSS / Tailwind CSS.
-- **Backend**: Node.js, Express (with some components potentially in FastAPI/Python).
-- **Database**: MySQL (migrated from PostgreSQL).
-- **Authentication**: JWT-based or Session-based.
+- **Styling**: Tailwind CSS v4.
+- **Backend**: Node.js, Express.
+- **Database**: MongoDB (Mongoose ODM).
+- **Authentication**: JWT-based.
 
 ## 3. Core Components
 - **Frontend UI**: Responsive dashboard with Sidebar, Members, and Task components.
@@ -35,6 +35,7 @@ graph TD
 1. User interacts with the UI.
 2. Frontend triggers a Zustand action.
 3. Zustand action calls a utility function (using Axios/Fetch) to hit the Backend API.
-4. Backend API validates the request and interacts with the Database.
+4. Backend API validates the request and interacts with the Database (MongoDB via Mongoose).
 5. Response is sent back to the Frontend, updating the Zustand state.
 6. React components re-render based on state changes.
+

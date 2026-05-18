@@ -21,13 +21,11 @@ export const GlobalTimeTracker: React.FC = () => {
   const [searchId, setSearchId] = useState('');
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
-  const [loadingLogs, setLoadingLogs] = useState(false);
   
   // Timer state
   const [isActive, setIsActive] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [seconds, setSeconds] = useState(0);
-  const [accumulatedTime, setAccumulatedTime] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleSearch = (e?: React.FormEvent) => {
@@ -47,14 +45,11 @@ export const GlobalTimeTracker: React.FC = () => {
   };
 
   const fetchLogs = async (taskId: string) => {
-    setLoadingLogs(true);
     try {
       const res = await api.get(`/time-logs/task/${taskId}`);
       setLogs(res);
     } catch (err) {
       console.error('Failed to fetch task logs:', err);
-    } finally {
-      setLoadingLogs(false);
     }
   };
 
@@ -65,18 +60,15 @@ export const GlobalTimeTracker: React.FC = () => {
         setIsActive(true);
         setIsPaused(false);
         const elapsed = Math.floor((new Date().getTime() - new Date(status.startTime).getTime()) / 1000);
-        setAccumulatedTime(status.accumulatedTime);
         setSeconds(status.accumulatedTime + elapsed);
       } else if (status.status === 'paused') {
         setIsActive(true);
         setIsPaused(true);
         setSeconds(status.accumulatedTime);
-        setAccumulatedTime(status.accumulatedTime);
       } else {
         setIsActive(false);
         setIsPaused(false);
         setSeconds(0);
-        setAccumulatedTime(0);
       }
     } catch (err) {
       console.error('Error fetching timer status:', err);
@@ -107,7 +99,6 @@ export const GlobalTimeTracker: React.FC = () => {
       });
       setIsActive(true);
       setIsPaused(false);
-      setAccumulatedTime(0);
       setSeconds(0);
     } catch (err) {
       console.error('Error starting timer:', err);
@@ -119,7 +110,6 @@ export const GlobalTimeTracker: React.FC = () => {
     try {
       await api.post('/time-logs/pause', { taskId: activeTask.id });
       setIsPaused(true);
-      setAccumulatedTime(seconds);
     } catch (err) {
       console.error('Error pausing timer:', err);
     }
@@ -145,7 +135,6 @@ export const GlobalTimeTracker: React.FC = () => {
       setIsActive(false);
       setIsPaused(false);
       setSeconds(0);
-      setAccumulatedTime(0);
       fetchLogs(activeTask.id);
     } catch (err) {
       console.error('Error stopping timer:', err);

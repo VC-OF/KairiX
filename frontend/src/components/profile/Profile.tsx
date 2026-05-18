@@ -9,7 +9,6 @@ import {
   Lock, 
   Check, 
   AlertCircle,
-  Loader2,
   FileText
 } from 'lucide-react';
 

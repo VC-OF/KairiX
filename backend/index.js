@@ -38,6 +38,7 @@ const userRoutes = require('./routes/users');
 const commentRoutes = require('./routes/comments');
 const logRoutes = require('./routes/logs');
 const fileRoutes = require('./routes/files');
+const dependencyRoutes = require('./routes/dependencies');
 const { authenticateToken, requireGlobalRole } = require('./middleware/auth');
 const cron = require('node-cron');
 const analyticsService = require('./services/AnalyticsService');
@@ -143,6 +144,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/tasks', commentRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/files', fileRoutes);
+app.use('/api/dependencies', authenticateToken, dependencyRoutes);
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {

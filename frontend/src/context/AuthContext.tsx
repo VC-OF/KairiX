@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useState, useEffect, ReactNode } from 'react';
 import { authApi } from '../utils/api';
 
 export interface User {
@@ -7,6 +7,7 @@ export interface User {
   email: string;
   globalRole: 'admin' | 'executive' | 'user';
   avatar: string;
+  bio?: string;
 }
 
 interface AuthContextType {

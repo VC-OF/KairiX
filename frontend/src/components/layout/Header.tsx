@@ -15,15 +15,29 @@ const viewTitles: Record<string, { title: string; subtitle: string }> = {
   logs: { title: 'Daily Status Log', subtitle: 'Team progress updates and blockers' },
   members: { title: 'Team Members', subtitle: 'Manage your team up to 10 members' },
   profile: { title: 'My Profile', subtitle: 'Manage your personal account settings' },
+  dependency: { title: 'Dependency Map', subtitle: 'Visualize and manage task relationships' },
+  analytics: { title: 'Analytics', subtitle: 'Productivity stats and work trends' },
+  tracker: { title: 'Time Tracker', subtitle: 'Track and log work sessions for tasks' },
+  files: { title: 'Files & Docs', subtitle: 'Upload and manage project documents' },
 };
 
 export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpen }) => {
-  const { activeView, tasks, theme, toggleTheme, setActiveView } = useStore();
+  const {
+    activeView,
+    theme,
+    toggleTheme,
+    setActiveView,
+    projects,
+    setProject,
+    notifications,
+    markNotificationRead,
+    markAllNotificationsRead,
+    setSelectedTaskId,
+  } = useStore();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const { notifications, markNotificationRead, markAllNotificationsRead } = useStore();
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -148,7 +162,22 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
                   notifications.map((n) => (
                     <button
                       key={n._id}
-                      onClick={() => { markNotificationRead(n._id); setShowNotifications(false); }}
+                      onClick={async () => {
+                        markNotificationRead(n._id);
+                        setShowNotifications(false);
+                        if (n.data) {
+                          if (n.data.projectId) {
+                            const targetProj = projects.find(p => p.id === n.data.projectId);
+                            if (targetProj) {
+                              await setProject(targetProj);
+                            }
+                          }
+                          if (n.data.taskId) {
+                            setSelectedTaskId(n.data.taskId);
+                          }
+                        }
+                        setActiveView('board');
+                      }}
                       className={`w-full p-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-50 dark:border-gray-700 last:border-0 ${!n.read ? 'bg-indigo-50/30 dark:bg-indigo-900/10' : ''}`}
                     >
                       <div className="flex gap-3">

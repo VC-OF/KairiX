@@ -10,12 +10,10 @@ import {
   Archive,
   User,
   ChevronDown,
-  Activity,
-  AlertCircle,
-  CheckCircle2,
   Clock,
   TrendingUp,
   FileText,
+  Network,
 } from 'lucide-react';
 import { LogoCompact } from '../ui/Logo';
 import { useState } from 'react';
@@ -34,6 +32,12 @@ const navItems = [
     label: 'Kanban Board',
     icon: Kanban,
     description: 'Task management',
+  },
+  {
+    view: 'dependency' as const,
+    label: 'Dependency Map',
+    icon: Network,
+    description: 'Interactive graph',
   },
   {
     view: 'analytics' as const,
@@ -83,7 +87,14 @@ export const Sidebar: React.FC = () => {
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProjectName.trim()) return;
-    await addProject({ name: newProjectName, description: newProjectDesc, status: 'active' });
+    await addProject({ 
+      name: newProjectName, 
+      description: newProjectDesc, 
+      status: 'active',
+      visibility: 'public',
+      priority: 'medium',
+      isLocked: false
+    });
     setNewProjectName('');
     setNewProjectDesc('');
     setShowProjectModal(false);

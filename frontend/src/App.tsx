@@ -15,10 +15,22 @@ import { Profile } from './components/profile/Profile';
 import { AnalyticsDashboard } from './components/dashboard/AnalyticsDashboard';
 import { GlobalTimeTracker } from './components/tracker/GlobalTimeTracker';
 import { FilesDocs } from './components/files/FilesDocs';
-import { connectSocket, joinProjectRoom, disconnectSocket, getSocket } from './utils/socket';
+import { TaskDetail } from './components/tasks/TaskDetail';
+import { DependencyWorkspace } from './components/dependency/DependencyWorkspace';
+import { connectSocket, joinProjectRoom, disconnectSocket } from './utils/socket';
 
 function AppLayout() {
-  const { activeView, setActiveView, fetchData, theme, project, notifications, fetchNotifications } = useStore();
+  const {
+    activeView,
+    setActiveView,
+    fetchData,
+    theme,
+    project,
+    fetchNotifications,
+    tasks,
+    selectedTaskId,
+    setSelectedTaskId,
+  } = useStore();
   const { token } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -39,7 +51,7 @@ function AppLayout() {
   // Sync active view with URL on first load
   useEffect(() => {
     const path = window.location.pathname.replace('/', '');
-    const validViews = ['dashboard', 'board', 'logs', 'members', 'profile', 'analytics', 'tracker', 'files'];
+    const validViews = ['dashboard', 'board', 'logs', 'members', 'profile', 'analytics', 'tracker', 'files', 'dependency'];
     if (validViews.includes(path)) {
       setActiveView(path as any);
     }
@@ -52,7 +64,7 @@ function AppLayout() {
     const socket = connectSocket(token, project.id !== 'project-1' ? project.id : undefined);
 
     // Real-time task events → refresh store
-    socket.on('task-created', (task: any) => {
+    socket.on('task-created', () => {
       useStore.getState().fetchData();
     });
     socket.on('task-updated', (task: any) => {
@@ -67,6 +79,79 @@ function AppLayout() {
       }));
     });
 
+    // Real-time task comments → append to store
+    socket.on('comment-added', ({ taskId, comment }: { taskId: string; comment: any }) => {
+      const mapped = { ...comment, id: comment._id };
+      useStore.setState((state) => {
+        const existingComments = state.taskComments[taskId] || [];
+        if (existingComments.some(c => c.id === mapped.id)) return state;
+        return {
+          taskComments: {
+            ...state.taskComments,
+            [taskId]: [...existingComments, mapped]
+          }
+        };
+      });
+    });
+
+    // Real-time project updates → update projects state list
+    socket.on('project-updated', (updatedProj: any) => {
+      const mapped = {
+        ...updatedProj,
+        id: updatedProj._id || updatedProj.id,
+        members: (updatedProj.members || []).map((m: any) => m.userId?._id || m.userId || m)
+      };
+      useStore.setState((state) => ({
+        projects: state.projects.map((p) => (p.id === mapped.id ? mapped : p)),
+        project: state.project.id === mapped.id ? mapped : state.project
+      }));
+    });
+
+    // Real-time project deleted → remove from projects list
+    socket.on('project-deleted', (projectId: string) => {
+      useStore.setState((state) => {
+        const filteredProjects = state.projects.filter(p => p.id !== projectId);
+        const nextActive = state.project.id === projectId ? (filteredProjects[0] || state.project) : state.project;
+        return {
+          projects: filteredProjects,
+          project: nextActive
+        };
+      });
+      if (useStore.getState().project.id === projectId) {
+        useStore.getState().fetchData();
+      }
+    });
+
+    // Real-time user project addition
+    socket.on('project-added', (newProj: any) => {
+      const mapped = {
+        ...newProj,
+        id: newProj._id || newProj.id,
+        members: (newProj.members || []).map((m: any) => m.userId?._id || m.userId || m)
+      };
+      useStore.setState((state) => {
+        if (state.projects.some(p => p.id === mapped.id)) return state;
+        return {
+          projects: [...state.projects, mapped]
+        };
+      });
+    });
+
+    // Real-time user project removal
+    socket.on('project-removed', (projectId: string) => {
+      useStore.setState((state) => {
+        const filteredProjects = state.projects.filter(p => p.id !== projectId);
+        const nextActive = state.project.id === projectId ? (filteredProjects[0] || state.project) : state.project;
+        return {
+          projects: filteredProjects,
+          project: nextActive
+        };
+      });
+      if (useStore.getState().project.id === projectId) {
+        useStore.getState().fetchData();
+      }
+    });
+
     // Real-time notification → prepend to store
     socket.on('notification', (notification: any) => {
       useStore.setState((state) => ({
@@ -78,6 +163,11 @@ function AppLayout() {
       socket.off('task-created');
       socket.off('task-updated');
       socket.off('task-deleted');
+      socket.off('comment-added');
+      socket.off('project-updated');
+      socket.off('project-deleted');
+      socket.off('project-added');
+      socket.off('project-removed');
       socket.off('notification');
     };
   }, [token]);
@@ -107,6 +197,7 @@ function AppLayout() {
       case 'analytics': return <AnalyticsDashboard />;
       case 'tracker': return <GlobalTimeTracker />;
       case 'files': return <FilesDocs />;
+      case 'dependency': return <DependencyWorkspace />;
       default: return <Dashboard />;
     }
   };
@@ -144,12 +235,27 @@ function AppLayout() {
           {renderView()}
         </main>
       </div>
+
+      {selectedTaskId && (() => {
+        const task = tasks.find(t => t.id === selectedTaskId);
+        if (!task) return null;
+        return (
+          <TaskDetail
+            isOpen={!!selectedTaskId}
+            onClose={() => setSelectedTaskId(null)}
+            task={task}
+            onEdit={() => {
+              setSelectedTaskId(null);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }
 
 const App: React.FC = () => {
-  const { isAuthenticated, token } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   // Disconnect socket on logout
   useEffect(() => {
@@ -172,6 +278,9 @@ const App: React.FC = () => {
         <Route path="/members" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
         <Route path="/analytics" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
+        <Route path="/tracker" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
+        <Route path="/files" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
+        <Route path="/dependency" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
 
         {/* Redirect */}
         <Route path="/" element={<Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />} />

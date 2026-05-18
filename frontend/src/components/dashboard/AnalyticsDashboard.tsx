@@ -1,19 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  AreaChart, Area, PieChart, Pie, Cell, Legend, ComposedChart, Line
+  Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  AreaChart, Area, Legend, ComposedChart, Line
 } from 'recharts';
 import { useStore } from '../../store/useStore';
 import { api } from '../../utils/api';
 import {
-  TrendingUp, Users, Clock, CheckCircle,
-  ArrowUpRight, ArrowDownRight, Calendar,
-  Trophy, Zap, AlertTriangle, List, LayoutGrid, Search
+  TrendingUp, CheckCircle, Trophy, Zap, AlertTriangle, List, LayoutGrid
 } from 'lucide-react';
-import { format, subDays, startOfMonth, endOfMonth, startOfWeeks, endOfWeek } from 'date-fns';
+import { subDays } from 'date-fns';
 
 export const AnalyticsDashboard: React.FC = () => {
-  const { project, users } = useStore();
+  const { project } = useStore();
   const [stats, setStats] = useState<any>(null);
   const [comprehensive, setComprehensive] = useState<any>(null);
   const [dailyHours, setDailyHours] = useState<any[]>([]);
@@ -62,7 +60,7 @@ export const AnalyticsDashboard: React.FC = () => {
     );
   }
 
-  const COLORS = ['#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'];
+
 
   const renderAvatar = (member: any, size: string = 'w-12 h-12') => {
     const isImage = member.avatar && member.avatar.length > 4;

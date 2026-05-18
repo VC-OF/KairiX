@@ -13,6 +13,7 @@ export interface User {
   role: UserRole;
   color: string;
   joinedAt: string;
+  bio?: string;
 }
 
 export interface Task {
@@ -88,7 +89,7 @@ interface AppState {
   dailyLogs: DailyLog[];
   notifications: any[];
   taskComments: Record<string, TaskComment[]>; // taskId -> comments
-  activeView: 'dashboard' | 'board' | 'analytics' | 'logs' | 'members' | 'profile' | 'tracker' | 'files';
+  activeView: 'dashboard' | 'board' | 'analytics' | 'logs' | 'members' | 'profile' | 'tracker' | 'files' | 'dependency';
   searchQuery: string;
   filterStatus: TaskStatus | 'all';
   filterAssignee: string | 'all';
@@ -97,6 +98,10 @@ interface AppState {
   showArchived: boolean;
 
   fetchData: () => Promise<void>;
+  fetchProjects: () => Promise<Project[]>;
+  fetchUsers: () => Promise<User[]>;
+  fetchTasks: (projectId?: string) => Promise<void>;
+  fetchLogs: (projectId?: string) => Promise<void>;
   setProject: (project: Project) => Promise<void>;
   toggleTheme: () => void;
 
@@ -140,6 +145,22 @@ interface AppState {
   fetchNotifications: () => Promise<void>;
   markNotificationRead: (id: string) => Promise<void>;
   markAllNotificationsRead: () => Promise<void>;
+  selectedTaskId: string | null;
+  setSelectedTaskId: (id: string | null) => void;
+
+  // Dependencies state
+  dependencies: any[];
+  criticalPath: string[];
+  dependencyEvents: any[];
+  aiInsights: any;
+
+  fetchDependencies: () => Promise<void>;
+  addDependency: (sourceTaskId: string, targetTaskId: string, dependencyType: string) => Promise<void>;
+  deleteDependency: (dependencyId: string) => Promise<void>;
+  bulkRemapDependencies: (taskId: string, dependencies: Array<{ targetTaskId: string, dependencyType: string }>) => Promise<void>;
+  fetchCriticalPath: () => Promise<void>;
+  fetchDependencyEvents: () => Promise<void>;
+  fetchAIInsights: () => Promise<void>;
 }
 
 const AVATAR_COLORS = [
@@ -155,6 +176,9 @@ export const useStore = create<AppState>((set, get) => ({
     name: 'Loading...',
     description: '',
     status: 'active',
+    visibility: 'public',
+    priority: 'medium',
+    isLocked: false,
     members: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -172,39 +196,89 @@ export const useStore = create<AppState>((set, get) => ({
   isLoading: false,
   theme: (localStorage.getItem('theme') as 'light' | 'dark') || 'light',
   showArchived: false,
+  selectedTaskId: null,
+  setSelectedTaskId: (id) => set({ selectedTaskId: id }),
 
-  fetchData: async () => {
-    set({ isLoading: true });
+  fetchProjects: async () => {
     try {
-      const [projects, users] = await Promise.all([
-        api.get(`/projects${get().showArchived ? '?includeArchived=true' : ''}`),
-        api.get('/users'),
-      ]);
-
+      const projects = await api.get(`/projects${get().showArchived ? '?includeArchived=true' : ''}`);
       const mappedProjects = projects.map((p: any) => ({
         ...p,
         id: p._id,
-        // Extract member IDs for the flat members array the frontend expects
         members: (p.members || []).map((m: any) => m.userId?._id || m.userId || m),
       }));
+      set({ projects: mappedProjects });
+      return mappedProjects;
+    } catch (error) {
+      console.error('Failed to fetch projects:', error);
+      return [];
+    }
+  },
+
+  fetchUsers: async () => {
+    try {
+      const users = await api.get('/users');
       const mappedUsers = users.map((u: any) => ({
         ...u,
         id: u._id,
         role: u.globalRole,
         color: AVATAR_COLORS[users.indexOf(u) % AVATAR_COLORS.length],
       }));
+      set({ users: mappedUsers });
+      return mappedUsers;
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+      return [];
+    }
+  },
 
-      const currentProject = mappedProjects[0] || get().project;
+  fetchTasks: async (projectId?: string) => {
+    const pId = projectId || get().project.id;
+    if (pId === 'project-1') return;
+    try {
       const sq = get().searchQuery;
-      const taskUrl = `/tasks/${currentProject.id}${sq ? `?search=${encodeURIComponent(sq)}` : ''}`;
-      const [tasks, logs] = await Promise.all([
-        api.get(taskUrl),
-        api.get(`/logs?projectId=${currentProject.id}`),
+      const taskUrl = `/tasks/${pId}${sq ? `?search=${encodeURIComponent(sq)}` : ''}`;
+      const response = await api.get(taskUrl);
+      const mappedTasks = (response?.tasks || []).map((t: any) => ({
+        ...t,
+        id: t._id || t.id,
+        assignees: (t.assignees || []).map((a: any) => a._id || a)
+      }));
+      set({ tasks: mappedTasks });
+    } catch (error) {
+      console.error('Failed to fetch tasks:', error);
+    }
+  },
+
+  fetchLogs: async (projectId?: string) => {
+    const pId = projectId || get().project.id;
+    if (pId === 'project-1') return;
+    try {
+      const response = await api.get(`/logs?projectId=${pId}`);
+      const mappedLogs = (response?.logs || []).map((l: any) => ({
+        ...l,
+        id: l._id || l.id,
+        userId: l.userId?._id || l.userId
+      }));
+      set({ dailyLogs: mappedLogs });
+    } catch (error) {
+      console.error('Failed to fetch logs:', error);
+    }
+  },
+
+  fetchData: async () => {
+    set({ isLoading: true });
+    try {
+      const [mappedProjects, mappedUsers] = await Promise.all([
+        get().fetchProjects(),
+        get().fetchUsers(),
       ]);
+
+      const currentProject = mappedProjects.find((p: Project) => p.id === get().project.id) || mappedProjects[0] || get().project;
 
       const storedUserStr = localStorage.getItem('user');
       let actualCurrentUser = null;
-      if (storedUserStr) {
+      if (storedUserStr && mappedUsers.length > 0) {
         try {
           const storedUser = JSON.parse(storedUserStr);
           actualCurrentUser = mappedUsers.find((u: User) => u.id === (storedUser.id || storedUser._id));
@@ -212,14 +286,18 @@ export const useStore = create<AppState>((set, get) => ({
       }
 
       set({
-        projects: mappedProjects,
         project: currentProject,
-        users: mappedUsers,
-        tasks: (tasks?.tasks || []).map((t: any) => ({ ...t, id: t._id || t.id, assignees: (t.assignees || []).map((a: any) => a._id || a) })),
-        dailyLogs: (logs?.logs || []).map((l: any) => ({ ...l, id: l._id || l.id, userId: l.userId?._id || l.userId })),
         currentUser: actualCurrentUser || mappedUsers[0] || null,
-        isLoading: false
       });
+
+      if (currentProject.id && currentProject.id !== 'project-1') {
+        await Promise.all([
+          get().fetchTasks(currentProject.id),
+          get().fetchLogs(currentProject.id)
+        ]);
+      }
+
+      set({ isLoading: false });
       get().fetchNotifications();
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -230,17 +308,11 @@ export const useStore = create<AppState>((set, get) => ({
   setProject: async (project) => {
     set({ project, isLoading: true });
     try {
-      const sq = get().searchQuery;
-      const taskUrl = `/tasks/${project.id}${sq ? `?search=${encodeURIComponent(sq)}` : ''}`;
-      const [tasks, logs] = await Promise.all([
-        api.get(taskUrl),
-        api.get(`/logs?projectId=${project.id}`),
+      await Promise.all([
+        get().fetchTasks(project.id),
+        get().fetchLogs(project.id)
       ]);
-      set({
-        tasks: (tasks?.tasks || []).map((t: any) => ({ ...t, id: t._id || t.id, assignees: (t.assignees || []).map((a: any) => a._id || a) })),
-        dailyLogs: (logs?.logs || []).map((l: any) => ({ ...l, id: l._id || l.id, userId: l.userId?._id || l.userId })),
-        isLoading: false
-      });
+      set({ isLoading: false });
     } catch {
       set({ isLoading: false });
     }
@@ -488,6 +560,110 @@ export const useStore = create<AppState>((set, get) => ({
       }));
     } catch (error) {
       console.error('Failed to mark all notifications read:', error);
+    }
+  },
+
+  // Dependencies Initial State
+  dependencies: [],
+  criticalPath: [],
+  dependencyEvents: [],
+  aiInsights: { bottlenecks: [], delays: [], suggestions: [] },
+
+  fetchDependencies: async () => {
+    const projectId = get().project.id;
+    if (projectId === 'project-1') return;
+    try {
+      const response = await api.get(`/dependencies/${projectId}`);
+      set({
+        dependencies: response.dependencies || [],
+      });
+    } catch (error) {
+      console.error('Failed to fetch dependencies:', error);
+    }
+  },
+
+  addDependency: async (sourceTaskId, targetTaskId, dependencyType) => {
+    const projectId = get().project.id;
+    try {
+      const saved = await api.post(`/dependencies/${projectId}`, {
+        sourceTaskId,
+        targetTaskId,
+        dependencyType
+      });
+      set((state) => ({
+        dependencies: [...state.dependencies, saved]
+      }));
+      await get().fetchCriticalPath();
+      await get().fetchAIInsights();
+      await get().fetchDependencyEvents();
+    } catch (error: any) {
+      console.error('Failed to add dependency:', error);
+      throw new Error(error.response?.data?.message || 'Failed to add dependency');
+    }
+  },
+
+  deleteDependency: async (dependencyId) => {
+    const projectId = get().project.id;
+    try {
+      await api.delete(`/dependencies/${projectId}/${dependencyId}`);
+      set((state) => ({
+        dependencies: state.dependencies.filter(d => d._id !== dependencyId)
+      }));
+      await get().fetchCriticalPath();
+      await get().fetchAIInsights();
+      await get().fetchDependencyEvents();
+    } catch (error) {
+      console.error('Failed to delete dependency:', error);
+    }
+  },
+
+  bulkRemapDependencies: async (taskId, dependenciesList) => {
+    const projectId = get().project.id;
+    try {
+      await api.post(`/dependencies/${projectId}/bulk-remap`, {
+        taskId,
+        dependencies: dependenciesList
+      });
+      await get().fetchDependencies();
+      await get().fetchCriticalPath();
+      await get().fetchAIInsights();
+      await get().fetchDependencyEvents();
+    } catch (error: any) {
+      console.error('Failed to bulk remap dependencies:', error);
+      throw new Error(error.response?.data?.message || 'Failed to remap dependencies');
+    }
+  },
+
+  fetchCriticalPath: async () => {
+    const projectId = get().project.id;
+    if (projectId === 'project-1') return;
+    try {
+      const response = await api.get(`/dependencies/${projectId}/critical-path`);
+      set({ criticalPath: response.criticalPath || [] });
+    } catch (error) {
+      console.error('Failed to fetch critical path:', error);
+    }
+  },
+
+  fetchDependencyEvents: async () => {
+    const projectId = get().project.id;
+    if (projectId === 'project-1') return;
+    try {
+      const response = await api.get(`/dependencies/${projectId}/events`);
+      set({ dependencyEvents: response || [] });
+    } catch (error) {
+      console.error('Failed to fetch dependency events:', error);
+    }
+  },
+
+  fetchAIInsights: async () => {
+    const projectId = get().project.id;
+    if (projectId === 'project-1') return;
+    try {
+      const response = await api.get(`/dependencies/${projectId}/ai-insights`);
+      set({ aiInsights: response || { bottlenecks: [], delays: [], suggestions: [] } });
+    } catch (error) {
+      console.error('Failed to fetch AI insights:', error);
     }
   },
 }));

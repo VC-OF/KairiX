@@ -1,12 +1,12 @@
 {
-  "timestamp": "2026-05-05T14:38:23.794Z",
+  "timestamp": "2026-05-18T11:52:04.811Z",
   "summary": {
     "collections": {
-      "users": 11,
-      "projects": 4,
-      "tasks": 3,
-      "dailyLogs": 9,
-      "comments": 2
+      "users": 15,
+      "projects": 13,
+      "tasks": 22,
+      "dailyLogs": 16,
+      "comments": 15
     }
   },
   "rbacAudit": {
@@ -27,6 +27,37 @@
       }
     ]
   },
-  "integrityIssues": [],
-  "dataAnomalies": []
+  "integrityIssues": [
+    {
+      "type": "ORPHANED_TASKS",
+      "count": 3,
+      "items": [
+        {
+          "id": "69fa393cb5b3006e349c0158",
+          "title": "user stories"
+        },
+        {
+          "id": "69fa39d9b5b3006e349c0165",
+          "title": "mkjx"
+        },
+        {
+          "id": "6a0207cff9f7e014a80776f0",
+          "title": "userr stories"
+        }
+      ]
+    }
+  ],
+  "dataAnomalies": [
+    {
+      "type": "OVERDUE_PENDING_TASKS",
+      "count": 1,
+      "items": [
+        {
+          "_id": "69f9f75cdadbfd56fd1cc05e",
+          "title": "Setup authentication",
+          "dueDate": "2026-05-12T13:57:48.945Z"
+        }
+      ]
+    }
+  ]
 }

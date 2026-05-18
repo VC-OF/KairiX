@@ -178,7 +178,16 @@ class TimeTrackingService {
 
   async getTaskTimerStatus(userId, taskId) {
     const today = new Date().toISOString().split('T')[0];
-    const logs = await TimeLog.find({ userId, taskId, workDate: today });
+    
+    // Find all logs for this user & task today, OR any active log (which could have started yesterday)
+    const logs = await TimeLog.find({ 
+      userId, 
+      taskId,
+      $or: [
+        { workDate: today },
+        { status: 'active' }
+      ]
+    });
     
     let totalDuration = 0;
     let status = 'idle';
@@ -189,10 +198,13 @@ class TimeTrackingService {
         status = 'active';
         startTime = log.startTime;
       } else if (log.status === 'paused') {
-        status = 'paused';
-        totalDuration += log.duration;
+        if (log.workDate === today) {
+          totalDuration += log.duration;
+        }
       } else {
-        totalDuration += log.duration;
+        if (log.workDate === today) {
+          totalDuration += log.duration;
+        }
       }
     });
 

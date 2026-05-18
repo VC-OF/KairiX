@@ -1,6 +1,16 @@
 const express = require('express');
 const Project = require('../models/Project');
 const User = require('../models/User');
+const Task = require('../models/Task');
+const TaskDependency = require('../models/TaskDependency');
+const DependencyEvent = require('../models/DependencyEvent');
+const TimeLog = require('../models/TimeLog');
+const DailyLog = require('../models/DailyLog');
+const TaskComment = require('../models/TaskComment');
+const File = require('../models/File');
+const Folder = require('../models/Folder');
+const fs = require('fs');
+const path = require('path');
 const { authenticateToken, requireGlobalRole, hasProjectAccess, requireProjectRole } = require('../middleware/auth');
 const router = express.Router();
 
@@ -35,7 +45,7 @@ router.post('/', authenticateToken, async (req, res) => {
 
     await project.save();
     await project.populate('members.userId', 'name email avatar globalRole');
-    
+
     res.status(201).json(project);
   } catch (err) {
     console.error('Create project error:', err);
@@ -103,14 +113,14 @@ router.get('/:projectId', authenticateToken, hasProjectAccess('projectId'), asyn
  * PUT /api/projects/:projectId
  * Update project (ProjectManager only)
  */
-router.put('/:projectId', 
-  authenticateToken, 
-  hasProjectAccess('projectId'), 
+router.put('/:projectId',
+  authenticateToken,
+  hasProjectAccess('projectId'),
   requireProjectRole('ProjectManager'),
   async (req, res) => {
     try {
       const { name, description, status, visibility, priority, isLocked } = req.body;
-      
+
       // Check if project is locked
       if (req.project.isLocked && req.user.globalRole !== 'admin' && isLocked !== false) {
         return res.status(403).json({ message: 'Project is locked and cannot be modified' });
@@ -125,7 +135,12 @@ router.put('/:projectId',
 
       await req.project.save();
       await req.project.populate('members.userId', 'name email avatar globalRole');
-      
+
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`project:${req.project._id}`).emit('project-updated', req.project);
+      }
+
       res.json(req.project);
     } catch (err) {
       console.error('Update project error:', err);
@@ -138,14 +153,46 @@ router.put('/:projectId',
  * DELETE /api/projects/:projectId
  * Delete project (ProjectManager only)
  */
-router.delete('/:projectId', 
-  authenticateToken, 
-  hasProjectAccess('projectId'), 
+router.delete('/:projectId',
+  authenticateToken,
+  hasProjectAccess('projectId'),
   requireProjectRole('ProjectManager'),
   async (req, res) => {
     try {
-      await Project.findByIdAndDelete(req.project._id);
-      res.json({ message: 'Project deleted successfully' });
+      const projectId = req.project._id;
+      
+      // Fetch tasks of this project to delete their comments
+      const tasks = await Task.find({ projectId });
+      const taskIds = tasks.map(t => t._id);
+
+      // Perform cascading deletions of all project-related entities in parallel
+      await Promise.all([
+        Project.findByIdAndDelete(projectId),
+        Task.deleteMany({ projectId }),
+        TaskDependency.deleteMany({ projectId }),
+        DependencyEvent.deleteMany({ projectId }),
+        TimeLog.deleteMany({ projectId }),
+        DailyLog.deleteMany({ projectId }),
+        File.deleteMany({ projectId }),
+        Folder.deleteMany({ projectId }),
+        TaskComment.deleteMany({ taskId: { $in: taskIds } })
+      ]);
+
+      // Clean up local uploads directory for the project
+      try {
+        const uploadDir = path.join(__dirname, '../uploads', projectId.toString());
+        if (fs.existsSync(uploadDir)) {
+          fs.rmSync(uploadDir, { recursive: true, force: true });
+        }
+      } catch (fileErr) {
+        console.error('Failed to clean up uploads directory for project:', fileErr);
+      }
+
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`project:${req.project._id}`).emit('project-deleted', req.project._id.toString());
+      }
+      res.json({ message: 'Project and all related data deleted successfully' });
     } catch (err) {
       console.error('Delete project error:', err);
       res.status(500).json({ message: 'Server error' });
@@ -157,8 +204,8 @@ router.delete('/:projectId',
  * POST /api/projects/:projectId/members
  * Add member to project (Admin or ProjectManager)
  */
-router.post('/:projectId/members', 
-  authenticateToken, 
+router.post('/:projectId/members',
+  authenticateToken,
   async (req, res) => {
     try {
       const { userId, role } = req.body;
@@ -208,7 +255,7 @@ router.post('/:projectId/members',
       });
 
       if (busyProjects.length > 0 && !req.body.force) {
-        return res.status(200).json({ 
+        return res.status(200).json({
           warning: true,
           message: `User is already allocated to high-priority project(s): ${busyProjects.map(p => p.name).join(', ')}. Proceed anyway?`,
           code: 'USER_BUSY'
@@ -219,6 +266,12 @@ router.post('/:projectId/members',
       project.members.push({ userId, role });
       await project.save();
       await project.populate('members.userId', 'name email avatar globalRole');
+
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`project:${project._id}`).emit('project-updated', project);
+        io.to(`user:${userId}`).emit('project-added', project);
+      }
 
       res.status(201).json(project);
     } catch (err) {
@@ -232,9 +285,9 @@ router.post('/:projectId/members',
  * PUT /api/projects/:projectId/members/:memberId
  * Update member role (ProjectManager only)
  */
-router.put('/:projectId/members/:memberId', 
-  authenticateToken, 
-  hasProjectAccess('projectId'), 
+router.put('/:projectId/members/:memberId',
+  authenticateToken,
+  hasProjectAccess('projectId'),
   requireProjectRole('ProjectManager'),
   async (req, res) => {
     try {
@@ -258,6 +311,11 @@ router.put('/:projectId/members/:memberId',
       await req.project.save();
       await req.project.populate('members.userId', 'name email avatar globalRole');
 
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`project:${req.project._id}`).emit('project-updated', req.project);
+      }
+
       res.json(req.project);
     } catch (err) {
       console.error('Update member error:', err);
@@ -270,9 +328,9 @@ router.put('/:projectId/members/:memberId',
  * DELETE /api/projects/:projectId/members/:memberId
  * Remove member from project (ProjectManager only)
  */
-router.delete('/:projectId/members/:memberId', 
-  authenticateToken, 
-  hasProjectAccess('projectId'), 
+router.delete('/:projectId/members/:memberId',
+  authenticateToken,
+  hasProjectAccess('projectId'),
   requireProjectRole('ProjectManager'),
   async (req, res) => {
     try {
@@ -289,6 +347,12 @@ router.delete('/:projectId/members/:memberId',
       req.project.members = req.project.members.filter(m => m.userId.toString() !== memberId);
       await req.project.save();
       await req.project.populate('members.userId', 'name email avatar globalRole');
+
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`project:${req.project._id}`).emit('project-updated', req.project);
+        io.to(`user:${memberId}`).emit('project-removed', req.project._id.toString());
+      }
 
       res.json(req.project);
     } catch (err) {

@@ -7,25 +7,22 @@ import {
   Upload, 
   Plus, 
   Search, 
-  MoreVertical, 
   Download, 
   Trash2, 
-  Edit3, 
   ChevronRight, 
   FileText, 
   Image as ImageIcon, 
   Film, 
   Archive,
   Grid,
-  List as ListIcon,
-  ArrowLeft
+  List as ListIcon
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { format } from 'date-fns';
 
 export const FilesDocs: React.FC = () => {
-  const { project, currentUser } = useStore();
+  const { project } = useStore();
   const [items, setItems] = useState<{ files: any[], folders: any[] }>({ files: [], folders: [] });
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [folderPath, setFolderPath] = useState<{id: string | null, name: string}[]>([{id: null, name: 'Root'}]);
@@ -42,7 +39,7 @@ export const FilesDocs: React.FC = () => {
   const getFileUrl = (url: string) => {
     if (!url) return '#';
     if (url.startsWith('http')) return url;
-    const baseUrl = (import.meta.env.VITE_API_URL as string || 'http://localhost:5000/api').replace('/api', '');
+    const baseUrl = ((import.meta as any).env?.VITE_API_URL as string || 'http://localhost:5000/api').replace('/api', '');
     return `${baseUrl}${url}`;
   };
   

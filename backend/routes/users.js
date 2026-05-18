@@ -1,5 +1,7 @@
 const express = require('express');
 const User = require('../models/User');
+const Project = require('../models/Project');
+const Task = require('../models/Task');
 const { authenticateToken, requireGlobalRole } = require('../middleware/auth');
 const router = express.Router();
 
@@ -39,8 +41,17 @@ router.put('/:id', authenticateToken, async (req, res) => {
 // Delete user (admin only)
 router.delete('/:id', authenticateToken, requireGlobalRole('admin'), async (req, res) => {
   try {
-    await User.findByIdAndDelete(req.params.id);
-    res.json({ message: 'User deleted' });
+    const userId = req.params.id;
+
+    // Pull user from all projects' members list and unassign from all tasks in parallel
+    await Promise.all([
+      User.findByIdAndDelete(userId),
+      Project.updateMany({}, { $pull: { members: { userId } } }),
+      Task.updateMany({ assignedTo: userId }, { $set: { assignedTo: null } }),
+      Task.updateMany({}, { $pull: { assignees: userId } })
+    ]);
+
+    res.json({ message: 'User and their project assignments deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
