@@ -21,6 +21,7 @@ export const GlobalTimeTracker: React.FC = () => {
   const [searchId, setSearchId] = useState('');
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   
   // Timer state
   const [isActive, setIsActive] = useState(false);
@@ -89,7 +90,8 @@ export const GlobalTimeTracker: React.FC = () => {
   }, [isActive, isPaused]);
 
   const handleStart = async () => {
-    if (!activeTask) return;
+    if (!activeTask || loading) return;
+    setLoading(true);
     try {
       const todayStr = new Date().toISOString().split('T')[0];
       await api.post('/time-logs/start', { 
@@ -102,21 +104,27 @@ export const GlobalTimeTracker: React.FC = () => {
       setSeconds(0);
     } catch (err) {
       console.error('Error starting timer:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handlePause = async () => {
-    if (!activeTask) return;
+    if (!activeTask || loading) return;
+    setLoading(true);
     try {
       await api.post('/time-logs/pause', { taskId: activeTask.id });
       setIsPaused(true);
     } catch (err) {
       console.error('Error pausing timer:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleResume = async () => {
-    if (!activeTask) return;
+    if (!activeTask || loading) return;
+    setLoading(true);
     try {
       await api.post('/time-logs/resume', { 
         taskId: activeTask.id, 
@@ -125,19 +133,24 @@ export const GlobalTimeTracker: React.FC = () => {
       setIsPaused(false);
     } catch (err) {
       console.error('Error resuming timer:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleStop = async () => {
-    if (!activeTask) return;
+    if (!activeTask || loading) return;
+    setLoading(true);
     try {
       await api.post('/time-logs/stop', { taskId: activeTask.id });
       setIsActive(false);
       setIsPaused(false);
       setSeconds(0);
-      fetchLogs(activeTask.id);
+      await fetchLogs(activeTask.id);
     } catch (err) {
       console.error('Error stopping timer:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -403,29 +416,31 @@ export const GlobalTimeTracker: React.FC = () => {
                   {!isActive ? (
                     <button
                       onClick={handleStart}
-                      disabled={!activeTask}
+                      disabled={!activeTask || loading}
                       className="flex-1 h-16 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-xl shadow-violet-500/20 hover:brightness-110 disabled:opacity-30 disabled:cursor-not-allowed disabled:grayscale"
                     >
                       <Play className="w-6 h-6 fill-current" />
-                      Start Tracking
+                      {loading ? 'Starting...' : 'Start Tracking'}
                     </button>
                   ) : (
                     <>
                       <button
                         onClick={isPaused ? handleResume : handlePause}
+                        disabled={loading}
                         className={`flex-1 h-16 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-xl ${
                           isPaused
                             ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-emerald-500/20'
                             : 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-amber-500/20'
-                        } hover:brightness-110`}
+                        } hover:brightness-110 disabled:opacity-50`}
                       >
                         {isPaused ? <Play className="w-6 h-6 fill-current" /> : <Pause className="w-6 h-6 fill-current" />}
-                        {isPaused ? 'Resume Session' : 'Pause Session'}
+                        {loading ? 'Processing...' : isPaused ? 'Resume Session' : 'Pause Session'}
                       </button>
 
                       <button
                         onClick={handleStop}
-                        className="h-16 w-16 rounded-2xl bg-white dark:bg-white/5 hover:bg-red-500/10 text-gray-400 hover:text-red-500 border-2 border-gray-100 dark:border-white/10 transition-all active:scale-95 flex items-center justify-center group"
+                        disabled={loading}
+                        className="h-16 w-16 rounded-2xl bg-white dark:bg-white/5 hover:bg-red-500/10 text-gray-400 hover:text-red-500 border-2 border-gray-100 dark:border-white/10 transition-all active:scale-95 flex items-center justify-center group disabled:opacity-50"
                       >
                         <Square className="w-6 h-6 fill-current group-hover:scale-110 transition-transform" />
                       </button>

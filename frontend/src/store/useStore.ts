@@ -487,10 +487,11 @@ export const useStore = create<AppState>((set, get) => ({
 
   addTaskComment: async (taskId, content) => {
     const saved = await api.post(`/tasks/${taskId}/comments`, { content });
+    const mapped = { ...saved, id: saved._id, userId: saved.userId?._id || saved.userId };
     set((state) => ({
       taskComments: {
         ...state.taskComments,
-        [taskId]: [...(state.taskComments[taskId] || []), saved]
+        [taskId]: [...(state.taskComments[taskId] || []), mapped]
       }
     }));
   },
