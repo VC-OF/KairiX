@@ -9,7 +9,9 @@ import {
   Lock, 
   Check, 
   AlertCircle,
-  FileText
+  FileText,
+  Cpu,
+  Fingerprint
 } from 'lucide-react';
 
 export const Profile: React.FC = () => {
@@ -98,14 +100,31 @@ export const Profile: React.FC = () => {
   if (!user) return null;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+    <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
+      
+      {/* Header / Title Area */}
+      <div className="flex items-center gap-4 mb-2">
+        <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 flex items-center justify-center rounded-xl">
+          <User className="text-indigo-600 dark:text-indigo-400 w-7 h-7" />
+        </div>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
+            User Profile
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Manage your account settings and preferences.
+          </p>
+        </div>
+      </div>
+
+      {/* Top Row: User Summary (Horizontal) */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 relative overflow-hidden group flex flex-col md:flex-row items-center gap-8">
         
-        {/* Left Column: Photo & Basic Info */}
-        <div className="md:col-span-1 space-y-6">
-          <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 text-center">
-            <div className="relative inline-block group">
-              <div className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-700 shadow-lg overflow-hidden bg-indigo-50 dark:bg-gray-900 flex items-center justify-center transition-transform group-hover:scale-105 duration-300">
+        {/* Avatar */}
+        <div className="relative shrink-0 z-10">
+          <div className="relative inline-block">
+            <div className="w-32 h-32 rounded-full border-2 border-indigo-100 dark:border-indigo-900 p-1 group-hover:border-indigo-500 transition-colors duration-300">
+              <div className="w-full h-full rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
                 {avatar && (avatar.startsWith('http') || avatar.startsWith('data:image')) ? (
                   <img src={avatar} alt={user.name} className="w-full h-full object-cover" />
                 ) : (
@@ -114,242 +133,251 @@ export const Profile: React.FC = () => {
                   </span>
                 )}
               </div>
-              <button 
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-1 right-1 p-2 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-all hover:scale-110 active:scale-95"
-                title="Change Photo"
-              >
-                <Camera size={16} />
-              </button>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleAvatarChange} 
-                className="hidden" 
-                accept="image/*"
-              />
             </div>
             
-            <h2 className="mt-4 text-xl font-bold text-gray-900 dark:text-gray-100">{user.name}</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{user.email}</p>
-            
-            <div className="flex justify-center">
-              <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                user.globalRole === 'admin' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400' :
-                user.globalRole === 'executive' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
-                'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-              }`}>
-                {user.globalRole}
-              </span>
-            </div>
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute bottom-1 right-1 p-2.5 bg-indigo-600 text-white rounded-full shadow hover:bg-indigo-700 transition-all hover:scale-105 active:scale-95"
+              title="Change Photo"
+            >
+              <Camera size={16} />
+            </button>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleAvatarChange} 
+              className="hidden" 
+              accept="image/*"
+            />
           </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-              <Shield size={14} />
-              Security Info
-            </h3>
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500 dark:text-gray-400">Status</span>
-                <span className="text-emerald-500 font-bold flex items-center gap-1">
-                  <Check size={14} /> Active
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500 dark:text-gray-400">Two-Factor</span>
-                <span className="text-gray-400">Disabled</span>
-              </div>
-            </div>
+        </div>
+        
+        {/* Info */}
+        <div className="flex-1 text-center md:text-left z-10">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{user.name}</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{user.email}</p>
+          
+          <div className="flex justify-center md:justify-start mt-4">
+            <span className="px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-semibold uppercase tracking-wider">
+              {user.globalRole}
+            </span>
           </div>
         </div>
 
-        {/* Right Column: Edit Forms */}
-        <div className="md:col-span-2 space-y-8">
+        {/* Security Status */}
+        <div className="shrink-0 w-full md:w-72 z-10 border-t md:border-t-0 md:border-l border-gray-100 dark:border-gray-700 pt-6 md:pt-0 md:pl-8">
+          <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4 flex items-center justify-center md:justify-start gap-2">
+            <Shield size={14} className="text-indigo-500" />
+            Security Status
+          </h3>
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-600">
+              <span className="text-gray-600 dark:text-gray-300">Status</span>
+              <span className="text-green-600 dark:text-green-400 font-medium flex items-center gap-1 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded">
+                <Check size={12} /> Active
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-600">
+              <span className="text-gray-600 dark:text-gray-300">Two-Factor</span>
+              <span className="text-gray-500 dark:text-gray-400 font-medium px-2 py-0.5">
+                Disabled
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Row: Forms */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Identity Details Form */}
+        <section className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+            <User className="text-indigo-500" size={18} />
+            Personal Information
+          </h3>
           
-          {/* Profile Details Form */}
-          <section className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-sm border border-gray-100 dark:border-gray-700">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
-              <User className="text-indigo-600" />
-              Account Details
-            </h3>
-            
-            <form onSubmit={handleUpdateProfile} className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                    Full Name
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                    <input 
-                      type="text" 
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                      placeholder="Your full name"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                    Global Role
-                  </label>
-                  <div className="relative">
-                    <Shield className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                    <select 
-                      value={role}
-                      onChange={(e) => setRole(e.target.value as any)}
-                      className="w-full pl-10 pr-4 py-3 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
-                    >
-                      <option value="user">User</option>
-                      <option value="executive">Executive</option>
-                      <option value="admin">Admin</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
+          <form onSubmit={handleUpdateProfile} className="space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                  Email Address
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                  Full Name
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                   <input 
-                    type="email" 
-                    value={user.email}
-                    disabled
-                    className="w-full pl-10 pr-4 py-3 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-500 cursor-not-allowed italic"
+                    type="text" 
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all rounded-lg text-sm"
+                    placeholder="Your full name"
                   />
                 </div>
-                <p className="text-[10px] text-gray-400">Email cannot be changed after registration.</p>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                  Short Bio
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                  System Role
                 </label>
                 <div className="relative">
-                  <FileText className="absolute left-3 top-4 text-gray-400" size={16} />
-                  <textarea 
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    rows={4}
-                    className="w-full pl-10 pr-4 py-3 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all resize-none"
-                    placeholder="Tell us a bit about yourself..."
-                  />
+                  <Shield className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <select 
+                    value={role}
+                    onChange={(e) => setRole(e.target.value as any)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all appearance-none rounded-lg text-sm"
+                  >
+                    <option value="user">User</option>
+                    <option value="executive">Executive</option>
+                    <option value="admin">Admin</option>
+                  </select>
                 </div>
               </div>
+            </div>
 
-              {profileError && (
-                <div className="p-4 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-2xl flex items-center gap-3 text-sm border border-rose-100 dark:border-rose-900/30">
-                  <AlertCircle size={18} />
-                  {profileError}
-                </div>
-              )}
-
-              {profileSuccess && (
-                <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center gap-3 text-sm border border-emerald-100 dark:border-emerald-900/30">
-                  <Check size={18} />
-                  Profile updated successfully!
-                </div>
-              )}
-
-              <div className="flex justify-end pt-2">
-                <Button 
-                  type="submit" 
-                  variant="primary" 
-                  className="px-8 rounded-2xl h-12 min-w-[160px]"
-                  loading={isUpdatingProfile}
-                >
-                  Save Changes
-                </Button>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                Email Address
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                <input 
+                  type="email" 
+                  value={user.email}
+                  disabled
+                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed rounded-lg text-sm"
+                />
               </div>
-            </form>
-          </section>
+            </div>
 
-          {/* Password Change Form */}
-          <section className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-sm border border-gray-100 dark:border-gray-700">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
-              <Lock className="text-indigo-600" />
-              Security & Password
-            </h3>
-            
-            <form onSubmit={handleChangePassword} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                Bio
+              </label>
+              <div className="relative">
+                <FileText className="absolute left-3.5 top-3 text-gray-400" size={16} />
+                <textarea 
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  rows={3}
+                  className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all resize-none rounded-lg text-sm"
+                  placeholder="Tell us about yourself..."
+                />
+              </div>
+            </div>
+
+            {profileError && (
+              <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg flex items-center gap-2 text-sm border border-red-200 dark:border-red-800">
+                <AlertCircle size={16} />
+                {profileError}
+              </div>
+            )}
+
+            {profileSuccess && (
+              <div className="p-3 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-lg flex items-center gap-2 text-sm border border-green-200 dark:border-green-800">
+                <Check size={16} />
+                Profile updated successfully.
+              </div>
+            )}
+
+            <div className="flex justify-end pt-2">
+              <Button 
+                type="submit" 
+                className="px-6 h-10 min-w-[140px]"
+                loading={isUpdatingProfile}
+              >
+                Save Changes
+              </Button>
+            </div>
+          </form>
+        </section>
+
+        {/* Password Change Form */}
+        <section className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+            <Lock className="text-indigo-500" size={18} />
+            Change Password
+          </h3>
+          
+          <form onSubmit={handleChangePassword} className="space-y-5 flex-1 flex flex-col justify-between">
+            <div className="space-y-5">
               <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Current Password</label>
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                  Current Password
+                </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                   <input 
                     type="password" 
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                    placeholder="Enter your current password"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all rounded-lg text-sm"
+                    placeholder="Enter current password"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-gray-700 dark:text-gray-300">New Password</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                    <input 
-                      type="password" 
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                      placeholder="Minimum 6 characters"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Confirm New Password</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                    <input 
-                      type="password" 
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                      placeholder="Repeat new password"
-                    />
-                  </div>
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                  New Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <input 
+                    type="password" 
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all rounded-lg text-sm"
+                    placeholder="Min 6 characters"
+                  />
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                  <input 
+                    type="password" 
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all rounded-lg text-sm"
+                    placeholder="Repeat new password"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-4">
               {passwordError && (
-                <div className="p-4 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-2xl flex items-center gap-3 text-sm border border-rose-100 dark:border-rose-900/30">
-                  <AlertCircle size={18} />
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg flex items-center gap-2 text-sm border border-red-200 dark:border-red-800">
+                  <AlertCircle size={16} />
                   {passwordError}
                 </div>
               )}
 
               {passwordSuccess && (
-                <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center gap-3 text-sm border border-emerald-100 dark:border-emerald-900/30">
-                  <Check size={18} />
-                  Password updated successfully!
+                <div className="p-3 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-lg flex items-center gap-2 text-sm border border-green-200 dark:border-green-800">
+                  <Check size={16} />
+                  Password updated successfully.
                 </div>
               )}
 
               <div className="flex justify-end pt-2">
                 <Button 
                   type="submit" 
-                  variant="primary" 
-                  className="px-8 rounded-2xl h-12 min-w-[160px] bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600"
+                  variant="outline"
+                  className="px-6 h-10 min-w-[140px]"
                   loading={isChangingPassword}
                 >
                   Update Password
                 </Button>
               </div>
-            </form>
-          </section>
+            </div>
+          </form>
+        </section>
 
-        </div>
       </div>
     </div>
   );

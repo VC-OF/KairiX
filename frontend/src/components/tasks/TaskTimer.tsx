@@ -3,6 +3,8 @@ import { Play, Pause, Square, Clock, AlertCircle, Calendar } from 'lucide-react'
 import { Button } from '../ui/Button';
 import { api } from '../../utils/api';
 
+import { useStore } from '../../store/useStore';
+
 interface TaskTimerProps {
   taskId: string;
   projectId: string;
@@ -10,6 +12,10 @@ interface TaskTimerProps {
 }
 
 export const TaskTimer: React.FC<TaskTimerProps> = ({ taskId, projectId, onTimeUpdate }) => {
+  const { currentUser, tasks } = useStore();
+  const task = tasks.find(t => t.id === taskId);
+  const isAssigned = currentUser && task && task.assignees.includes(currentUser.id);
+
   const [isActive, setIsActive] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [time, setTime] = useState(0);
@@ -227,8 +233,8 @@ export const TaskTimer: React.FC<TaskTimerProps> = ({ taskId, projectId, onTimeU
             </Button>
             <Button
               onClick={handleStart}
-              disabled={loading}
-              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs py-1.5"
+              disabled={loading || !isAssigned}
+              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs py-1.5 disabled:opacity-50"
             >
               Start Now
             </Button>
@@ -239,25 +245,27 @@ export const TaskTimer: React.FC<TaskTimerProps> = ({ taskId, projectId, onTimeU
           {!isActive ? (
             <Button
               onClick={handleStartClick}
-              disabled={loading}
-              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2"
+              disabled={loading || !isAssigned}
+              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 disabled:opacity-50"
               icon={<Play size={14} fill="currentColor" />}
             >
-              Start Timer
+              {isAssigned ? 'Start Timer' : 'Not Assigned'}
             </Button>
           ) : (
             <>
               <Button
                 onClick={isPaused ? handleResume : handlePause}
                 variant="outline"
-                className={`flex-1 ${isPaused ? 'border-green-200 text-green-600 hover:bg-green-50' : 'border-yellow-200 text-yellow-600 hover:bg-yellow-50'}`}
+                disabled={loading || !isAssigned}
+                className={`flex-1 ${isPaused ? 'border-green-200 text-green-600 hover:bg-green-50' : 'border-yellow-200 text-yellow-600 hover:bg-yellow-50'} disabled:opacity-50`}
                 icon={isPaused ? <Play size={14} /> : <Pause size={14} />}
               >
                 {isPaused ? 'Resume' : 'Pause'}
               </Button>
               <Button
                 onClick={handleStop}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+                disabled={loading || !isAssigned}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white disabled:opacity-50"
                 icon={<Square size={14} fill="currentColor" />}
               >
                 Stop

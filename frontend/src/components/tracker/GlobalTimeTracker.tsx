@@ -17,7 +17,7 @@ import { api } from '../../utils/api';
 import { format, parseISO } from 'date-fns';
 
 export const GlobalTimeTracker: React.FC = () => {
-  const { tasks, users, projects } = useStore();
+  const { tasks, users, projects, currentUser } = useStore();
   const [searchId, setSearchId] = useState('');
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
@@ -203,6 +203,7 @@ export const GlobalTimeTracker: React.FC = () => {
 
   const projectDetails = activeTask ? projects.find(p => p.id === (activeTask as any).projectId) : null;
   const assignedUsers = activeTask ? users.filter(u => activeTask.assignees.includes(u.id)) : [];
+  const isAssigned = currentUser && activeTask && activeTask.assignees.includes(currentUser.id);
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-20">
@@ -416,17 +417,17 @@ export const GlobalTimeTracker: React.FC = () => {
                   {!isActive ? (
                     <button
                       onClick={handleStart}
-                      disabled={!activeTask || loading}
+                      disabled={!activeTask || loading || !isAssigned}
                       className="flex-1 h-16 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-xl shadow-violet-500/20 hover:brightness-110 disabled:opacity-30 disabled:cursor-not-allowed disabled:grayscale"
                     >
                       <Play className="w-6 h-6 fill-current" />
-                      {loading ? 'Starting...' : 'Start Tracking'}
+                      {!isAssigned && activeTask ? 'Not Assigned' : loading ? 'Starting...' : 'Start Tracking'}
                     </button>
                   ) : (
                     <>
                       <button
                         onClick={isPaused ? handleResume : handlePause}
-                        disabled={loading}
+                        disabled={loading || !isAssigned}
                         className={`flex-1 h-16 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-xl ${
                           isPaused
                             ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-emerald-500/20'
@@ -439,7 +440,7 @@ export const GlobalTimeTracker: React.FC = () => {
 
                       <button
                         onClick={handleStop}
-                        disabled={loading}
+                        disabled={loading || !isAssigned}
                         className="h-16 w-16 rounded-2xl bg-white dark:bg-white/5 hover:bg-red-500/10 text-gray-400 hover:text-red-500 border-2 border-gray-100 dark:border-white/10 transition-all active:scale-95 flex items-center justify-center group disabled:opacity-50"
                       >
                         <Square className="w-6 h-6 fill-current group-hover:scale-110 transition-transform" />

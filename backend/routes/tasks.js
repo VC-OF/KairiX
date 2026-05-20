@@ -140,6 +140,14 @@ router.put('/:projectId/:taskId',
 
       const { title, description, status, priority, assignees, assignedTo, dueDate, tags } = req.body;
       const oldStatus = task.status;
+      
+      if (status && status === 'in-progress') {
+        const isAssigned = (task.assignedTo?.toString() === req.user.userId) || 
+                           (task.assignees && task.assignees.some(id => id.toString() === req.user.userId));
+        if (!isAssigned) {
+          return res.status(403).json({ message: 'Only assigned members can start this task' });
+        }
+      }
 
       // All roles with project access can update; TeamMember limited to own tasks / status only
       if (req.projectRole === 'TeamMember') {

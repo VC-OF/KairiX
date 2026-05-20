@@ -229,8 +229,11 @@ function AppLayout() {
           setMobileMenuOpen={setMobileMenuOpen}
         />
         <main
-          className={`flex-1 overflow-y-auto p-6 ${activeView === 'board' ? 'flex flex-col' : ''
-            }`}
+          className={`flex-1 p-6 ${
+            activeView === 'board' || activeView === 'dependency'
+              ? 'flex flex-col overflow-hidden'
+              : 'overflow-y-auto'
+          }`}
         >
           {renderView()}
         </main>

@@ -159,9 +159,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
             <div className="relative flex-shrink-0 ml-1" data-no-click>
               <button
                 onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-                className="p-1 rounded-lg text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all opacity-0 group-hover:opacity-100"
+                className="p-1 rounded-lg text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all opacity-50 group-hover:opacity-100"
               >
-                <MoreVertical size={14} />
+                <MoreVertical size={16} />
               </button>
 
               {showMenu && (

@@ -4,6 +4,13 @@ const DailyReport = require('../models/DailyReport');
 
 class TimeTrackingService {
   async startTimer(userId, taskId, projectId, workDate = null) {
+    const task = await Task.findById(taskId);
+    if (!task) throw new Error('Task not found');
+    
+    const isAssigned = (task.assignedTo && task.assignedTo.toString() === userId) || 
+                       (task.assignees && task.assignees.some(id => id.toString() === userId));
+    if (!isAssigned) throw new Error('Only assigned members can start the task timer');
+
     // Check if there's an already active timer for this user
     const activeLog = await TimeLog.findOne({ userId, status: 'active' });
     if (activeLog) {
@@ -42,6 +49,13 @@ class TimeTrackingService {
   }
 
   async resumeTimer(userId, taskId, projectId) {
+    const task = await Task.findById(taskId);
+    if (!task) throw new Error('Task not found');
+    
+    const isAssigned = (task.assignedTo && task.assignedTo.toString() === userId) || 
+                       (task.assignees && task.assignees.some(id => id.toString() === userId));
+    if (!isAssigned) throw new Error('Only assigned members can resume the task timer');
+
     // Check for active timer
     const activeLog = await TimeLog.findOne({ userId, status: 'active' });
     if (activeLog) {
@@ -146,6 +160,13 @@ class TimeTrackingService {
   }
 
   async addManualLog(userId, taskId, projectId, data) {
+    const task = await Task.findById(taskId);
+    if (!task) throw new Error('Task not found');
+    
+    const isAssigned = (task.assignedTo && task.assignedTo.toString() === userId) || 
+                       (task.assignees && task.assignees.some(id => id.toString() === userId));
+    if (!isAssigned) throw new Error('Only assigned members can log time for this task');
+
     const { startTime, endTime, description, isBillable } = data;
     const start = new Date(startTime);
     const end = new Date(endTime);
