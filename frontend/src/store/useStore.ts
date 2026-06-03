@@ -70,6 +70,7 @@ export interface Project {
   members: string[];
   createdAt: string;
   updatedAt: string;
+  color?: string;
 }
 
 export interface TaskComment {
@@ -147,6 +148,10 @@ interface AppState {
   markAllNotificationsRead: () => Promise<void>;
   selectedTaskId: string | null;
   setSelectedTaskId: (id: string | null) => void;
+  isTourActive: boolean;
+  setIsTourActive: (active: boolean) => void;
+  tourStep: number;
+  setTourStep: (step: number) => void;
 
   // Dependencies state
   dependencies: any[];
@@ -198,6 +203,10 @@ export const useStore = create<AppState>((set, get) => ({
   showArchived: false,
   selectedTaskId: null,
   setSelectedTaskId: (id) => set({ selectedTaskId: id }),
+  isTourActive: false,
+  setIsTourActive: (active) => set({ isTourActive: active }),
+  tourStep: 0,
+  setTourStep: (step) => set({ tourStep: step }),
 
   fetchProjects: async () => {
     try {

@@ -101,13 +101,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
         ref={setNodeRef}
         style={style}
         className={`
-          relative bg-white dark:bg-gray-800
-          rounded-xl border border-gray-100 dark:border-gray-700/80
-          border-l-4 ${pCfg.border}
-          shadow-sm hover:shadow-md
-          transition-all duration-200
-          ${isDragging ? 'opacity-40 shadow-2xl rotate-1 scale-105' : 'opacity-100'}
-          group cursor-pointer select-none
+          relative glass-panel glass-panel-hover
+          rounded-2xl border-l-[3.5px] ${pCfg.border}
+          ${isDragging ? 'opacity-45 shadow-2xl rotate-2 scale-[1.03]' : 'opacity-100'}
+          group cursor-pointer select-none duration-300
         `}
         onClick={(e) => {
           if ((e.target as HTMLElement).closest('[data-no-click]')) return;
@@ -127,7 +124,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
               {...attributes}
               {...listeners}
               data-no-click
-              className="mt-0.5 flex-shrink-0 text-gray-200 dark:text-gray-700 hover:text-gray-400 dark:hover:text-gray-500 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+              className="mt-0.5 flex-shrink-0 text-gray-300 dark:text-gray-600 hover:text-indigo-500 dark:hover:text-indigo-400 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={(e) => e.stopPropagation()}
             >
               <GripVertical size={15} />
@@ -136,7 +133,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
             {/* Title */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 mb-1">
-                <span className="text-[9px] font-mono bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded flex items-center gap-1 border border-indigo-100 dark:border-indigo-800/50 group/id w-fit">
+                <span className="text-[9px] font-mono bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded flex items-center gap-1 border border-indigo-100 dark:border-indigo-800/50 group/id w-fit font-bold">
                   {task.id.slice(-6).toUpperCase()}
                   <button
                     onClick={(e) => {
@@ -150,7 +147,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
                   </button>
                 </span>
               </div>
-              <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 leading-snug line-clamp-2">
+              <h3 className="text-sm font-bold text-gray-800 dark:text-slate-100 leading-snug line-clamp-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                 {task.title}
               </h3>
             </div>
@@ -159,16 +156,16 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
             <div className="relative flex-shrink-0 ml-1" data-no-click>
               <button
                 onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-                className="p-1 rounded-lg text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all opacity-50 group-hover:opacity-100"
+                className="p-1 rounded-lg text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100/50 dark:hover:bg-gray-800/40 transition-all opacity-50 group-hover:opacity-100"
               >
                 <MoreVertical size={16} />
               </button>
 
               {showMenu && (
-                <div className="absolute right-0 top-7 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-xl z-30 py-1 min-w-[148px] animate-in fade-in slide-in-from-top-1 duration-100">
+                <div className="absolute right-0 top-7 glass-panel rounded-xl shadow-xl z-30 py-1 min-w-[148px] animate-dropdown">
                   <button
                     onClick={(e) => { e.stopPropagation(); setShowDetail(true); setShowMenu(false); }}
-                    className="flex items-center gap-2.5 w-full px-3 py-2 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                    className="flex items-center gap-2.5 w-full px-3 py-2.5 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-800/40 font-semibold transition-colors"
                   >
                     <Eye size={12} className="text-indigo-400" /> View Details
                   </button>
@@ -176,14 +173,14 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
                     <>
                       <button
                         onClick={(e) => { e.stopPropagation(); setShowEdit(true); setShowMenu(false); }}
-                        className="flex items-center gap-2.5 w-full px-3 py-2 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                        className="flex items-center gap-2.5 w-full px-3 py-2.5 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-800/40 font-semibold transition-colors"
                       >
                         <Edit3 size={12} className="text-blue-400" /> Edit Task
                       </button>
-                      <div className="my-1 border-t border-gray-100 dark:border-gray-700" />
+                      <div className="my-1 border-t border-gray-200/50 dark:border-slate-800" />
                       <button
                         onClick={(e) => { e.stopPropagation(); deleteTask(task.id); setShowMenu(false); }}
-                        className="flex items-center gap-2.5 w-full px-3 py-2 text-xs text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
+                        className="flex items-center gap-2.5 w-full px-3 py-2.5 text-xs text-rose-500 hover:bg-rose-500/10 dark:hover:bg-rose-950/20 font-semibold transition-colors"
                       >
                         <Trash2 size={12} /> Delete
                       </button>
@@ -196,7 +193,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
 
           {/* Description */}
           {task.description && (
-            <p className="text-xs text-gray-400 dark:text-gray-500 mb-3 line-clamp-2 leading-relaxed pl-5">
+            <p className="text-xs text-gray-400 dark:text-gray-500 mb-3 line-clamp-2 leading-relaxed pl-5 font-semibold">
               {task.description}
             </p>
           )}
@@ -207,13 +204,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
               {task.tags.slice(0, 3).map((tag) => (
                 <span
                   key={tag}
-                  className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/50 rounded-full text-[10px] font-medium"
+                  className="px-2 py-0.5 bg-indigo-500/5 dark:bg-indigo-900/20 text-indigo-500 dark:text-indigo-400 border border-indigo-500/10 dark:border-indigo-800/20 rounded-full text-[10px] font-bold uppercase tracking-wider"
                 >
                   #{tag}
                 </span>
               ))}
               {task.tags.length > 3 && (
-                <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-400 rounded-full text-[10px]">
+                <span className="px-2 py-0.5 bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-gray-500 rounded-full text-[10px] font-bold border border-transparent">
                   +{task.tags.length - 3}
                 </span>
               )}
@@ -221,21 +218,21 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
           )}
 
           {/* Divider */}
-          <div className="border-t border-gray-50 dark:border-gray-700/50 mb-2.5" />
+          <div className="border-t border-gray-200/40 dark:border-slate-800/60 mb-2.5" />
 
           {/* Footer */}
           <div className="flex items-center justify-between gap-2 pl-5">
             {/* Left: priority + due date */}
             <div className="flex items-center gap-1.5 flex-wrap min-w-0">
               {/* Priority pill */}
-              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${pCfg.badge}`}>
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${pCfg.badge}`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${pCfg.dot}`} />
                 {pCfg.label}
               </span>
 
               {/* Due date */}
               {task.dueDate && (
-                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${dueDateColor}`}>
+                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${dueDateColor}`}>
                   <Calendar size={9} />
                   {isOverdue ? 'Overdue · ' : ''}
                   {format(parseISO(task.dueDate), 'MMM d')}
@@ -247,7 +244,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
             <div className="flex items-center gap-2 flex-shrink-0">
               {/* Comment count */}
               {commentCount > 0 && (
-                <span className="flex items-center gap-0.5 text-[10px] text-gray-400 dark:text-gray-500">
+                <span className="flex items-center gap-0.5 text-[10px] text-gray-400 dark:text-gray-500 font-bold">
                   <MessageSquare size={10} />
                   {commentCount}
                 </span>
@@ -263,10 +260,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
 
         {/* Status indicator strip at bottom */}
         {task.status === 'completed' && (
-          <div className="absolute bottom-0 left-4 right-4 h-0.5 bg-gradient-to-r from-emerald-400 to-transparent rounded-t-full opacity-50" />
+          <div className="absolute bottom-0 left-4 right-4 h-0.5 bg-gradient-to-r from-emerald-400 to-transparent rounded-t-full opacity-60" />
         )}
         {task.status === 'stuck' && (
-          <div className="absolute bottom-0 left-4 right-4 h-0.5 bg-gradient-to-r from-rose-400 to-transparent rounded-t-full opacity-50" />
+          <div className="absolute bottom-0 left-4 right-4 h-0.5 bg-gradient-to-r from-rose-400 to-transparent rounded-t-full opacity-60" />
         )}
 
         {/* Click overlay to close menu */}

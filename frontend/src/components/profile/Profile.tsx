@@ -9,9 +9,7 @@ import {
   Lock, 
   Check, 
   AlertCircle,
-  FileText,
-  Cpu,
-  Fingerprint
+  FileText
 } from 'lucide-react';
 
 export const Profile: React.FC = () => {

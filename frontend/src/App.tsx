@@ -18,6 +18,7 @@ import { FilesDocs } from './components/files/FilesDocs';
 import { TaskDetail } from './components/tasks/TaskDetail';
 import { DependencyWorkspace } from './components/dependency/DependencyWorkspace';
 import { connectSocket, joinProjectRoom, disconnectSocket } from './utils/socket';
+import { TourGuide } from './components/ui/TourGuide';
 
 function AppLayout() {
   const {
@@ -33,6 +34,16 @@ function AppLayout() {
   } = useStore();
   const { token } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // Trigger page transition loading indicator on route switch
+  useEffect(() => {
+    setIsTransitioning(true);
+    const timer = setTimeout(() => {
+      setIsTransitioning(false);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [activeView]);
 
   // Initial data fetch
   useEffect(() => {
@@ -56,6 +67,23 @@ function AppLayout() {
       setActiveView(path as any);
     }
   }, [setActiveView]);
+
+  // Dynamic browser tab title per view
+  useEffect(() => {
+    const titles: Record<string, string> = {
+      dashboard: 'Dashboard',
+      board: 'Kanban Board',
+      logs: 'Daily Logs',
+      members: 'Team Members',
+      profile: 'My Profile',
+      analytics: 'Analytics',
+      tracker: 'Time Tracker',
+      files: 'Files & Docs',
+      dependency: 'Dependency Map',
+    };
+    const viewTitle = titles[activeView] || 'Dashboard';
+    document.title = `${viewTitle} — KairiX`;
+  }, [activeView]);
 
   // Socket.io: connect with auth + join project room
   useEffect(() => {
@@ -204,6 +232,11 @@ function AppLayout() {
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden transition-colors duration-300">
+      {/* Vercel-style Glowing Top Progress Loader */}
+      {isTransitioning && (
+        <div className="fixed top-0 left-0 right-0 h-[2.5px] bg-gradient-to-r from-violet-500 via-indigo-500 to-pink-500 z-50 animate-progress-bar" />
+      )}
+
       {/* Sidebar - Desktop */}
       <div className="hidden lg:flex">
         <Sidebar />
@@ -229,15 +262,20 @@ function AppLayout() {
           setMobileMenuOpen={setMobileMenuOpen}
         />
         <main
-          className={`flex-1 p-6 ${
+          className={`flex-1 ${
             activeView === 'board' || activeView === 'dependency'
               ? 'flex flex-col overflow-hidden'
-              : 'overflow-y-auto'
+              : 'overflow-y-auto p-6'
           }`}
         >
-          {renderView()}
+          <div key={activeView} className={`animate-fade-in-slide h-full w-full ${activeView === 'board' || activeView === 'dependency' ? 'flex flex-col overflow-hidden' : ''}`}>
+            {renderView()}
+          </div>
         </main>
       </div>
+
+      {/* Onboarding guided tour */}
+      <TourGuide />
 
       {selectedTaskId && (() => {
         const task = tasks.find(t => t.id === selectedTaskId);

@@ -114,29 +114,29 @@ export const Sidebar: React.FC = () => {
   };
 
   return (
-    <aside className="w-64 bg-white dark:bg-gray-950 flex flex-col h-full shrink-0 border-r border-gray-200 dark:border-gray-800 transition-colors duration-300">
+    <aside className="w-64 bg-white/90 dark:bg-obsidian-900/90 backdrop-blur-md flex flex-col h-full shrink-0 border-r border-gray-200/50 dark:border-gray-800/40 transition-colors duration-300">
       {/* Top Section: Logo & Projects */}
       <div className="shrink-0">
         {/* Logo */}
-        <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-800/50">
+        <div className="px-4 py-4 border-b border-gray-200/40 dark:border-gray-800/30">
           <LogoCompact />
         </div>
 
         {/* Project Switcher */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-800/30 relative">
+        <div className="p-4 border-b border-gray-200/40 dark:border-gray-800/30 relative">
           <div className="flex items-center justify-between mb-2 px-1">
             <div className="flex items-center gap-2">
-              <p className="text-gray-500 dark:text-gray-400 text-[10px] uppercase tracking-[0.2em] font-black">Project</p>
+              <p className="text-gray-400 dark:text-gray-500 text-[10px] uppercase tracking-[0.2em] font-extrabold">Project</p>
               <button
                 onClick={() => setShowArchived(!showArchived)}
-                className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${showArchived ? 'text-indigo-600' : 'text-gray-400'}`}
+                className={`p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-all ${showArchived ? 'text-indigo-500 dark:text-indigo-400 bg-indigo-500/5' : 'text-gray-400'}`}
                 title={showArchived ? "Hide Archived" : "Show Archived"}
               >
-                <Archive size={10} />
+                <Archive size={11} />
               </button>
             </div>
             <button
-              className="text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-white transition-colors"
+              className="text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-white transition-all hover:scale-110 active:scale-95"
               onClick={() => setShowProjectModal(true)}
             >
               <Plus size={14} />
@@ -146,11 +146,11 @@ export const Sidebar: React.FC = () => {
           <div className="relative">
             <button
               onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
-              className="w-full flex items-center justify-between px-3 py-2.5 bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-800 transition-all group"
+              className="w-full flex items-center justify-between px-3 py-2.5 bg-gray-50/50 dark:bg-gray-900/30 hover:bg-indigo-500/5 dark:hover:bg-indigo-500/10 rounded-xl border border-gray-200/40 dark:border-gray-800/40 transition-all duration-300 group hover:border-indigo-500/30 dark:hover:border-indigo-500/20"
             >
-              <div className="flex items-center gap-2 overflow-hidden">
-                <div className="w-2 h-2 rounded-full bg-indigo-500 shrink-0 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
-                <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+              <div className="flex items-center gap-2.5 overflow-hidden">
+                <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 shrink-0 shadow-[0_0_8px_rgba(99,102,241,0.6)] glow-dot-indigo" />
+                <span className="text-sm font-semibold text-gray-800 dark:text-slate-100 truncate">
                   {project.name}
                 </span>
               </div>
@@ -163,7 +163,7 @@ export const Sidebar: React.FC = () => {
                   className="fixed inset-0 z-20"
                   onClick={() => setIsProjectDropdownOpen(false)}
                 />
-                <div className="absolute top-full left-0 w-full mt-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-2xl z-30 py-1 overflow-hidden animate-dropdown">
+                <div className="absolute top-full left-0 w-full mt-2 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border border-gray-200/50 dark:border-gray-800/50 rounded-xl shadow-2xl z-30 py-1.5 overflow-hidden animate-dropdown">
                   <div className="max-h-60 overflow-y-auto custom-scrollbar">
                     {projects.map(p => (
                       <button
@@ -172,15 +172,15 @@ export const Sidebar: React.FC = () => {
                           setProject(p);
                           setIsProjectDropdownOpen(false);
                         }}
-                        className={`w-full text-left px-4 py-2.5 text-xs font-medium transition-all flex items-center gap-3 ${project.id === p.id
-                          ? 'bg-indigo-600 text-white'
-                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                        className={`w-full text-left px-4 py-2.5 text-xs font-semibold transition-all flex items-center gap-3 ${project.id === p.id
+                          ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md'
+                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/60 dark:hover:bg-gray-800/60'
                           }`}
                       >
                         <div className={`w-1.5 h-1.5 rounded-full ${project.id === p.id ? 'bg-white' : 'bg-gray-300 dark:bg-gray-600'}`} />
                         <div className="flex-1 min-w-0">
                           <p className="truncate leading-none">{p.name}</p>
-                          {p.status === 'archived' && <p className="text-[9px] mt-0.5 opacity-60">Archived</p>}
+                          {p.status === 'archived' && <p className="text-[9px] mt-1 opacity-60">Archived</p>}
                         </div>
                       </button>
                     ))}
@@ -193,8 +193,8 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Middle Section: Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5 custom-scrollbar">
-        <p className="text-gray-500 dark:text-gray-400 text-[10px] uppercase tracking-[0.2em] font-black px-3 mb-3">Workspace</p>
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1 custom-scrollbar">
+        <p className="text-gray-400 dark:text-gray-500 text-[10px] uppercase tracking-[0.2em] font-extrabold px-3 mb-3">Workspace</p>
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeView === item.view;
@@ -204,19 +204,19 @@ export const Sidebar: React.FC = () => {
             <button
               key={item.view}
               onClick={() => setActiveView(item.view)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 group ${isActive
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/40'
-                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/50 hover:text-indigo-600 dark:hover:text-white'
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-300 group ${isActive
+                ? 'bg-gradient-to-r from-indigo-500/15 to-purple-500/5 text-indigo-600 dark:text-indigo-400 border-l-4 border-indigo-600 dark:border-indigo-500 font-bold shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50/50 dark:hover:bg-gray-900/30 hover:text-indigo-600 dark:hover:text-white hover:translate-x-0.5'
                 }`}
             >
-              <Icon size={18} className={isActive ? 'text-white' : 'text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-white transition-colors'} />
+              <Icon size={18} className={isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-white transition-colors'} />
               <div className="flex-1 min-w-0">
-                <p className={`text-sm font-bold truncate ${isActive ? 'text-white' : 'text-gray-700 dark:text-gray-200 group-hover:text-indigo-600 dark:group-hover:text-white'}`}>
+                <p className={`text-sm font-semibold truncate ${isActive ? 'text-indigo-600 dark:text-indigo-400 font-bold' : 'text-gray-700 dark:text-gray-300 group-hover:text-indigo-600 dark:group-hover:text-white'}`}>
                   {item.label}
                 </p>
               </div>
               {badge > 0 && (
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${isActive ? 'bg-white/20 text-white' : 'bg-rose-500 text-white'
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${isActive ? 'bg-indigo-600/10 text-indigo-600 dark:text-indigo-400' : 'bg-rose-500 text-white'
                   }`}>
                   {badge}
                 </span>
@@ -226,11 +226,10 @@ export const Sidebar: React.FC = () => {
         })}
       </nav>
 
-      {/* Bottom Section: Stats & User (Fixed at bottom) */}
-      <div className="shrink-0 p-3 space-y-3 border-t border-gray-200 dark:border-gray-800/50 bg-gray-50 dark:bg-gray-900/50">
-        {/* Quick Stats */}
+      {/* Bottom Section: Stats & User */}
+      <div className="shrink-0 p-3 space-y-3 border-t border-gray-200/40 dark:border-gray-800/40 bg-gray-50/50 dark:bg-gray-900/40">
         {/* Compact Premium Stats Widget */}
-        <div className="bg-white dark:bg-gray-950 rounded-2xl p-3 border border-gray-200 dark:border-gray-800 shadow-sm relative overflow-hidden group transition-all duration-300 hover:bg-gray-50 dark:hover:bg-gray-900/50">
+        <div className="glass-panel rounded-2xl p-3 relative overflow-hidden group transition-all duration-300 hover:shadow-indigo-500/5 dark:hover:shadow-indigo-500/10">
           <div className="flex items-center gap-4">
             {/* Circular Progress */}
             <div className="relative shrink-0 w-11 h-11">
@@ -255,7 +254,7 @@ export const Sidebar: React.FC = () => {
             </div>
 
             {/* Metrics Row */}
-            <div className="flex-1 grid grid-cols-4 gap-1 border-l border-gray-100 dark:border-gray-800 pl-3">
+            <div className="flex-1 grid grid-cols-4 gap-1 border-l border-gray-100 dark:border-slate-800 pl-3">
               {[
                 { label: 'Active', count: tasks.filter(t => t.status === 'in-progress').length, color: 'text-blue-500' },
                 { label: 'Stuck', count: tasks.filter(t => t.status === 'stuck').length, color: 'text-rose-500' },
@@ -264,7 +263,7 @@ export const Sidebar: React.FC = () => {
               ].map(s => (
                 <div key={s.label} className="text-center group/item">
                   <p className={`text-[11px] font-black ${s.color} leading-none group-hover/item:scale-110 transition-transform`}>{s.count}</p>
-                  <p className="text-[7px] text-gray-400 uppercase font-black mt-1 tracking-tighter">{s.label.slice(0, 3)}</p>
+                  <p className="text-[7px] text-gray-400 dark:text-gray-500 uppercase font-black mt-1 tracking-tighter">{s.label.slice(0, 3)}</p>
                 </div>
               ))}
             </div>
@@ -278,9 +277,14 @@ export const Sidebar: React.FC = () => {
             <div className="flex-1 min-w-0">
               <p className="text-gray-900 dark:text-white text-sm font-bold truncate leading-none mb-1">{currentUser.name}</p>
               <div className="flex items-center gap-1">
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-black border border-indigo-100 dark:border-indigo-800/50 uppercase tracking-tighter">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50/50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-extrabold border border-indigo-100/60 dark:border-indigo-800/40 uppercase tracking-tighter">
                   {currentUser.role}
                 </span>
+                {currentUser.role === 'admin' && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black uppercase tracking-widest scale-95 shadow-[0_0_8px_rgba(245,158,11,0.4)]">
+                    PRO
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -288,29 +292,40 @@ export const Sidebar: React.FC = () => {
       </div>
       {/* Project Modal */}
       <Modal isOpen={showProjectModal} onClose={() => setShowProjectModal(false)} title="Create New Project" size="sm">
-        <form onSubmit={handleCreateProject} className="space-y-4">
+        <form onSubmit={handleCreateProject} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
+            <label className="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">
+              Project Name <span className="text-rose-500">*</span>
+            </label>
             <input
               type="text"
               value={newProjectName}
               onChange={(e) => setNewProjectName(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="My New Project"
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700/60 bg-gray-50/50 dark:bg-gray-900/60 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 dark:focus:border-indigo-500 transition-all"
+              placeholder="e.g. Product v2.0 Launch"
+              required
+              autoFocus
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label className="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">
+              Description
+            </label>
             <textarea
               value={newProjectDesc}
               onChange={(e) => setNewProjectDesc(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="Project description..."
+              rows={3}
+              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700/60 bg-gray-50/50 dark:bg-gray-900/60 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 dark:focus:border-indigo-500 transition-all resize-none"
+              placeholder="Briefly describe what this project is about…"
             />
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="flex-1" onClick={() => setShowProjectModal(false)}>Cancel</Button>
-            <Button variant="primary" className="flex-1" type="submit">Create</Button>
+          <div className="flex gap-3 pt-1">
+            <Button variant="outline" className="flex-1 font-bold" onClick={() => setShowProjectModal(false)} type="button">
+              Cancel
+            </Button>
+            <Button variant="primary" className="flex-1 font-bold" type="submit" disabled={!newProjectName.trim()}>
+              Create Project
+            </Button>
           </div>
         </form>
       </Modal>

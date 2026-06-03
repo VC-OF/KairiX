@@ -20,10 +20,11 @@ class TimeTrackingService {
 
     const now = new Date();
     const dateToUse = workDate || now.toISOString().split('T')[0];
+    const projectToUse = projectId || task.projectId;
 
     const log = await TimeLog.create({
       taskId,
-      projectId,
+      projectId: projectToUse,
       userId,
       startTime: now,
       workDate: dateToUse,
@@ -65,11 +66,12 @@ class TimeTrackingService {
     // Find the last paused log to get the workDate
     const lastLog = await TimeLog.findOne({ userId, taskId, status: 'paused' }).sort({ createdAt: -1 });
     const workDate = lastLog ? lastLog.workDate : new Date().toISOString().split('T')[0];
+    const projectToUse = projectId || task.projectId;
 
     const now = new Date();
     const log = await TimeLog.create({
       taskId,
-      projectId,
+      projectId: projectToUse,
       userId,
       startTime: now,
       workDate,
@@ -172,10 +174,11 @@ class TimeTrackingService {
     const end = new Date(endTime);
     const duration = Math.floor((end - start) / 1000);
     const workDate = start.toISOString().split('T')[0];
+    const projectToUse = projectId || task.projectId;
 
     const log = await TimeLog.create({
       taskId,
-      projectId,
+      projectId: projectToUse,
       userId,
       startTime: start,
       endTime: end,

@@ -6,10 +6,80 @@ import {
 import { useStore } from '../../store/useStore';
 import { api } from '../../utils/api';
 import {
-  TrendingUp, CheckCircle, Trophy, Zap, AlertTriangle, List, LayoutGrid
+  TrendingUp, CheckCircle, Trophy, Zap, AlertTriangle, List, LayoutGrid,
+  Clock, Target, ArrowUpRight, Users, BarChart2, Activity
 } from 'lucide-react';
 import { subDays } from 'date-fns';
 
+// ─── Custom Tooltip ───────────────────────────────────────────────────────────
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-gray-900/95 border border-gray-700/60 rounded-2xl px-4 py-3 shadow-2xl backdrop-blur-md">
+        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">{label}</p>
+        {payload.map((entry: any, i: number) => (
+          <div key={i} className="flex items-center gap-2 text-xs font-bold">
+            <div className="w-2 h-2 rounded-full" style={{ background: entry.color }} />
+            <span className="text-gray-300">{entry.name}:</span>
+            <span className="text-white">{entry.value}{entry.unit || ''}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
+// ─── Stat Card ────────────────────────────────────────────────────────────────
+const StatCard = ({
+  icon: Icon, label, value, sub, trend, color, dark = false
+}: {
+  icon: any; label: string; value: string | number; sub?: string;
+  trend?: string; color: string; dark?: boolean;
+}) => (
+  <div className={`relative rounded-3xl p-6 overflow-hidden group transition-all duration-300 hover:-translate-y-0.5 ${
+    dark
+      ? 'bg-gray-900 border border-gray-800 hover:border-gray-700 shadow-lg'
+      : 'bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-lg dark:hover:border-gray-700'
+  }`}>
+    <div className="relative z-10">
+      <div className="flex items-start justify-between mb-4">
+        <div className={`p-2.5 rounded-2xl ${color}`}>
+          <Icon size={18} />
+        </div>
+        {trend && (
+          <div className="flex items-center gap-1 text-emerald-500 text-xs font-black">
+            <ArrowUpRight size={12} />
+            {trend}
+          </div>
+        )}
+      </div>
+      <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.15em] mb-1">{label}</p>
+      <p className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">{value}</p>
+      {sub && <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5 font-medium">{sub}</p>}
+    </div>
+    {/* Subtle background glow */}
+    <div className="absolute -bottom-4 -right-4 w-24 h-24 rounded-full opacity-[0.04] bg-indigo-500 blur-2xl pointer-events-none group-hover:opacity-[0.08] transition-opacity" />
+  </div>
+);
+
+// ─── Section Header ───────────────────────────────────────────────────────────
+const SectionHeader = ({ icon: Icon, title, sub, action }: { icon: any; title: string; sub?: string; action?: React.ReactNode }) => (
+  <div className="flex items-center justify-between mb-6">
+    <div className="flex items-center gap-3">
+      <div className="p-2 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-xl border border-indigo-100 dark:border-indigo-900/60">
+        <Icon size={17} />
+      </div>
+      <div>
+        <h3 className="text-base font-black text-gray-900 dark:text-white tracking-tight">{title}</h3>
+        {sub && <p className="text-xs text-gray-400 dark:text-gray-500 font-medium">{sub}</p>}
+      </div>
+    </div>
+    {action}
+  </div>
+);
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 export const AnalyticsDashboard: React.FC = () => {
   const { project } = useStore();
   const [stats, setStats] = useState<any>(null);
@@ -34,7 +104,7 @@ export const AnalyticsDashboard: React.FC = () => {
           api.get(`/analytics/daily-hours/${project.id}?days=${daysRange}`),
           api.get(`/analytics/tasks/${project.id}`),
         ]);
-        
+
         setStats(statsRes);
         setComprehensive(compRes);
         setDailyHours(hoursRes);
@@ -49,322 +119,391 @@ export const AnalyticsDashboard: React.FC = () => {
     if (project && project.id) fetchAnalytics();
   }, [project.id, daysRange]);
 
+  // ── Loading skeleton ──────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="p-8 flex items-center justify-center min-h-[600px]">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin mx-auto" />
-          <p className="text-sm text-slate-500 font-bold uppercase tracking-[2px]">Synthesizing Data...</p>
+      <div className="flex items-center justify-center min-h-[600px]">
+        <div className="text-center space-y-5">
+          <div className="relative mx-auto w-16 h-16">
+            <div className="absolute inset-0 rounded-full border-4 border-indigo-100 dark:border-indigo-900/40" />
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-indigo-600 animate-spin" />
+            <div className="absolute inset-2 rounded-full bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center">
+              <Activity size={16} className="text-indigo-600 dark:text-indigo-400" />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-black text-gray-900 dark:text-white tracking-tight">Synthesizing Analytics</p>
+            <p className="text-xs text-gray-400 font-medium">Aggregating project performance data…</p>
+          </div>
         </div>
       </div>
     );
   }
 
-
-
-  const renderAvatar = (member: any, size: string = 'w-12 h-12') => {
-    const isImage = member.avatar && member.avatar.length > 4;
-    return (
-      <div className={`${size} flex-shrink-0 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-slate-400 border border-slate-200 dark:border-slate-700 overflow-hidden`}>
-        {isImage ? (
-          <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
-        ) : (
-          <span className="truncate px-1">{member.avatar || member.name[0]}</span>
-        )}
-      </div>
-    );
-  };
-
+  // ── Derived metrics ───────────────────────────────────────────────────────
   const statusData = stats ? [
     { name: 'Pending', value: stats.taskStatus.pending || 0 },
     { name: 'In Progress', value: stats.taskStatus['in-progress'] || 0 },
     { name: 'Stuck', value: stats.taskStatus.stuck || 0 },
     { name: 'Completed', value: stats.taskStatus.completed || 0 },
   ] : [];
-
   const totalTasks = statusData.reduce((s, d) => s + d.value, 0);
-  const completionRate = totalTasks > 0
-    ? Math.round((statusData.find(d => d.name === 'Completed')?.value || 0) / totalTasks * 100)
-    : 0;
+  const completedCount = statusData.find(d => d.name === 'Completed')?.value || 0;
+  const completionRate = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
+  const stuckCount = stats?.taskStatus.stuck || 0;
+  const avgEfficiency = stats?.taskStatus.completed > 0
+    ? (stats.totalActual / stats.taskStatus.completed).toFixed(1)
+    : '0';
+
+  const renderAvatar = (member: any, size = 'w-10 h-10') => {
+    const isImage = member.avatar && member.avatar.length > 4;
+    return (
+      <div className={`${size} flex-shrink-0 rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-950/60 dark:to-purple-950/60 flex items-center justify-center font-black text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40 text-xs overflow-hidden`}>
+        {isImage ? (
+          <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
+        ) : (
+          <span>{member.avatar || member.name?.[0] || '?'}</span>
+        )}
+      </div>
+    );
+  };
 
   return (
-    <div className="space-y-8 p-6 pb-20 max-w-[1600px] mx-auto animate-in fade-in duration-700">
-      {/* Header & Filters */}
-      <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 mb-4">
+    <div className="space-y-8 px-1 pb-16 max-w-[1600px] mx-auto">
+
+      {/* ── Page Header ──────────────────────────────────────────────────────── */}
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-5 pt-1">
         <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2.5 bg-violet-600 rounded-2xl shadow-lg shadow-violet-600/20 text-white">
-              <TrendingUp size={24} />
+          <div className="flex items-center gap-3 mb-1.5">
+            <div className="p-2.5 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-2xl shadow-lg shadow-violet-500/20 text-white">
+              <TrendingUp size={22} />
             </div>
-            <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-              Project Intelligence
-            </h1>
+            <div>
+              <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Project Intelligence</h1>
+              <p className="text-xs text-gray-400 font-medium mt-0.5">
+                Advanced metrics for <span className="text-violet-600 dark:text-violet-400 font-bold">"{project.name}"</span>
+              </p>
+            </div>
           </div>
-          <p className="text-slate-500 dark:text-slate-400 font-medium">
-            Advanced productivity metrics for <span className="text-violet-600 font-bold">"{project.name}"</span>
-          </p>
         </div>
 
-        <div className="flex items-center gap-3 bg-white dark:bg-slate-900 p-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mr-2">
-            <button 
+        {/* Controls */}
+        <div className="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-1.5 shadow-sm">
+          {/* View toggle */}
+          <div className="flex p-1 bg-gray-50 dark:bg-gray-800 rounded-xl">
+            <button
               onClick={() => setViewType('grid')}
-              className={`p-2 rounded-lg transition-all ${viewType === 'grid' ? 'bg-white dark:bg-slate-700 shadow-sm text-violet-600' : 'text-slate-400'}`}
+              title="Grid View"
+              className={`p-2 rounded-lg transition-all ${viewType === 'grid' ? 'bg-white dark:bg-gray-700 shadow text-violet-600' : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
             >
-              <LayoutGrid size={18} />
+              <LayoutGrid size={16} />
             </button>
-            <button 
+            <button
               onClick={() => setViewType('table')}
-              className={`p-2 rounded-lg transition-all ${viewType === 'table' ? 'bg-white dark:bg-slate-700 shadow-sm text-violet-600' : 'text-slate-400'}`}
+              title="Table View"
+              className={`p-2 rounded-lg transition-all ${viewType === 'table' ? 'bg-white dark:bg-gray-700 shadow text-violet-600' : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
             >
-              <List size={18} />
+              <List size={16} />
             </button>
           </div>
-          <div className="h-6 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1" />
+          {/* Divider */}
+          <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
+          {/* Time range */}
           {[7, 30, 90].map(d => (
             <button
               key={d}
               onClick={() => setDaysRange(d)}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all border-2 uppercase tracking-wider ${daysRange === d
-                ? 'bg-violet-600 text-white border-violet-600 shadow-md shadow-violet-600/20'
-                : 'bg-transparent border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                daysRange === d
+                  ? 'bg-violet-600 text-white shadow-md shadow-violet-600/25'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800'
+              }`}
             >
-              {d === 7 ? 'Weekly' : d === 30 ? 'Monthly' : 'Quarterly'}
+              {d === 7 ? '7D' : d === 30 ? '30D' : '90D'}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Highlights Leaderboard */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="col-span-1 lg:col-span-2 bg-gradient-to-br from-violet-600 to-indigo-700 rounded-[2rem] p-8 text-white relative overflow-hidden shadow-xl">
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 text-violet-100/80 text-[10px] font-black uppercase tracking-[3px] mb-4">
-              <Trophy size={14} /> Performance Champions
-            </div>
-            <div className="grid grid-cols-2 gap-8">
-              <div>
-                <p className="text-violet-100/70 text-xs font-bold mb-1">Most Working Hours</p>
-                <h3 className="text-2xl font-black truncate">{comprehensive?.highlights?.mostHours?.name || 'N/A'}</h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <div className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold">
-                    {comprehensive?.highlights?.mostHours?.value || 0}h Logged
-                  </div>
-                </div>
-              </div>
-              <div className="border-l border-white/10 pl-8">
-                <p className="text-violet-100/70 text-xs font-bold mb-1">Top Task Finisher</p>
-                <h3 className="text-2xl font-black truncate">{comprehensive?.highlights?.mostTasks?.name || 'N/A'}</h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <div className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold">
-                    {comprehensive?.highlights?.mostTasks?.value || 0} Finished
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="absolute -right-12 -bottom-12 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
-          <div className="absolute top-0 right-0 p-8 opacity-20">
-            <TrendingUp size={120} />
-          </div>
+      {/* ── KPI Row ───────────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          icon={Target}
+          label="Completion Rate"
+          value={`${completionRate}%`}
+          sub={`${completedCount} of ${totalTasks} tasks done`}
+          trend="+8%"
+          color="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400"
+        />
+        <StatCard
+          icon={Clock}
+          label="Avg. Efficiency"
+          value={`${avgEfficiency}h`}
+          sub="Per completed task"
+          color="bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400"
+        />
+        <StatCard
+          icon={AlertTriangle}
+          label="Blocked Tasks"
+          value={stuckCount}
+          sub={stuckCount > 0 ? "Require immediate attention" : "All clear!"}
+          color="bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400"
+        />
+        <StatCard
+          icon={Users}
+          label="Team Members"
+          value={comprehensive?.memberStats?.length || 0}
+          sub="Active contributors"
+          color="bg-violet-50 dark:bg-violet-950/40 text-violet-600 dark:text-violet-400"
+        />
+      </div>
+
+      {/* ── Performance Champions ─────────────────────────────────────────────── */}
+      <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-700 p-8 shadow-2xl shadow-violet-500/20">
+        {/* decorative orbs */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/3 blur-2xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/4 blur-2xl pointer-events-none" />
+        <div className="absolute top-0 right-0 opacity-10 pointer-events-none p-8">
+          <TrendingUp size={100} />
         </div>
 
-        <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm group hover:border-emerald-500/50 transition-all">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-2xl">
-              <CheckCircle size={24} />
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 text-violet-200/80 text-[10px] font-black uppercase tracking-[0.25em] mb-6">
+            <Trophy size={13} />
+            Performance Champions
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <p className="text-violet-200/70 text-xs font-bold mb-2">Most Working Hours</p>
+              <h3 className="text-3xl font-black text-white tracking-tight mb-3 truncate">
+                {comprehensive?.highlights?.mostHours?.name || '—'}
+              </h3>
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/15 backdrop-blur rounded-full text-sm font-bold text-white border border-white/10">
+                <Clock size={13} />
+                {comprehensive?.highlights?.mostHours?.value || 0}h Logged
+              </div>
             </div>
-            <div className="text-[10px] font-black bg-emerald-500/10 text-emerald-600 px-3 py-1 rounded-full uppercase tracking-wider">
-              {completionRate}% Rate
+            <div className="md:border-l border-white/10 md:pl-8">
+              <p className="text-violet-200/70 text-xs font-bold mb-2">Top Task Finisher</p>
+              <h3 className="text-3xl font-black text-white tracking-tight mb-3 truncate">
+                {comprehensive?.highlights?.mostTasks?.name || '—'}
+              </h3>
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/15 backdrop-blur rounded-full text-sm font-bold text-white border border-white/10">
+                <CheckCircle size={13} />
+                {comprehensive?.highlights?.mostTasks?.value || 0} Completed
+              </div>
             </div>
           </div>
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mb-1">Avg. Efficiency</p>
-          <h3 className="text-3xl font-black text-slate-900 dark:text-white">
-            {stats?.taskStatus.completed > 0 ? (stats.totalActual / stats.taskStatus.completed).toFixed(1) : 0}h
-          </h3>
-          <p className="text-slate-500 text-xs mt-2 font-medium">Per completed task</p>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm group hover:border-rose-500/50 transition-all">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-rose-500/10 text-rose-500 rounded-2xl">
-              <AlertTriangle size={24} />
-            </div>
-            <div className="text-[10px] font-black bg-rose-50 text-rose-600 px-3 py-1 rounded-full uppercase tracking-wider">
-              Warning
-            </div>
-          </div>
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mb-1">Critical Tasks</p>
-          <h3 className="text-3xl font-black text-slate-900 dark:text-white">
-            {stats?.taskStatus.stuck || 0}
-          </h3>
-          <p className="text-slate-500 text-xs mt-2 font-medium">Require immediate attention</p>
         </div>
       </div>
 
-      {/* Graphs Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* ── Charts Row ────────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
         {/* Performance Trend */}
-        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-10 border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Performance Trends</h3>
-              <p className="text-xs text-slate-500 font-medium">Collective team output over the last {daysRange} days</p>
-            </div>
-          </div>
-          <div className="h-[350px] w-full">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl p-7 border border-gray-100 dark:border-gray-800 shadow-sm">
+          <SectionHeader
+            icon={Activity}
+            title="Performance Trend"
+            sub={`Team output over the last ${daysRange} days`}
+          />
+          <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={dailyHours}>
+              <AreaChart data={dailyHours} margin={{ left: -10, right: 10 }}>
                 <defs>
-                  <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                  <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#7c3aed" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="#7c3aed" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  interval={Math.floor(dailyHours.length / 7)}
-                  tick={{ fontSize: 10, fill: '#64748b', fontWeight: 'bold' }} 
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148,163,184,0.1)" />
+                <XAxis
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
+                  interval={Math.floor(dailyHours.length / 6)}
+                  tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 700 }}
                 />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} unit="h" />
-                <Tooltip
-                  contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)' }}
-                  cursor={{ stroke: '#8b5cf6', strokeWidth: 2 }}
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} unit="h" />
+                <Tooltip content={<CustomTooltip />} />
+                <Area
+                  type="monotone"
+                  dataKey="hours"
+                  name="Hours"
+                  unit="h"
+                  stroke="#7c3aed"
+                  strokeWidth={3}
+                  fillOpacity={1}
+                  fill="url(#trendGrad)"
+                  dot={false}
+                  activeDot={{ r: 5, fill: '#7c3aed', strokeWidth: 2, stroke: '#fff' }}
                 />
-                <Area type="monotone" dataKey="hours" stroke="#8b5cf6" strokeWidth={4} fillOpacity={1} fill="url(#trendGradient)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Productivity Comparison */}
-        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-10 border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Member Productivity</h3>
-              <p className="text-xs text-slate-500 font-medium">Hours worked vs. Tasks completed</p>
-            </div>
-          </div>
-          <div className="h-[350px] w-full">
+        {/* Member Productivity */}
+        <div className="bg-white dark:bg-gray-900 rounded-3xl p-7 border border-gray-100 dark:border-gray-800 shadow-sm">
+          <SectionHeader
+            icon={BarChart2}
+            title="Member Productivity"
+            sub="Hours logged vs. tasks completed"
+          />
+          <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={comprehensive?.memberStats || []} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 10, fill: '#64748b', fontWeight: 'bold' }} 
+              <ComposedChart
+                data={comprehensive?.memberStats || []}
+                margin={{ top: 5, right: 20, bottom: 5, left: -10 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148,163,184,0.1)" />
+                <XAxis
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 700 }}
                 />
-                <YAxis 
-                  yAxisId="left"
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 10, fill: '#8b5cf6', fontWeight: 'bold' }} 
-                  unit="h"
+                <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#7c3aed', fontWeight: 700 }} unit="h" />
+                <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#10b981', fontWeight: 700 }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend
+                  verticalAlign="top"
+                  align="right"
+                  wrapperStyle={{ paddingBottom: '12px', fontSize: '10px', fontWeight: 700 }}
                 />
-                <YAxis 
+                <Bar yAxisId="left" dataKey="totalHours" name="Hours" unit="h" fill="#7c3aed" radius={[6, 6, 0, 0]} barSize={28} opacity={0.85} />
+                <Line
                   yAxisId="right"
-                  orientation="right"
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 10, fill: '#10b981', fontWeight: 'bold' }} 
+                  type="monotone"
+                  dataKey="tasksCompleted"
+                  name="Tasks"
+                  stroke="#10b981"
+                  strokeWidth={3}
+                  dot={{ r: 5, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }}
+                  activeDot={{ r: 7 }}
                 />
-                <Tooltip 
-                   contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)' }}
-                />
-                <Legend verticalAlign="top" align="right" wrapperStyle={{ paddingBottom: '20px' }} />
-                <Bar yAxisId="left" dataKey="totalHours" name="Hours Logged" fill="#8b5cf6" radius={[6, 6, 0, 0]} barSize={32} />
-                <Line yAxisId="right" type="monotone" dataKey="tasksCompleted" name="Tasks Done" stroke="#10b981" strokeWidth={4} dot={{ r: 6, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
         </div>
       </div>
 
-      {/* Main Stats View */}
-      {viewType === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {(comprehensive?.memberStats || []).map((member: any) => (
-            <div key={member.id} className="bg-white dark:bg-slate-900 rounded-[2rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm">
-              <div className="flex items-center gap-4 mb-6 overflow-hidden">
-                {renderAvatar(member)}
-                <div className="min-w-0 flex-1">
-                  <h4 className="font-black text-slate-900 dark:text-white leading-tight truncate">{member.name}</h4>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">{member.email || 'Team Member'}</p>
-                </div>
-                <div className="ml-auto text-right">
-                  <div className="flex items-center gap-1 text-violet-600 font-black text-lg">
-                    <Zap size={16} /> {member.efficiency}
-                  </div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Efficiency</p>
-                </div>
+      {/* ── Member Stats ──────────────────────────────────────────────────────── */}
+      <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+        <div className="px-7 pt-7 pb-5">
+          <SectionHeader
+            icon={Users}
+            title="Team Performance"
+            sub="Individual productivity breakdown"
+            action={
+              <div className="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-1">
+                <button
+                  onClick={() => setViewType('grid')}
+                  className={`p-1.5 rounded-lg transition-all ${viewType === 'grid' ? 'bg-white dark:bg-gray-700 shadow text-violet-600' : 'text-gray-400'}`}
+                >
+                  <LayoutGrid size={14} />
+                </button>
+                <button
+                  onClick={() => setViewType('table')}
+                  className={`p-1.5 rounded-lg transition-all ${viewType === 'table' ? 'bg-white dark:bg-gray-700 shadow text-violet-600' : 'text-gray-400'}`}
+                >
+                  <List size={14} />
+                </button>
               </div>
-
-              <div className="grid grid-cols-3 gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl">
-                <div className="text-center">
-                  <p className="text-xl font-black text-slate-900 dark:text-white">{member.totalHours}h</p>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Worked</p>
-                </div>
-                <div className="text-center border-x border-slate-200 dark:border-slate-700">
-                  <p className="text-xl font-black text-emerald-500">{member.tasksCompleted}</p>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Done</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-xl font-black text-rose-500">{member.overdueTasks}</p>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Overdue</p>
-                </div>
-              </div>
-            </div>
-          ))}
+            }
+          />
         </div>
-      ) : (
-        <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+
+        {viewType === 'grid' ? (
+          <div className="px-7 pb-7 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {(comprehensive?.memberStats || []).map((member: any) => (
+              <div key={member.id} className="group p-5 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-violet-200 dark:hover:border-violet-800/50 bg-gray-50/50 dark:bg-gray-800/30 transition-all duration-300 hover:shadow-md">
+                <div className="flex items-center gap-3 mb-4">
+                  {renderAvatar(member)}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-black text-gray-900 dark:text-white text-sm leading-tight truncate">{member.name}</h4>
+                    <p className="text-[10px] text-gray-400 font-semibold truncate">{member.email || 'Team Member'}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="flex items-center gap-1 text-violet-600 dark:text-violet-400 font-black text-base">
+                      <Zap size={13} /> {member.efficiency}
+                    </div>
+                    <p className="text-[9px] text-gray-400 uppercase tracking-wider font-bold">Score</p>
+                  </div>
+                </div>
+
+                {/* Progress bar */}
+                <div className="mb-3">
+                  <div className="flex justify-between items-center mb-1.5">
+                    <span className="text-[10px] text-gray-400 font-bold">Efficiency</span>
+                    <span className="text-[10px] text-violet-600 dark:text-violet-400 font-black">{Math.min(100, member.efficiency * 10)}%</span>
+                  </div>
+                  <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full transition-all duration-700"
+                      style={{ width: `${Math.min(100, member.efficiency * 10)}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { label: 'Hours', value: `${member.totalHours}h`, color: 'text-gray-900 dark:text-white' },
+                    { label: 'Done', value: member.tasksCompleted, color: 'text-emerald-600 dark:text-emerald-400' },
+                    { label: 'Overdue', value: member.overdueTasks, color: 'text-rose-500' },
+                  ].map(({ label, value, color }) => (
+                    <div key={label} className="text-center py-2.5 rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
+                      <p className={`text-base font-black ${color}`}>{value}</p>
+                      <p className="text-[9px] text-gray-400 uppercase font-bold tracking-wider mt-0.5">{label}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left">
+            <table className="w-full">
               <thead>
-                <tr className="border-b border-slate-100 dark:border-slate-800">
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[2px]">Member</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[2px]">Logged Time</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[2px]">Tasks Done</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[2px]">Pending/Overdue</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[2px]">Efficiency Score</th>
+                <tr className="border-t border-b border-gray-100 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-800/30">
+                  {['Member', 'Logged Time', 'Tasks Done', 'Overdue', 'Efficiency'].map(h => (
+                    <th key={h} className="px-7 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.12em]">{h}</th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+              <tbody>
                 {(comprehensive?.memberStats || []).map((member: any) => (
-                  <tr key={member.id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-3 overflow-hidden">
-                        {renderAvatar(member, 'w-10 h-10')}
-                        <span className="font-bold text-slate-900 dark:text-white truncate">{member.name}</span>
+                  <tr key={member.id} className="border-b border-gray-50 dark:border-gray-800/60 hover:bg-gray-50/60 dark:hover:bg-gray-800/30 transition-colors">
+                    <td className="px-7 py-5">
+                      <div className="flex items-center gap-3">
+                        {renderAvatar(member, 'w-9 h-9')}
+                        <div>
+                          <p className="font-bold text-gray-900 dark:text-white text-sm">{member.name}</p>
+                          <p className="text-[10px] text-gray-400 font-medium">{member.email}</p>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-8 py-6 font-black text-slate-900 dark:text-white">{member.totalHours}h</td>
-                    <td className="px-8 py-6">
-                      <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-full font-black text-xs">
+                    <td className="px-7 py-5 font-black text-gray-900 dark:text-white">{member.totalHours}h</td>
+                    <td className="px-7 py-5">
+                      <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-full font-black text-xs border border-emerald-100 dark:border-emerald-900/40">
                         {member.tasksCompleted} Tasks
                       </span>
                     </td>
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-2">
-                        <span className="text-slate-500 font-bold">{member.pendingTasks}</span>
-                        {member.overdueTasks > 0 && (
-                          <span className="text-rose-500 text-xs font-black">({member.overdueTasks} Overdue)</span>
-                        )}
-                      </div>
+                    <td className="px-7 py-5">
+                      {member.overdueTasks > 0 ? (
+                        <span className="px-3 py-1 bg-rose-50 dark:bg-rose-950/30 text-rose-500 rounded-full font-black text-xs border border-rose-100 dark:border-rose-900/40">
+                          {member.overdueTasks} Overdue
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 font-bold text-sm">—</span>
+                      )}
                     </td>
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1.5 w-24 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-violet-600 rounded-full" 
-                            style={{ width: `${Math.min(100, member.efficiency * 10)}%` }} 
-                          />
+                    <td className="px-7 py-5">
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 h-1.5 w-24 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full" style={{ width: `${Math.min(100, member.efficiency * 10)}%` }} />
                         </div>
-                        <span className="font-black text-violet-600">{member.efficiency}</span>
+                        <span className="font-black text-violet-600 dark:text-violet-400 tabular-nums w-6">{member.efficiency}</span>
                       </div>
                     </td>
                   </tr>
@@ -372,61 +511,75 @@ export const AnalyticsDashboard: React.FC = () => {
               </tbody>
             </table>
           </div>
+        )}
+      </div>
+
+      {/* ── Task Performance ──────────────────────────────────────────────────── */}
+      {taskStats.length > 0 && (
+        <div className="bg-white dark:bg-gray-900 rounded-3xl p-7 border border-gray-100 dark:border-gray-800 shadow-sm">
+          <SectionHeader
+            icon={BarChart2}
+            title="Task Performance Analysis"
+            sub="Time tracked vs. estimates — identify over/under-runs"
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {taskStats.map(task => {
+              const isOver = task.cumulativeHours > task.estimatedHours && task.estimatedHours > 0;
+              const progress = task.estimatedHours > 0
+                ? Math.min(100, (task.cumulativeHours / task.estimatedHours) * 100)
+                : 100;
+              const isDone = task.status === 'completed';
+
+              return (
+                <div key={task.id} className="group p-5 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-indigo-200 dark:hover:border-indigo-800/50 bg-gray-50/40 dark:bg-gray-800/20 transition-all duration-300">
+                  <div className="flex items-start justify-between mb-3">
+                    <h5 className="font-bold text-gray-900 dark:text-white text-sm leading-tight pr-2 truncate" title={task.title}>{task.title}</h5>
+                    <span className={`shrink-0 text-[9px] font-black uppercase px-2 py-1 rounded-lg ${
+                      isDone
+                        ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40'
+                        : 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/40'
+                    }`}>
+                      {task.status}
+                    </span>
+                  </div>
+
+                  <div className="flex items-end justify-between mb-2.5">
+                    <div>
+                      <p className="text-[9px] text-gray-400 font-black uppercase tracking-wider">Tracked</p>
+                      <p className={`text-xl font-black ${isOver ? 'text-rose-500' : 'text-gray-900 dark:text-white'}`}>
+                        {task.cumulativeHours}h
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[9px] text-gray-400 font-black uppercase tracking-wider">Estimate</p>
+                      <p className="text-sm font-bold text-gray-500 dark:text-gray-400">{task.estimatedHours}h</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${
+                          isOver
+                            ? 'bg-gradient-to-r from-rose-500 to-red-500'
+                            : 'bg-gradient-to-r from-violet-500 to-indigo-500'
+                        }`}
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                    {isOver && (
+                      <p className="text-[9px] text-rose-500 font-bold">
+                        +{(task.cumulativeHours - task.estimatedHours).toFixed(1)}h over estimate
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
-      {/* Task Performance Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-10 border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl">
-            <List size={20} className="text-slate-600" />
-          </div>
-          <div>
-            <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Task Performance Analysis</h3>
-            <p className="text-xs text-slate-500 font-medium">Time consumption vs. Estimation per task</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {taskStats.map(task => {
-            const isOver = task.cumulativeHours > task.estimatedHours && task.estimatedHours > 0;
-            const progress = task.estimatedHours > 0 
-              ? Math.min(100, (task.cumulativeHours / task.estimatedHours) * 100)
-              : 100;
-
-            return (
-              <div key={task.id} className="p-6 rounded-3xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
-                <div className="flex justify-between items-start mb-3">
-                  <h5 className="font-bold text-slate-900 dark:text-white text-sm truncate pr-2" title={task.title}>{task.title}</h5>
-                  <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg ${
-                    task.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'
-                  }`}>
-                    {task.status}
-                  </span>
-                </div>
-                
-                <div className="flex justify-between items-end mb-2">
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tracked</p>
-                    <p className={`text-xl font-black ${isOver ? 'text-rose-500' : 'text-slate-900 dark:text-white'}`}>{task.cumulativeHours}h</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Estimate</p>
-                    <p className="text-sm font-bold text-slate-600 dark:text-slate-400">{task.estimatedHours}h</p>
-                  </div>
-                </div>
-
-                <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full transition-all duration-1000 ${isOver ? 'bg-rose-500' : 'bg-violet-600'}`} 
-                    style={{ width: `${progress}%` }} 
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
     </div>
   );
 };

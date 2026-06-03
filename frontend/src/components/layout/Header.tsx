@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
 import { useAuth } from '../../hooks/useAuth';
-import { ChevronDown, Bell, Menu, X, Sun, Moon, LogOut, User } from 'lucide-react';
+import { ChevronDown, Bell, Menu, X, Sun, Moon, LogOut, User, Sparkles } from 'lucide-react';
 
 interface HeaderProps {
   mobileMenuOpen: boolean;
@@ -33,6 +33,8 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
     markNotificationRead,
     markAllNotificationsRead,
     setSelectedTaskId,
+    setIsTourActive,
+    setTourStep,
   } = useStore();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -61,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
   };
 
   return (
-    <header className="h-16 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 flex items-center px-6 gap-4 shrink-0 z-10 transition-colors">
+    <header className="sticky top-0 h-16 glass-navbar flex items-center px-6 gap-4 shrink-0 z-20 transition-all duration-300">
       {/* Mobile menu button */}
       <button
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -121,6 +123,43 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
         <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{viewInfo.subtitle}</p>
       </div>
 
+      {/* Multiplayer Presence indicators */}
+      <div className="hidden md:flex items-center gap-3 bg-white/40 dark:bg-[#090d16]/30 border border-gray-100 dark:border-gray-800/80 px-3 py-1.5 rounded-xl backdrop-blur-md">
+        <div className="flex -space-x-2">
+          {/* Admin Avatar */}
+          <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-[10px] font-bold border-2 border-white dark:border-gray-900 shadow-sm relative" title="Admin (Active)">
+            <span>AD</span>
+            <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border border-white dark:border-gray-900 animate-pulse" />
+          </div>
+          {/* Jane Smith Avatar */}
+          <div className="w-7 h-7 rounded-full bg-pink-500 flex items-center justify-center text-white text-[10px] font-bold border-2 border-white dark:border-gray-900 shadow-sm relative" title="Jane Smith (Active)">
+            <span>JS</span>
+            <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border border-white dark:border-gray-900 animate-pulse" />
+          </div>
+          {/* John Doe Avatar */}
+          <div className="w-7 h-7 rounded-full bg-amber-500 flex items-center justify-center text-white text-[10px] font-bold border-2 border-white dark:border-gray-900 shadow-sm relative" title="John Doe (Active)">
+            <span>JD</span>
+            <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border border-white dark:border-gray-900 animate-pulse" />
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping animate-pulse-glow" />
+          <span className="text-[11px] font-bold tracking-tight text-gray-500 dark:text-gray-400 select-none">3 Active</span>
+        </div>
+      </div>
+
+      {/* Onboarding Tour Trigger */}
+      <button
+        onClick={() => {
+          setIsTourActive(true);
+          setTourStep(0);
+        }}
+        className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-500/10 hover:shadow-indigo-500/20 transition-all cursor-pointer"
+      >
+        <Sparkles size={13} className="animate-pulse" />
+        <span>Interactive Tour</span>
+      </button>
+
       <div className="flex-1 lg:flex-none" />
 
       {/* Notifications */}
@@ -140,8 +179,8 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
         {showNotifications && (
           <>
             <div className="fixed inset-0 z-20" onClick={() => setShowNotifications(false)} />
-            <div className="absolute right-0 top-full mt-3 w-80 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-2xl z-30 overflow-hidden animate-dropdown">
-              <div className="p-4 border-b border-gray-50 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50">
+            <div className="absolute right-0 top-full mt-3 w-80 glass-panel rounded-2xl shadow-2xl z-30 overflow-hidden animate-dropdown">
+              <div className="p-4 border-b border-gray-50 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-900/30">
                 <h3 className="font-bold text-sm text-gray-900 dark:text-white">Notifications</h3>
                 {unreadCount > 0 && (
                   <span className="text-[10px] bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
@@ -249,9 +288,9 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
                 className="fixed inset-0 z-20"
                 onClick={() => setShowUserMenu(false)}
               />
-              <div className="absolute right-0 top-full mt-2 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-xl z-30 w-64 overflow-hidden">
+              <div className="absolute right-0 top-full mt-2 glass-panel rounded-2xl shadow-2xl z-30 w-64 overflow-hidden">
                 {/* User Info */}
-                <div className="p-4 border-b border-gray-50 dark:border-gray-700">
+                <div className="p-4 border-b border-gray-50 dark:border-gray-800">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold overflow-hidden">
                       {user.avatar && (user.avatar.startsWith('http') || user.avatar.startsWith('data:image')) ? (
@@ -265,10 +304,15 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
                       <p className="text-xs text-gray-500 dark:text-gray-400">{user.email}</p>
                     </div>
                   </div>
-                  <div className="mt-3">
+                  <div className="mt-3 flex items-center gap-2">
                     <span className={`text-xs px-2 py-1 rounded-full font-medium inline-block ${getRoleColor(user.globalRole)}`}>
                       {user.globalRole}
                     </span>
+                    {user.globalRole === 'admin' && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-extrabold tracking-widest shadow-[0_0_8px_rgba(99,102,241,0.3)] uppercase">
+                        PRO TEAM
+                      </span>
+                    )}
                   </div>
                 </div>
 
