@@ -9,7 +9,8 @@ import {
   Lock, 
   Check, 
   AlertCircle,
-  FileText
+  FileText,
+  BellRing
 } from 'lucide-react';
 
 export const Profile: React.FC = () => {
@@ -31,6 +32,18 @@ export const Profile: React.FC = () => {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [passwordError, setPasswordError] = useState('');
+
+  // Notification State
+  const [notifyEmail, setNotifyEmail] = useState(localStorage.getItem('notifyEmail') !== 'false');
+  const [notifyPush, setNotifyPush] = useState(localStorage.getItem('notifyPush') !== 'false');
+  const [notifyTasks, setNotifyTasks] = useState(localStorage.getItem('notifyTasks') !== 'false');
+  const [notifyMentions, setNotifyMentions] = useState(localStorage.getItem('notifyMentions') !== 'false');
+
+  const handleToggle = (key: string, setter: React.Dispatch<React.SetStateAction<boolean>>, current: boolean) => {
+    const next = !current;
+    setter(next);
+    localStorage.setItem(key, String(next));
+  };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -375,6 +388,51 @@ export const Profile: React.FC = () => {
               </div>
             </div>
           </form>
+        </section>
+
+        {/* Notification Settings */}
+        <section className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col lg:col-span-2">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+            <BellRing className="text-indigo-500" size={18} />
+            Notification Preferences
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Delivery Methods</h4>
+              <label className="flex items-center justify-between cursor-pointer p-3 rounded-xl border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Email Notifications</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Receive notifications via email</p>
+                </div>
+                <input type="checkbox" checked={notifyEmail} onChange={() => handleToggle('notifyEmail', setNotifyEmail, notifyEmail)} className="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer" />
+              </label>
+              <label className="flex items-center justify-between cursor-pointer p-3 rounded-xl border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Push Notifications</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Receive notifications on this device</p>
+                </div>
+                <input type="checkbox" checked={notifyPush} onChange={() => handleToggle('notifyPush', setNotifyPush, notifyPush)} className="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer" />
+              </label>
+            </div>
+            
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Notify me about...</h4>
+              <label className="flex items-center justify-between cursor-pointer p-3 rounded-xl border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Task Assignments</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">When you are assigned to a task</p>
+                </div>
+                <input type="checkbox" checked={notifyTasks} onChange={() => handleToggle('notifyTasks', setNotifyTasks, notifyTasks)} className="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer" />
+              </label>
+              <label className="flex items-center justify-between cursor-pointer p-3 rounded-xl border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Mentions & Comments</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">When someone mentions you or replies</p>
+                </div>
+                <input type="checkbox" checked={notifyMentions} onChange={() => handleToggle('notifyMentions', setNotifyMentions, notifyMentions)} className="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 cursor-pointer" />
+              </label>
+            </div>
+          </div>
         </section>
 
       </div>

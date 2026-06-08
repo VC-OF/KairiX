@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
 import { useAuth } from '../../hooks/useAuth';
-import { ChevronDown, Bell, Menu, X, Sun, Moon, LogOut, User, Sparkles } from 'lucide-react';
+import { ChevronDown, Bell, Menu, X, Sun, Moon, LogOut, User, Sparkles, Palette, Check, Star } from 'lucide-react';
+import { NotificationsPanel } from './NotificationsPanel';
 
 interface HeaderProps {
   mobileMenuOpen: boolean;
@@ -26,7 +27,11 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
   const {
     activeView,
     theme,
+    colorTheme,
+    defaultTheme,
     toggleTheme,
+    setColorTheme,
+    setDefaultTheme,
     setActiveView,
     projects,
     setProject,
@@ -37,16 +42,29 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
     setIsTourActive,
     setTourStep,
     users,
+    currentUser,
   } = useStore();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
   // const stuckCount = tasks.filter((t) => t.status === 'stuck').length;
   const viewInfo = viewTitles[activeView] || viewTitles.dashboard;
+
+  const THEMES = [
+    { id: 'default' as const, label: 'Default', swatch: 'linear-gradient(135deg,#6366f1,#a855f7)' },
+    { id: 'ocean'   as const, label: 'Ocean Blue',    swatch: 'linear-gradient(135deg,#0ea5e9,#06b6d4)' },
+    { id: 'forest'  as const, label: 'Forest Green',  swatch: 'linear-gradient(135deg,#22c55e,#10b981)' },
+    { id: 'royal'   as const, label: 'Royal Purple',  swatch: 'linear-gradient(135deg,#a855f7,#7c3aed)' },
+    { id: 'sunset'  as const, label: 'Sunset Orange', swatch: 'linear-gradient(135deg,#fb923c,#f97316)' },
+    { id: 'crimson' as const, label: 'Crimson Dark',  swatch: 'linear-gradient(135deg,#f87171,#dc2626)' },
+  ];
+
+  const isAdmin = currentUser?.role === 'admin' || user?.globalRole === 'admin';
 
   const handleLogout = async () => {
     await logout();
@@ -155,87 +173,156 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
         </button>
 
         {showNotifications && (
-          <>
-            <div className="fixed inset-0 z-20" onClick={() => setShowNotifications(false)} />
-            <div className="absolute right-0 top-full mt-3 w-80 glass-panel rounded-2xl shadow-2xl z-30 overflow-hidden animate-dropdown">
-              <div className="p-4 border-b border-gray-50 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-900/30">
-                <h3 className="font-bold text-sm text-gray-900 dark:text-white">Notifications</h3>
-                {unreadCount > 0 && (
-                  <span className="text-[10px] bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
-                    {unreadCount} New
-                  </span>
-                )}
-              </div>
-              <div className="max-h-96 overflow-y-auto">
-                {notifications.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <div className="w-12 h-12 bg-gray-50 dark:bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <Bell size={20} className="text-gray-300 dark:text-gray-600" />
-                    </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">All caught up!</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">No new notifications to show.</p>
-                  </div>
-                ) : (
-                  notifications.map((n) => (
-                    <button
-                      key={n._id}
-                      onClick={async () => {
-                        markNotificationRead(n._id);
-                        setShowNotifications(false);
-                        if (n.data) {
-                          if (n.data.projectId) {
-                            const targetProj = projects.find(p => p.id === n.data.projectId);
-                            if (targetProj) {
-                              await setProject(targetProj);
-                            }
-                          }
-                          if (n.data.taskId) {
-                            setSelectedTaskId(n.data.taskId);
-                          }
-                        }
-                        setActiveView('board');
-                      }}
-                      className={`w-full p-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-50 dark:border-gray-700 last:border-0 ${!n.read ? 'bg-indigo-50/30 dark:bg-indigo-900/10' : ''}`}
-                    >
-                      <div className="flex gap-3">
-                        <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${!n.read ? 'bg-indigo-600 dark:bg-indigo-500 shadow-sm shadow-indigo-200 dark:shadow-none' : 'bg-transparent'}`} />
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-sm leading-tight ${!n.read ? 'font-bold text-gray-900 dark:text-white' : 'font-medium text-gray-600 dark:text-gray-400'}`}>
-                            {n.title}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2 leading-relaxed">{n.message}</p>
-                          <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-2 font-medium">
-                            {new Date(n.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
-              {notifications.length > 0 && (
-                <div className="p-3 bg-gray-50/50 dark:bg-gray-800/50 border-t border-gray-50 dark:border-gray-700 text-center">
-                  <button
-                    onClick={() => { markAllNotificationsRead(); }}
-                    className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
-                  >
-                    Mark All as Read
-                  </button>
-                </div>
-              )}
-            </div>
-          </>
+          <NotificationsPanel
+            notifications={notifications}
+            unreadCount={unreadCount}
+            markNotificationRead={markNotificationRead}
+            markAllNotificationsRead={markAllNotificationsRead}
+            onClose={() => setShowNotifications(false)}
+            onSettingsClick={() => {
+              setShowNotifications(false);
+              setActiveView('profile');
+            }}
+            onNotificationClick={async (n) => {
+              setShowNotifications(false);
+              if (n.data) {
+                if (n.data.projectId) {
+                  const targetProj = projects.find(p => p.id === n.data.projectId);
+                  if (targetProj) {
+                    await setProject(targetProj);
+                  }
+                }
+                if (n.data.taskId) {
+                  setSelectedTaskId(n.data.taskId);
+                }
+              }
+              setActiveView('board');
+            }}
+          />
         )}
       </div>
 
-      {/* Theme Toggle */}
-      <button
-        onClick={toggleTheme}
-        className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors"
-        title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-      >
-        {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
-      </button>
+      {/* Day / Night / Themes controls */}
+      <div className="flex items-center gap-1 bg-gray-100/70 dark:bg-gray-800/70 rounded-xl p-1">
+        {/* Day Mode */}
+        <button
+          id="btn-day-mode"
+          onClick={() => { if (theme === 'dark') toggleTheme(); }}
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+            theme === 'light'
+              ? 'bg-white dark:bg-gray-700 text-amber-600 shadow-sm'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+          }`}
+          title="Switch to Day Mode"
+        >
+          <Sun size={14} />
+          <span className="hidden sm:inline">Day</span>
+        </button>
+
+        {/* Night Mode */}
+        <button
+          id="btn-night-mode"
+          onClick={() => { if (theme === 'light') toggleTheme(); }}
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+            theme === 'dark'
+              ? 'bg-gray-700 text-indigo-400 shadow-sm'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+          }`}
+          title="Switch to Night Mode"
+        >
+          <Moon size={14} />
+          <span className="hidden sm:inline">Night</span>
+        </button>
+
+        {/* Themes Dropdown */}
+        <div className="relative">
+          <button
+            id="btn-themes-menu"
+            onClick={() => setShowThemeMenu(!showThemeMenu)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+              showThemeMenu
+                ? 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-sm'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            {colorTheme !== 'default' ? (
+              <span
+                className="w-3.5 h-3.5 rounded-full inline-block shrink-0"
+                style={{
+                  background: (
+                    { ocean: 'linear-gradient(135deg,#0ea5e9,#06b6d4)',
+                      forest: 'linear-gradient(135deg,#22c55e,#10b981)',
+                      royal: 'linear-gradient(135deg,#a855f7,#7c3aed)',
+                      sunset: 'linear-gradient(135deg,#fb923c,#f97316)',
+                      crimson: 'linear-gradient(135deg,#f87171,#dc2626)' } as Record<string,string>
+                  )[colorTheme] || 'linear-gradient(135deg,#6366f1,#a855f7)'
+                }}
+              />
+            ) : (
+              <Palette size={14} />
+            )}
+            <span className="hidden sm:inline">Themes</span>
+            <ChevronDown size={11} className={`transition-transform duration-200 ${showThemeMenu ? 'rotate-180' : ''}`} />
+          </button>
+
+          {showThemeMenu && (
+            <>
+              <div className="fixed inset-0 z-20" onClick={() => setShowThemeMenu(false)} />
+              <div className="absolute right-0 top-full mt-2 w-56 glass-panel rounded-2xl shadow-2xl z-30 overflow-hidden animate-dropdown">
+                <div className="p-3 border-b border-gray-100 dark:border-gray-800">
+                  <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Color Theme</p>
+                </div>
+                <div className="p-2">
+                  {THEMES.map((t) => (
+                    <div key={t.id} className="group flex items-center gap-2 px-2 py-1">
+                      <button
+                        id={`btn-theme-${t.id}`}
+                        onClick={() => { setColorTheme(t.id); setShowThemeMenu(false); }}
+                        className={`flex-1 flex items-center gap-2.5 px-2 py-2 rounded-xl text-left text-sm font-medium transition-all duration-150 ${
+                          colorTheme === t.id
+                            ? 'bg-gray-100 dark:bg-gray-700/80 text-gray-900 dark:text-white'
+                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                        }`}
+                      >
+                        <span
+                          className="w-5 h-5 rounded-full shrink-0 ring-2 ring-white dark:ring-gray-800 shadow-sm"
+                          style={{ background: t.swatch }}
+                        />
+                        <span className="flex-1">{t.label}</span>
+                        {colorTheme === t.id && (
+                          <Check size={13} className="text-gray-600 dark:text-gray-300 shrink-0" />
+                        )}
+                      </button>
+                      {isAdmin && t.id !== 'default' && (
+                        <button
+                          id={`btn-set-default-theme-${t.id}`}
+                          onClick={() => setDefaultTheme(t.id)}
+                          title={defaultTheme === t.id ? 'Current default' : 'Set as team default'}
+                          className={`shrink-0 p-1.5 rounded-lg transition-all ${
+                            defaultTheme === t.id
+                              ? 'text-amber-500'
+                              : 'text-gray-300 dark:text-gray-600 hover:text-amber-400 opacity-0 group-hover:opacity-100'
+                          }`}
+                        >
+                          <Star size={12} fill={defaultTheme === t.id ? 'currentColor' : 'none'} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {isAdmin && (
+                  <div className="px-4 py-2 border-t border-gray-100 dark:border-gray-800">
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 leading-relaxed">
+                      <Star size={9} className="inline mr-1 text-amber-400" fill="currentColor" />
+                      Star to set team default theme
+                    </p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
 
       {/* User Menu */}
       {user && (

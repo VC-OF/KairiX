@@ -105,6 +105,23 @@ router.get('/calendar-data', authenticateToken, async (req, res) => {
   }
 });
 
+// Get current user's active or paused timer
+router.get('/current', authenticateToken, async (req, res) => {
+  try {
+    const TimeLog = require('../models/TimeLog');
+    const log = await TimeLog.findOne({ 
+      userId: req.user.userId, 
+      status: { $in: ['active', 'paused'] } 
+    })
+    .populate('taskId', 'title status priority')
+    .sort({ updatedAt: -1 });
+
+    res.json(log);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Get all active timers for a project
 router.get('/active-timers', authenticateToken, async (req, res) => {
   try {

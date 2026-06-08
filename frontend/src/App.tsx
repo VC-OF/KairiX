@@ -30,6 +30,7 @@ function AppLayout() {
     setActiveView,
     fetchData,
     theme,
+    colorTheme,
     project,
     fetchNotifications,
     tasks,
@@ -62,6 +63,15 @@ function AppLayout() {
       document.documentElement.classList.remove('dark');
     }
   }, [theme]);
+
+  // Color theme
+  useEffect(() => {
+    if (colorTheme && colorTheme !== 'default') {
+      document.documentElement.setAttribute('data-theme', colorTheme);
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+  }, [colorTheme]);
 
   // Sync active view with URL on first load
   useEffect(() => {
@@ -250,7 +260,10 @@ function AppLayout() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden transition-colors duration-300">
+    <div
+      className="flex h-screen text-gray-900 dark:text-gray-100 overflow-hidden transition-colors duration-300"
+      style={{ background: 'var(--theme-page-bg, var(--theme-sidebar-bg))' }}
+    >
       {/* Vercel-style Glowing Top Progress Loader */}
       {isTransitioning && (
         <div className="fixed top-0 left-0 right-0 h-[2.5px] bg-gradient-to-r from-violet-500 via-indigo-500 to-pink-500 z-50 animate-progress-bar" />

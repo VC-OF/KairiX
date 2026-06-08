@@ -105,6 +105,8 @@ export interface TaskComment {
   createdAt: string;
 }
 
+export type ColorTheme = 'default' | 'ocean' | 'forest' | 'royal' | 'sunset' | 'crimson';
+
 interface AppState {
   currentUser: User | null;
   project: Project;
@@ -120,6 +122,8 @@ interface AppState {
   filterAssignee: string | 'all';
   isLoading: boolean;
   theme: 'light' | 'dark';
+  colorTheme: ColorTheme;
+  defaultTheme: ColorTheme;
   showArchived: boolean;
 
   fetchData: () => Promise<void>;
@@ -129,6 +133,8 @@ interface AppState {
   fetchLogs: (projectId?: string) => Promise<void>;
   setProject: (project: Project) => Promise<void>;
   toggleTheme: () => void;
+  setColorTheme: (theme: ColorTheme) => void;
+  setDefaultTheme: (theme: ColorTheme) => Promise<void>;
 
   // Auth
   login: (userId: string) => void;
@@ -180,6 +186,9 @@ interface AppState {
   markAllNotificationsRead: () => Promise<void>;
   selectedTaskId: string | null;
   setSelectedTaskId: (id: string | null) => void;
+  recentTasks: any[];
+  fetchRecentTasks: () => Promise<void>;
+  fetchActiveTimer: () => Promise<void>;
   isTourActive: boolean;
   setIsTourActive: (active: boolean) => void;
   tourStep: number;
@@ -234,9 +243,58 @@ export const useStore = create<AppState>((set, get) => ({
   filterAssignee: 'all',
   isLoading: false,
   theme: (localStorage.getItem('theme') as 'light' | 'dark') || 'light',
+  colorTheme: (localStorage.getItem('kairix_color_theme') as ColorTheme) || 'default',
+  defaultTheme: 'default',
   showArchived: false,
   selectedTaskId: null,
-  setSelectedTaskId: (id) => set({ selectedTaskId: id }),
+  setSelectedTaskId: async (id) => {
+    set({ selectedTaskId: id });
+    if (id) {
+      localStorage.setItem('lastOpenedTaskId', id);
+      try {
+        await api.post(`/tasks/recent/${id}`);
+        await get().fetchRecentTasks();
+      } catch (err) {
+        console.error('Failed to update recent tasks:', err);
+      }
+    } else {
+      localStorage.removeItem('lastOpenedTaskId');
+    }
+  },
+  recentTasks: [],
+  fetchRecentTasks: async () => {
+    try {
+      const response = await api.get('/tasks/recent');
+      set({ recentTasks: response || [] });
+    } catch (err) {
+      console.error('Failed to fetch recent tasks:', err);
+    }
+  },
+  fetchActiveTimer: async () => {
+    try {
+      const log = await api.get('/time-logs/current');
+      if (log && log.taskId) {
+        let elapsed = 0;
+        if (log.status === 'active') {
+          elapsed = Math.floor((new Date().getTime() - new Date(log.startTime).getTime()) / 1000);
+        }
+        set({
+          globalActiveTimer: {
+            taskId: log.taskId._id || log.taskId.id || log.taskId,
+            taskTitle: log.taskId.title || 'Active Focus Task',
+            isPaused: log.status === 'paused',
+            projectId: log.projectId,
+            seconds: (log.duration || 0) + elapsed,
+            workDate: log.workDate
+          }
+        });
+      } else {
+        set({ globalActiveTimer: null });
+      }
+    } catch (err) {
+      console.error('Failed to fetch active timer:', err);
+    }
+  },
   isTourActive: false,
   setIsTourActive: (active) => set({ isTourActive: active }),
   tourStep: 0,
@@ -319,7 +377,13 @@ export const useStore = create<AppState>((set, get) => ({
   fetchSettings: async () => {
     try {
       const settings = await api.get('/settings');
-      set({ teamLeadEnabled: settings.team_lead_enabled });
+      const defaultTheme = (settings.default_theme || 'default') as ColorTheme;
+      set({ teamLeadEnabled: settings.team_lead_enabled, defaultTheme });
+      // Apply default theme for users who have no saved preference
+      const savedTheme = localStorage.getItem('kairix_color_theme') as ColorTheme | null;
+      if (!savedTheme || savedTheme === 'default') {
+        set({ colorTheme: defaultTheme });
+      }
     } catch (error) {
       console.error('Failed to fetch settings:', error);
     }
@@ -331,6 +395,14 @@ export const useStore = create<AppState>((set, get) => ({
       await get().fetchData();
     } catch (error) {
       console.error('Failed to update settings:', error);
+    }
+  },
+  setDefaultTheme: async (theme: ColorTheme) => {
+    try {
+      const settings = await api.put('/settings', { default_theme: theme });
+      set({ defaultTheme: (settings.default_theme || 'default') as ColorTheme });
+    } catch (error) {
+      console.error('Failed to set default theme:', error);
     }
   },
 
@@ -375,8 +447,31 @@ export const useStore = create<AppState>((set, get) => ({
       if (currentProject.id && currentProject.id !== 'project-1') {
         await Promise.all([
           get().fetchTasks(currentProject.id),
-          get().fetchLogs(currentProject.id)
+          get().fetchLogs(currentProject.id),
+          get().fetchRecentTasks(),
+          get().fetchActiveTimer()
         ]);
+      } else {
+        await Promise.all([
+          get().fetchRecentTasks(),
+          get().fetchActiveTimer()
+        ]);
+      }
+
+      // Restore active task modal from localStorage if possible
+      const lastOpenedTaskId = localStorage.getItem('lastOpenedTaskId');
+      if (lastOpenedTaskId) {
+        let taskExists = get().tasks.find((t: any) => t.id === lastOpenedTaskId);
+        if (!taskExists) {
+          const recentTask = get().recentTasks.find((rt: any) => rt.id === lastOpenedTaskId);
+          if (recentTask && recentTask.projectId) {
+            const targetProj = mappedProjects.find((p: Project) => p.id === recentTask.projectId);
+            if (targetProj) {
+              await get().setProject(targetProj);
+            }
+          }
+        }
+        set({ selectedTaskId: lastOpenedTaskId });
       }
 
       set({ isLoading: false });
@@ -788,6 +883,10 @@ export const useStore = create<AppState>((set, get) => ({
     const newTheme = get().theme === 'light' ? 'dark' : 'light';
     localStorage.setItem('theme', newTheme);
     set({ theme: newTheme });
+  },
+  setColorTheme: (theme: ColorTheme) => {
+    localStorage.setItem('kairix_color_theme', theme);
+    set({ colorTheme: theme });
   },
   setShowArchived: async (show) => {
     set({ showArchived: show });

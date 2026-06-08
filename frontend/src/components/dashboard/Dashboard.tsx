@@ -112,7 +112,19 @@ const getAccentText = (c: string) => {
 };
 
 export const Dashboard: React.FC = () => {
-  const { project, tasks, users, currentUser, updateProject, setActiveView, dailyLogs } = useStore();
+  const { 
+    project, 
+    tasks, 
+    users, 
+    currentUser, 
+    updateProject, 
+    setActiveView, 
+    dailyLogs, 
+    recentTasks: cachedRecentTasks, 
+    setSelectedTaskId, 
+    projects, 
+    globalActiveTimer 
+  } = useStore();
   const [editingProject, setEditingProject] = useState(false);
   const [projName, setProjName] = useState(project.name);
   const [projDesc, setProjDesc] = useState(project.description);
@@ -370,69 +382,97 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Recent Tasks */}
-        <div className="lg:col-span-1 glass-panel rounded-3xl p-5 relative overflow-hidden">
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-indigo-500/10 rounded-xl text-indigo-500">
-                <TrendingUp size={16} />
+        {/* Recently Accessed Tasks (Task Cache) */}
+        <div className="lg:col-span-1 glass-panel rounded-3xl p-5 relative overflow-hidden flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-indigo-500/10 rounded-xl text-indigo-500">
+                  <TrendingUp size={16} />
+                </div>
+                <h3 className="font-bold text-sm text-gray-900 dark:text-slate-100 tracking-tight">Task Cache</h3>
               </div>
-              <h3 className="font-bold text-sm text-gray-900 dark:text-slate-100 tracking-tight">Recent Tasks</h3>
+              <Button
+                variant="ghost"
+                size="xs"
+                onClick={() => setActiveView('board')}
+                className="text-xs hover:text-indigo-600 font-bold transition-all text-indigo-500 dark:text-indigo-400"
+              >
+                View Board →
+              </Button>
             </div>
-            <Button
-              variant="ghost"
-              size="xs"
-              onClick={() => setActiveView('board')}
-              className="text-xs hover:text-indigo-600 font-bold transition-all"
-            >
-              View Board →
-            </Button>
-          </div>
-          <div className="space-y-2.5 max-h-[360px] overflow-y-auto pr-1 custom-scrollbar">
-            {recentTasks.map((task) => {
-              return (
-                <div
-                  key={task.id}
-                  className="flex items-center gap-3 p-3 rounded-2xl hover:bg-indigo-500/5 dark:hover:bg-indigo-500/10 border border-transparent hover:border-indigo-500/10 transition-all duration-300 cursor-default group/row"
-                >
-                  <div className="flex-shrink-0">
-                    {task.status === 'completed' ? (
-                      <CheckCircle2 size={16} className="text-emerald-500 fill-emerald-500/10" />
-                    ) : task.status === 'in-progress' ? (
-                      <Clock size={16} className="text-blue-500 animate-pulse" />
-                    ) : task.status === 'stuck' ? (
-                      <AlertCircle size={16} className="text-rose-500 fill-rose-500/10" />
-                    ) : (
-                      <Circle size={16} className="text-slate-400" />
+            <div className="space-y-2.5 max-h-[360px] overflow-y-auto pr-1 custom-scrollbar">
+              {cachedRecentTasks.map((task) => {
+                const proj = projects.find((p: any) => p.id === task.projectId);
+                const isActiveTimer = globalActiveTimer && globalActiveTimer.taskId === task.id;
+                return (
+                  <div
+                    key={task.id}
+                    onClick={() => setSelectedTaskId(task.id)}
+                    className="flex items-center justify-between p-3 rounded-2xl hover:bg-indigo-500/5 dark:hover:bg-indigo-500/10 border border-transparent hover:border-indigo-500/10 transition-all duration-300 cursor-pointer group/row"
+                    title={`Click to reopen task: ${task.title}`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex-shrink-0">
+                        {isActiveTimer ? (
+                          <span className="relative flex h-3.5 w-3.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>
+                          </span>
+                        ) : task.status === 'completed' ? (
+                          <CheckCircle2 size={16} className="text-emerald-500 fill-emerald-500/10" />
+                        ) : task.status === 'in-progress' ? (
+                          <Clock size={16} className="text-blue-500" />
+                        ) : task.status === 'stuck' ? (
+                          <AlertCircle size={16} className="text-rose-500 fill-rose-500/10" />
+                        ) : (
+                          <Circle size={16} className="text-slate-400" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-800 dark:text-slate-100 truncate group-hover/row:text-indigo-600 dark:group-hover/row:text-indigo-400 transition-colors">
+                          {task.title}
+                        </p>
+                        <div className="flex items-center gap-1.5 mt-0.5 text-[9px] text-gray-400 dark:text-gray-500 font-bold">
+                          {proj && (
+                            <span className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-1 py-0.5 rounded text-[8px] uppercase tracking-wider font-extrabold">
+                              {proj.name}
+                            </span>
+                          )}
+                          <span>•</span>
+                          <span className="font-medium">
+                            {task.lastAccessedAt ? format(parseISO(task.lastAccessedAt), 'MMM d, h:mm a') : 'Recently'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    {isActiveTimer && (
+                      <span className="text-[8px] font-mono font-black text-emerald-500 bg-emerald-500/10 dark:bg-emerald-500/20 px-2 py-0.5 rounded-full animate-pulse tracking-wider shrink-0">
+                        RUNNING
+                      </span>
                     )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 dark:text-slate-100 truncate group-hover/row:text-indigo-600 dark:group-hover/row:text-indigo-400 transition-colors">{task.title}</p>
-                    <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 mt-0.5">
-                      Updated {task.updatedAt ? format(parseISO(task.updatedAt), 'MMM d') : 'Recently'}
-                    </p>
+                );
+              })}
+              {cachedRecentTasks.length === 0 && (
+                <div className="text-center py-12">
+                  <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 flex items-center justify-center mx-auto mb-4">
+                    <Sparkles size={24} className="text-indigo-500 dark:text-indigo-400" />
                   </div>
+                  <p className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">No cached tasks</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">Open any task to see it cached here</p>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={<Plus size={14} />}
+                    onClick={() => setActiveView('board')}
+                    className="mx-auto"
+                  >
+                    Go to Board
+                  </Button>
                 </div>
-              );
-            })}
-            {recentTasks.length === 0 && (
-              <div className="text-center py-12">
-                <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 flex items-center justify-center mx-auto mb-4">
-                  <Sparkles size={24} className="text-indigo-500 dark:text-indigo-400" />
-                </div>
-                <p className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">No tasks yet</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">Create your first task to get started</p>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  icon={<Plus size={14} />}
-                  onClick={() => setActiveView('board')}
-                  className="mx-auto"
-                >
-                  Create First Task
-                </Button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
 

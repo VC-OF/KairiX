@@ -10,7 +10,7 @@ const router = express.Router();
  * POST /api/tasks/:projectId
  * Create a task (ProjectManager, TeamLead can create)
  */
-router.post('/:projectId', 
+router.post('/:projectId',
   hasProjectAccess('projectId'),
   async (req, res) => {
     try {
@@ -36,7 +36,7 @@ router.post('/:projectId',
       await task.save();
       await task.populate('createdBy', 'name email avatar');
       await task.populate('assignees', 'name email avatar');
-      
+
       // Real-time update
       const io = req.app.get('io');
       if (io) {
@@ -58,7 +58,7 @@ router.post('/:projectId',
  * GET /api/tasks/:projectId
  * Get all tasks for a project (any project member)
  */
-router.get('/:projectId', 
+router.get('/:projectId',
   hasProjectAccess('projectId'),
   async (req, res) => {
     try {
@@ -70,7 +70,7 @@ router.get('/:projectId',
       if (search) query.title = { $regex: search, $options: 'i' };
 
       const skip = (parseInt(page) - 1) * parseInt(limit);
-      
+
       const [tasks, total] = await Promise.all([
         Task.find(query)
           .populate('createdBy', 'name email avatar')
@@ -102,7 +102,7 @@ router.get('/:projectId',
  * GET /api/tasks/:projectId/:taskId
  * Get a specific task
  */
-router.get('/:projectId/:taskId', 
+router.get('/:projectId/:taskId',
   hasProjectAccess('projectId'),
   async (req, res) => {
     try {
@@ -128,7 +128,7 @@ router.get('/:projectId/:taskId',
  * - ProjectManager & TeamLead: can update any task
  * - TeamMember: can only update their own tasks and only status
  */
-router.put('/:projectId/:taskId', 
+router.put('/:projectId/:taskId',
   hasProjectAccess('projectId'),
   async (req, res) => {
     try {
@@ -140,23 +140,23 @@ router.put('/:projectId/:taskId',
 
       const { title, description, status, priority, assignees, assignedTo, dueDate, tags } = req.body;
       const oldStatus = task.status;
-      
+
       if (status && status === 'in-progress') {
-        const isAssigned = (task.assignedTo?.toString() === req.user.userId) || 
-                           (task.assignees && task.assignees.some(id => id.toString() === req.user.userId));
+        const isAssigned = (task.assignedTo?.toString() === req.user.userId) ||
+          (task.assignees && task.assignees.some(id => id.toString() === req.user.userId));
         if (!isAssigned) {
           return res.status(403).json({ message: 'Only assigned members can start this task' });
         }
       }
 
       // Check if user is assigned to the task
-      const isAssigned = (task.assignedTo?.toString() === req.user.userId) || 
-                         (task.assignees && task.assignees.some(id => id.toString() === req.user.userId));
-      
-      const isAdminOrManager = req.user.globalRole === 'admin' || 
-                               req.user.globalRole === 'executive' || 
-                               req.projectRole === 'ProjectManager' || 
-                               req.projectRole === 'TeamLead';
+      const isAssigned = (task.assignedTo?.toString() === req.user.userId) ||
+        (task.assignees && task.assignees.some(id => id.toString() === req.user.userId));
+
+      const isAdminOrManager = req.user.globalRole === 'admin' ||
+        req.user.globalRole === 'executive' ||
+        req.projectRole === 'ProjectManager' ||
+        req.projectRole === 'TeamLead';
 
       if (!isAdminOrManager && !isAssigned) {
         return res.status(403).json({ message: 'You do not have permission to edit this task' });
@@ -204,7 +204,7 @@ router.put('/:projectId/:taskId',
  * DELETE /api/tasks/:projectId/:taskId
  * Delete a task (ProjectManager only)
  */
-router.delete('/:projectId/:taskId', 
+router.delete('/:projectId/:taskId',
   hasProjectAccess('projectId'),
   requireProjectRole('ProjectManager'),
   async (req, res) => {

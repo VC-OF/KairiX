@@ -211,16 +211,28 @@ export const Sidebar: React.FC = () => {
   };
 
   return (
-    <aside className="w-64 bg-white/90 dark:bg-obsidian-900/90 backdrop-blur-md flex flex-col h-full shrink-0 border-r border-gray-200/50 dark:border-gray-800/40 transition-colors duration-300">
+    <aside
+      className="w-64 backdrop-blur-md flex flex-col h-full shrink-0 transition-colors duration-300"
+      style={{
+        background: 'var(--theme-sidebar-bg)',
+        borderRight: '1px solid var(--theme-sidebar-border)',
+      }}
+    >
       {/* Top Section: Logo & Projects */}
       <div className="shrink-0">
         {/* Logo */}
-        <div className="px-4 py-4 border-b border-gray-200/40 dark:border-gray-800/30">
+        <div
+          className="px-4 py-4"
+          style={{ borderBottom: '1px solid var(--theme-sidebar-border)' }}
+        >
           <LogoCompact />
         </div>
 
         {/* Project Switcher */}
-        <div className="p-4 border-b border-gray-200/40 dark:border-gray-800/30 relative">
+        <div
+          className="p-4 relative"
+          style={{ borderBottom: '1px solid var(--theme-sidebar-border)' }}
+        >
           <div className="flex items-center justify-between mb-2 px-1">
             <div className="flex items-center gap-2">
               <p className="text-gray-400 dark:text-gray-500 text-[10px] uppercase tracking-[0.2em] font-extrabold">Project</p>
@@ -302,20 +314,38 @@ export const Sidebar: React.FC = () => {
               id={`tour-sidebar-${item.view}`}
               key={item.view}
               onClick={() => setActiveView(item.view)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-300 group ${isActive
-                ? 'bg-gradient-to-r from-indigo-500/15 to-purple-500/5 text-indigo-600 dark:text-indigo-400 border-l-4 border-indigo-600 dark:border-indigo-500 font-bold shadow-sm'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50/50 dark:hover:bg-gray-900/30 hover:text-indigo-600 dark:hover:text-white hover:translate-x-0.5'
-                }`}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 group ${isActive
+                ? 'font-bold shadow-sm border-l-4'
+                : 'hover:translate-x-0.5'
+              }`}
+              style={isActive ? {
+                background: 'var(--theme-sidebar-active-bg)',
+                color: 'var(--theme-sidebar-active-text)',
+                borderLeftColor: 'var(--theme-sidebar-active-icon)',
+              } : {
+                color: 'var(--theme-sidebar-subtext)',
+              }}
             >
-              <Icon size={18} className={isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-white transition-colors'} />
+              <Icon
+                size={18}
+                style={{ color: isActive ? 'var(--theme-sidebar-active-icon)' : undefined }}
+                className={isActive ? '' : 'text-gray-400 dark:text-gray-500 transition-colors'}
+                onMouseEnter={(e) => { if (!isActive) (e.currentTarget as SVGElement).style.color = 'var(--theme-accent)'; }}
+                onMouseLeave={(e) => { if (!isActive) (e.currentTarget as SVGElement).style.color = ''; }}
+              />
               <div className="flex-1 min-w-0">
-                <p className={`text-sm font-semibold truncate ${isActive ? 'text-indigo-600 dark:text-indigo-400 font-bold' : 'text-gray-700 dark:text-gray-300 group-hover:text-indigo-600 dark:group-hover:text-white'}`}>
+                <p
+                  className={`text-sm font-semibold truncate`}
+                  style={{ color: isActive ? 'var(--theme-sidebar-active-text)' : 'var(--theme-sidebar-text)' }}
+                >
                   {item.label}
                 </p>
               </div>
               {badge > 0 && (
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${isActive ? 'bg-indigo-600/10 text-indigo-600 dark:text-indigo-400' : 'bg-rose-500 text-white'
-                  }`}>
+                <span
+                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${isActive ? 'text-white' : 'bg-rose-500 text-white'}`}
+                  style={isActive ? { background: 'var(--theme-accent)' } : undefined}
+                >
                   {badge}
                 </span>
               )}
@@ -325,7 +355,13 @@ export const Sidebar: React.FC = () => {
       </nav>
 
       {/* Bottom Section: Stats & User */}
-      <div className="shrink-0 p-3 space-y-3 border-t border-gray-200/40 dark:border-gray-800/40 bg-gray-50/50 dark:bg-gray-900/40">
+      <div
+        className="shrink-0 p-3 space-y-3"
+        style={{
+          borderTop: '1px solid var(--theme-sidebar-border)',
+          background: 'var(--theme-sidebar-bg)',
+        }}
+      >
 
         {/* Global Active Time Tracker HUD */}
         {globalActiveTimer && (
@@ -378,7 +414,8 @@ export const Sidebar: React.FC = () => {
                 />
                 <circle
                   cx="22" cy="22" r="19"
-                  className="stroke-indigo-500 fill-none transition-all duration-1000 ease-out"
+                  className="fill-none transition-all duration-1000 ease-out"
+                  style={{ stroke: 'var(--theme-accent)' }}
                   strokeWidth="3.5"
                   strokeDasharray="119.38"
                   strokeDashoffset={119.38 - (119.38 * completionRate) / 100}
@@ -414,7 +451,14 @@ export const Sidebar: React.FC = () => {
             <div className="flex-1 min-w-0">
               <p className="text-gray-900 dark:text-white text-sm font-bold truncate leading-none mb-1">{currentUser.name}</p>
               <div className="flex items-center gap-1 flex-wrap">
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50/50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-extrabold border border-indigo-100/60 dark:border-indigo-800/40 uppercase tracking-tighter">
+                <span
+                  className="text-[10px] px-2 py-0.5 rounded-full font-extrabold border uppercase tracking-tighter"
+                  style={{
+                    background: 'var(--theme-accent-muted)',
+                    color: 'var(--theme-accent)',
+                    borderColor: 'var(--theme-accent-glow)',
+                  }}
+                >
                   {currentUser.role}
                 </span>
                 {currentUser.role === 'admin' && (

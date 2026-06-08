@@ -13,6 +13,8 @@ import {
   ClipboardList,
   CheckCircle2,
   AlertCircle,
+  Shield,
+  Zap,
 } from 'lucide-react';
 
 
@@ -82,7 +84,7 @@ const MemberForm: React.FC<MemberFormProps> = ({ isOpen, onClose, member }) => {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Jane Smith"
-            className={`w-full px-3 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${errors.name ? 'border-red-300 bg-red-50 dark:bg-red-900/10' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100'
+            className={`w-full px-3 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 transition-colors ${errors.name ? 'border-red-300 bg-red-50 dark:bg-red-900/10' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100'
               }`}
           />
           {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
@@ -97,7 +99,7 @@ const MemberForm: React.FC<MemberFormProps> = ({ isOpen, onClose, member }) => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="e.g. jane@company.com"
-            className={`w-full px-3 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${errors.email ? 'border-red-300 bg-red-50 dark:bg-red-900/10' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100'
+            className={`w-full px-3 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 transition-colors ${errors.email ? 'border-red-300 bg-red-50 dark:bg-red-900/10' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100'
               }`}
           />
           {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
@@ -112,7 +114,7 @@ const MemberForm: React.FC<MemberFormProps> = ({ isOpen, onClose, member }) => {
                 type="button"
                 onClick={() => setRole(r)}
                 className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${role === r
-                  ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400'
+                  ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 shadow-[0_0_12px_rgba(139,92,246,0.2)]'
                   : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'
                   }`}
               >
@@ -139,12 +141,43 @@ const MemberForm: React.FC<MemberFormProps> = ({ isOpen, onClose, member }) => {
   );
 };
 
+// Role config with colors
+const ROLE_CONFIG = {
+  ProjectManager: {
+    label: 'Project Manager',
+    gradient: 'from-violet-600 to-fuchsia-600',
+    bg: 'bg-violet-500/10 dark:bg-violet-500/20',
+    text: 'text-violet-500 dark:text-violet-400',
+    border: 'border-violet-500/30',
+    glow: 'shadow-[0_0_14px_rgba(139,92,246,0.25)]',
+    icon: <Shield size={11} />,
+  },
+  TeamLead: {
+    label: 'Team Lead',
+    gradient: 'from-pink-500 to-rose-500',
+    bg: 'bg-pink-500/10 dark:bg-pink-500/20',
+    text: 'text-pink-500 dark:text-pink-400',
+    border: 'border-pink-500/30',
+    glow: 'shadow-[0_0_14px_rgba(236,72,153,0.25)]',
+    icon: <Zap size={11} />,
+  },
+  TeamMember: {
+    label: 'Team Member',
+    gradient: 'from-sky-500 to-cyan-500',
+    bg: 'bg-sky-500/10 dark:bg-sky-500/20',
+    text: 'text-sky-500 dark:text-sky-400',
+    border: 'border-sky-500/30',
+    glow: '',
+    icon: <Users size={11} />,
+  },
+};
+
 export const Members: React.FC = () => {
-  const { 
-    users, 
-    tasks, 
-    currentUser, 
-    project, 
+  const {
+    users,
+    tasks,
+    currentUser,
+    project,
     addMemberToProject,
     teamLeadEnabled,
     setTeamLeadEnabled,
@@ -180,27 +213,31 @@ export const Members: React.FC = () => {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-            <Users size={20} className="text-indigo-500" />
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
+              <Users size={16} className="text-white" />
+            </div>
             Team Members
           </h2>
-          <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mt-0.5">
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-0.5 pl-10">
             {users.length}/50 members · Managing access and assignments
           </p>
         </div>
-        
+
         <div className="flex items-center gap-3">
           {isAdmin && (
-            <div className="flex items-center gap-2 bg-white dark:bg-gray-800 px-3.5 py-1.5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm transition-colors">
-              <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Enable Team Leads</span>
+            <div className="flex items-center gap-2.5 bg-white dark:bg-[#0f1623] px-3.5 py-2 rounded-xl border border-gray-100 dark:border-white/10 shadow-sm transition-colors">
+              <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Team Leads</span>
               <button
                 type="button"
                 onClick={() => setTeamLeadEnabled(!teamLeadEnabled)}
-                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
-                  teamLeadEnabled ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-all duration-300 focus:outline-none ${
+                  teamLeadEnabled
+                    ? 'bg-gradient-to-r from-violet-600 to-fuchsia-500 shadow-[0_0_8px_rgba(139,92,246,0.5)]'
+                    : 'bg-gray-300 dark:bg-gray-700'
                 }`}
               >
                 <span
-                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow ${
                     teamLeadEnabled ? 'translate-x-5' : 'translate-x-1'
                   }`}
                 />
@@ -216,87 +253,121 @@ export const Members: React.FC = () => {
       </div>
 
       {/* Capacity Bar */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 transition-colors">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Team Capacity</span>
+      <div className="bg-white dark:bg-[#0f1623] rounded-2xl border border-gray-100 dark:border-white/8 shadow-sm p-4 transition-colors">
+        <div className="flex items-center justify-between mb-2.5">
+          <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">Team Capacity</span>
           <span className="text-sm font-bold text-gray-800 dark:text-gray-100">{users.length} / 50 members</span>
         </div>
-        <div className="h-2 bg-gray-100 dark:bg-gray-900 rounded-full overflow-hidden">
+        <div className="h-2 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all duration-500 ${users.length >= 50 ? 'bg-rose-500' : users.length >= 40 ? 'bg-amber-500' : 'bg-indigo-500'
-              }`}
+            className={`h-full rounded-full transition-all duration-500 ${
+              users.length >= 50
+                ? 'bg-gradient-to-r from-rose-500 to-red-600'
+                : users.length >= 40
+                ? 'bg-gradient-to-r from-amber-400 to-orange-500'
+                : 'bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500'
+            }`}
             style={{ width: `${(users.length / 50) * 100}%` }}
           />
         </div>
         {users.length >= 50 && (
-          <p className="text-xs text-rose-500 font-medium mt-1">Team is at maximum capacity (50 members)</p>
+          <p className="text-xs text-rose-500 font-medium mt-1.5">Team is at maximum capacity (50 members)</p>
         )}
       </div>
 
       {/* Project Members */}
       <div>
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 px-1 uppercase tracking-wider">Project Members</h3>
+        <h3 className="text-[11px] font-extrabold text-gray-400 dark:text-gray-500 mb-3 px-1 uppercase tracking-widest">
+          Project Members
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {projectMembers.map((user) => {
             const stats = getMemberStats(user.id);
             const isSelf = currentUser?.id === user.id;
             const projRole = getProjectRole(user.id);
+            const roleConf = ROLE_CONFIG[projRole as keyof typeof ROLE_CONFIG] || ROLE_CONFIG.TeamMember;
+            const isActive = user.name.toLowerCase().includes('jane') || user.name.toLowerCase().includes('john') || user.role === 'admin';
 
             return (
               <div
                 key={user.id}
-                className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden hover:shadow-md transition-all"
+                className="bg-white dark:bg-[#0f1623] rounded-2xl border border-gray-100 dark:border-white/8 shadow-sm overflow-hidden hover:shadow-lg hover:shadow-violet-500/5 hover:border-violet-500/20 dark:hover:border-violet-500/20 transition-all duration-300 group"
               >
+                {/* Gradient accent bar at top */}
+                <div className={`h-0.5 w-full bg-gradient-to-r ${roleConf.gradient} opacity-70 group-hover:opacity-100 transition-opacity`} />
+
                 {/* Card Header */}
-                <div className="flex items-center gap-4 p-5 border-b border-gray-50 dark:border-gray-700/50">
-                  <Avatar user={user} size="lg" />
+                <div className="flex items-center gap-4 p-5 border-b border-gray-50 dark:border-white/5">
+                  <div className="relative">
+                    <Avatar user={user} size="lg" />
+                    {isActive && (
+                      <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-[#0f1623] rounded-full shadow-[0_0_6px_rgba(16,185,129,0.6)]" />
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-bold text-gray-900 dark:text-gray-100 truncate">{user.name}</h3>
-                      {user.role === 'admin' && <Crown size={14} className="text-amber-500 flex-shrink-0" />}
+                      {user.role === 'admin' && (
+                        <Crown size={13} className="text-amber-400 flex-shrink-0 drop-shadow-[0_0_4px_rgba(251,191,36,0.5)]" />
+                      )}
                       {projRole === 'TeamLead' && teamLeadEnabled && (
-                        <span className="text-[10px] bg-indigo-600 text-white font-extrabold px-1.5 py-0.5 rounded flex items-center justify-center shadow-sm shrink-0" title="Team Lead">TL</span>
+                        <span
+                          className="text-[9px] font-extrabold px-1.5 py-0.5 rounded flex items-center justify-center shrink-0 bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-[0_0_8px_rgba(236,72,153,0.4)]"
+                          title="Team Lead"
+                        >
+                          TL
+                        </span>
                       )}
                       {isSelf && (
-                        <span className="text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-full font-medium">You</span>
+                        <span className="text-[10px] bg-violet-100 dark:bg-violet-500/15 text-violet-600 dark:text-violet-400 px-1.5 py-0.5 rounded-full font-bold border border-violet-200 dark:border-violet-500/20">
+                          You
+                        </span>
                       )}
                     </div>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <Mail size={12} className="text-gray-500 dark:text-gray-400" />
-                      <p className="text-sm text-gray-600 dark:text-gray-300 truncate">{user.email}</p>
+                      <Mail size={11} className="text-gray-400" />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5">
+
+                  {/* Role selector / badge */}
+                  <div className="flex items-center gap-1.5 shrink-0">
                     {isAdmin ? (
                       <select
                         value={projRole}
                         onChange={(e) => updateProjectMemberRole(project.id, user.id, e.target.value as any)}
-                        className="text-xs bg-gray-50 dark:bg-gray-850 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 font-semibold text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors"
+                        className={`text-xs border rounded-xl px-2.5 py-1.5 font-bold focus:outline-none focus:ring-2 focus:ring-violet-500/50 transition-all cursor-pointer appearance-none pr-6 ${roleConf.bg} ${roleConf.text} ${roleConf.border} ${roleConf.glow} dark:bg-[#181f2e]`}
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b5cf6' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+                          backgroundRepeat: 'no-repeat',
+                          backgroundPosition: 'right 6px center',
+                        }}
                       >
                         <option value="ProjectManager">Project Manager</option>
                         <option value="TeamLead">Team Lead</option>
                         <option value="TeamMember">Team Member</option>
                       </select>
                     ) : (
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
-                        projRole === 'ProjectManager'
-                          ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-500'
-                          : projRole === 'TeamLead'
-                          ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-500'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                      }`}>
-                        {projRole === 'ProjectManager' ? 'Project Manager' : projRole === 'TeamLead' ? 'Team Lead' : 'Team Member'}
+                      <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold flex items-center gap-1 ${roleConf.bg} ${roleConf.text} border ${roleConf.border}`}>
+                        {roleConf.icon}
+                        {roleConf.label}
                       </span>
                     )}
                   </div>
                 </div>
 
                 {/* Live Activity HUD */}
-                <div className="mx-5 my-3.5 p-3 bg-gray-50/50 dark:bg-[#090d16]/30 border border-gray-105 dark:border-gray-800 rounded-xl flex items-center justify-between transition-colors">
+                <div className={`mx-4 my-3 p-3 rounded-xl flex items-center justify-between transition-colors ${
+                  isActive
+                    ? 'bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/15'
+                    : 'bg-gray-50/50 dark:bg-white/3 border border-gray-100 dark:border-white/5'
+                }`}>
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <span className={`w-2 h-2 rounded-full ${user.name.toLowerCase().includes('jane') || user.name.toLowerCase().includes('john') || user.role === 'admin' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'} shrink-0`} />
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${
+                      isActive ? 'bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.6)]' : 'bg-gray-400'
+                    }`} />
                     <div className="min-w-0 leading-tight">
-                      <p className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">
+                      <p className={`text-xs font-bold truncate ${isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-600 dark:text-gray-400'}`}>
                         {user.name.toLowerCase().includes('jane') ? 'Working on guided onboarding tour' :
                          user.name.toLowerCase().includes('john') ? 'Developing multiplayer sockets' :
                          user.role === 'admin' ? 'Active: Global Timer Tracking' : 'Idle: Reviewing code reviews'}
@@ -308,53 +379,57 @@ export const Members: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  <span className="text-[9px] uppercase tracking-wider font-extrabold text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded border border-transparent shrink-0">
-                    {user.name.toLowerCase().includes('jane') || user.name.toLowerCase().includes('john') || user.role === 'admin' ? 'ACTIVE' : 'IDLE'}
+                  <span className={`text-[9px] uppercase tracking-widest font-extrabold px-2 py-0.5 rounded-full shrink-0 ${
+                    isActive
+                      ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/25 shadow-[0_0_8px_rgba(16,185,129,0.2)]'
+                      : 'bg-gray-100 dark:bg-white/5 text-gray-400 border border-gray-200 dark:border-white/8'
+                  }`}>
+                    {isActive ? 'ACTIVE' : 'IDLE'}
                   </span>
                 </div>
 
                 {/* Stats */}
                 <div className="px-5 py-4">
-                  <div className="grid grid-cols-3 gap-3 mb-4">
-                    <div className="text-center">
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="text-center p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-500/8 border border-indigo-100 dark:border-indigo-500/15">
                       <div className="flex items-center justify-center gap-1 mb-0.5">
-                        <ClipboardList size={13} className="text-indigo-400" />
-                        <span className="font-bold text-gray-800 dark:text-gray-200">{stats.total}</span>
+                        <ClipboardList size={12} className="text-indigo-500" />
+                        <span className="font-extrabold text-gray-800 dark:text-gray-200 text-sm">{stats.total}</span>
                       </div>
-                      <p className="text-xs text-gray-400 dark:text-gray-500">Tasks</p>
+                      <p className="text-[10px] text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-wide">Tasks</p>
                     </div>
-                    <div className="text-center">
+                    <div className="text-center p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/8 border border-emerald-100 dark:border-emerald-500/15">
                       <div className="flex items-center justify-center gap-1 mb-0.5">
-                        <CheckCircle2 size={13} className="text-emerald-500" />
-                        <span className="font-bold text-gray-800 dark:text-gray-200">{stats.completed}</span>
+                        <CheckCircle2 size={12} className="text-emerald-500" />
+                        <span className="font-extrabold text-gray-800 dark:text-gray-200 text-sm">{stats.completed}</span>
                       </div>
-                      <p className="text-xs text-gray-400 dark:text-gray-500">Done</p>
+                      <p className="text-[10px] text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-wide">Done</p>
                     </div>
-                    <div className="text-center">
+                    <div className="text-center p-2.5 rounded-xl bg-rose-50 dark:bg-rose-500/8 border border-rose-100 dark:border-rose-500/15">
                       <div className="flex items-center justify-center gap-1 mb-0.5">
-                        <AlertCircle size={13} className="text-rose-400" />
-                        <span className="font-bold text-gray-800 dark:text-gray-200">{stats.stuck}</span>
+                        <AlertCircle size={12} className="text-rose-500" />
+                        <span className="font-extrabold text-gray-800 dark:text-gray-200 text-sm">{stats.stuck}</span>
                       </div>
-                      <p className="text-xs text-gray-400 dark:text-gray-500">Stuck</p>
+                      <p className="text-[10px] text-gray-400 dark:text-gray-500 font-semibold uppercase tracking-wide">Stuck</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Actions */}
                 {isAdmin && (
-                  <div className="flex border-t border-gray-50 dark:border-gray-700/50">
+                  <div className="flex border-t border-gray-50 dark:border-white/5">
                     <button
                       onClick={() => setEditMember(user)}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                      className="flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 hover:bg-violet-50 dark:hover:bg-violet-500/10 hover:text-violet-600 dark:hover:text-violet-400 transition-colors"
                     >
-                      <Edit3 size={13} /> Edit
+                      <Edit3 size={12} /> Edit
                     </button>
                     {!isSelf && (
                       <button
                         onClick={() => setConfirmDelete(user.id)}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 transition-colors border-l border-gray-50 dark:border-gray-700/50"
+                        className="flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-semibold text-gray-400 dark:text-gray-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:text-rose-500 transition-colors border-l border-gray-50 dark:border-white/5"
                       >
-                        <Trash2 size={13} /> Remove
+                        <Trash2 size={12} /> Remove
                       </button>
                     )}
                   </div>
@@ -368,24 +443,26 @@ export const Members: React.FC = () => {
       {/* Other Users (Not in current project) */}
       {isAdmin && otherUsers.length > 0 && (
         <div className="mt-8">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 px-1 uppercase tracking-wider">Available Team Members</h3>
+          <h3 className="text-[11px] font-extrabold text-gray-400 dark:text-gray-500 mb-3 px-1 uppercase tracking-widest">
+            Available Team Members
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {otherUsers.map((user) => (
               <div
                 key={user.id}
-                className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden p-5 flex items-center gap-4 transition-colors"
+                className="bg-white dark:bg-[#0f1623] rounded-2xl border border-gray-100 dark:border-white/8 shadow-sm overflow-hidden p-5 flex items-center gap-4 hover:border-violet-500/20 dark:hover:border-violet-500/20 hover:shadow-md transition-all duration-300"
               >
                 <Avatar user={user} size="md" />
                 <div className="flex-1 min-w-0">
                   <h3 className="font-bold text-gray-900 dark:text-white truncate">{user.name}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 truncate">{user.email}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {isAdmin && (
                     <select
                       id={`add-role-${user.id}`}
                       defaultValue="TeamMember"
-                      className="text-xs bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 font-semibold text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="text-xs bg-violet-500/10 dark:bg-violet-500/15 border border-violet-500/30 rounded-xl px-2.5 py-1.5 font-bold text-violet-600 dark:text-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-500/50 cursor-pointer"
                     >
                       <option value="TeamMember">Member</option>
                       <option value="TeamLead">Team Lead</option>
@@ -402,7 +479,7 @@ export const Members: React.FC = () => {
                       addMemberToProject(project.id, user.id, chosenRole);
                     }}
                   >
-                    Add to Project
+                    Add
                   </Button>
                 </div>
               </div>
