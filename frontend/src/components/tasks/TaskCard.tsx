@@ -76,6 +76,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
     currentUser?.role === 'executive' ||
     (currentUser as any)?.projectRole === 'ProjectManager' ||
     (currentUser as any)?.projectRole === 'TeamLead';
+  const canEditTask =
+    canManageTasks ||
+    (task.assignees || []).includes(currentUser?.id || '');
   const pCfg = priorityConfig[task.priority] || priorityConfig.medium;
   const commentCount = (taskComments?.[task.id] || []).length;
 
@@ -133,7 +136,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
             {/* Title */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 mb-1">
-                <span className="text-[9px] font-mono bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded flex items-center gap-1 border border-indigo-100 dark:border-indigo-800/50 group/id w-fit font-bold">
+                <span className="text-[9px] font-mono bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded flex items-center gap-1 border border-indigo-100 dark:border-indigo-880/50 group/id w-fit font-bold">
                   {task.id.slice(-6).toUpperCase()}
                   <button
                     onClick={(e) => {
@@ -169,14 +172,16 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task }) => {
                   >
                     <Eye size={12} className="text-indigo-400" /> View Details
                   </button>
+                  {canEditTask && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setShowEdit(true); setShowMenu(false); }}
+                      className="flex items-center gap-2.5 w-full px-3 py-2.5 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-800/40 font-semibold transition-colors"
+                    >
+                      <Edit3 size={12} className="text-blue-400" /> Edit Task
+                    </button>
+                  )}
                   {canManageTasks && (
                     <>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setShowEdit(true); setShowMenu(false); }}
-                        className="flex items-center gap-2.5 w-full px-3 py-2.5 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-800/40 font-semibold transition-colors"
-                      >
-                        <Edit3 size={12} className="text-blue-400" /> Edit Task
-                      </button>
                       <div className="my-1 border-t border-gray-200/50 dark:border-slate-800" />
                       <button
                         onClick={(e) => { e.stopPropagation(); deleteTask(task.id); setShowMenu(false); }}

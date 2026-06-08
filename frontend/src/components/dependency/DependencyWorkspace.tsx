@@ -411,6 +411,7 @@ export const DependencyWorkspace: React.FC = () => {
         {/* Right: actions */}
         <div className="flex items-center gap-2">
           <button
+            id="tour-dependency-ai"
             onClick={() => setShowAiModal(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-500/25 bg-indigo-50 dark:bg-indigo-600/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-600/20 hover:border-indigo-300 dark:hover:border-indigo-500/40 text-xs font-bold transition-all"
           >
@@ -545,6 +546,7 @@ export const DependencyWorkspace: React.FC = () => {
 
         {/* ─────────────────── CANVAS ─────────────────── */}
         <div
+          id="tour-dependency-viewport"
           ref={canvasRef}
           onMouseMove={handleCanvasMouseMove}
           onMouseUp={() => { setDraggedNode(null); setIsPanning(false); }}

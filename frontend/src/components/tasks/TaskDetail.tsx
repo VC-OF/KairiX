@@ -34,6 +34,9 @@ export const TaskDetail: React.FC<TaskDetailProps> = ({ isOpen, onClose, task, o
     currentUser?.role === 'executive' ||
     (currentUser as any)?.projectRole === 'ProjectManager' ||
     (currentUser as any)?.projectRole === 'TeamLead';
+  const canEditTask =
+    canManageTasks ||
+    (task.assignees || []).includes(currentUser?.id || '');
   const comments = taskComments[task.id] || [];
 
   const handleAddComment = async (e: React.FormEvent) => {
@@ -57,7 +60,7 @@ export const TaskDetail: React.FC<TaskDetailProps> = ({ isOpen, onClose, task, o
       />
       
       {/* Sliding Right-side Drawer Sheet */}
-      <div className="relative w-full max-w-2xl bg-white dark:bg-[#0a0d16] border-l border-gray-100 dark:border-gray-850 shadow-2xl h-full flex flex-col overflow-y-auto custom-scrollbar animate-slide-in-right z-10 p-6 lg:p-8 text-gray-900 dark:text-gray-100">
+      <div id="tour-task-detail-sheet" className="relative w-full max-w-2xl bg-white dark:bg-[#0a0d16] border-l border-gray-100 dark:border-gray-850 shadow-2xl h-full flex flex-col overflow-y-auto custom-scrollbar animate-slide-in-right z-10 p-6 lg:p-8 text-gray-900 dark:text-gray-100">
         
         {/* Absolute Close Button */}
         <button 
@@ -156,7 +159,7 @@ export const TaskDetail: React.FC<TaskDetailProps> = ({ isOpen, onClose, task, o
 
               {/* Mock Multiplayer Typing Indicator inside details drawer */}
               {task.status !== 'completed' && (
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50/50 dark:bg-[#090d16]/30 border border-gray-100 dark:border-gray-800/80 rounded-xl w-fit">
+                <div id="tour-task-typing" className="flex items-center gap-2 px-3 py-1.5 bg-gray-50/50 dark:bg-[#090d16]/30 border border-gray-100 dark:border-gray-800/80 rounded-xl w-fit">
                   <div className="flex gap-0.5">
                     <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full typing-dot" />
                     <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full typing-dot [animation-delay:0.2s]" />
@@ -175,7 +178,7 @@ export const TaskDetail: React.FC<TaskDetailProps> = ({ isOpen, onClose, task, o
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     placeholder="Add a daily update or progress note..."
-                    className="w-full pl-3 pr-12 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-805 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none min-h-[80px] transition-colors"
+                    className="w-full pl-3 pr-12 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none min-h-[80px] transition-colors"
                   />
                   <button
                     type="submit"
@@ -314,9 +317,8 @@ export const TaskDetail: React.FC<TaskDetailProps> = ({ isOpen, onClose, task, o
               </div>
             )}
 
-            {/* Actions */}
             <div className="pt-4 border-t border-gray-100 dark:border-gray-800 space-y-2">
-              {canManageTasks && (
+              {canEditTask && (
                 <Button variant="outline" size="sm" icon={<Edit3 size={14} />} onClick={onEdit} className="w-full">
                   Edit Task
                 </Button>

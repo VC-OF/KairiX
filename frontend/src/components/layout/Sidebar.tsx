@@ -14,11 +14,16 @@ import {
   TrendingUp,
   FileText,
   Network,
+  Play,
+  Pause,
+  Square,
+  Calendar,
 } from 'lucide-react';
 import { LogoCompact } from '../ui/Logo';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
+import { api } from '../../utils/api';
 
 const navItems = [
   {
@@ -38,6 +43,12 @@ const navItems = [
     label: 'Dependency Map',
     icon: Network,
     description: 'Interactive graph',
+  },
+  {
+    view: 'calendar' as const,
+    label: 'Calendar View',
+    icon: Calendar,
+    description: 'Work hours calendar',
   },
   {
     view: 'analytics' as const,
@@ -78,18 +89,102 @@ const navItems = [
 ];
 
 export const Sidebar: React.FC = () => {
-  const { activeView, setActiveView, currentUser, tasks, project, projects, setProject, addProject, showArchived, setShowArchived } = useStore();
+  const {
+    activeView,
+    setActiveView,
+    currentUser,
+    tasks,
+    project,
+    projects,
+    setProject,
+    addProject,
+    showArchived,
+    setShowArchived,
+    globalActiveTimer,
+    setGlobalActiveTimer
+  } = useStore();
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDesc, setNewProjectDesc] = useState('');
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
 
+  const [seconds, setSeconds] = useState(0);
+
+  // Synchronize local timer seconds when store updates
+  useEffect(() => {
+    if (globalActiveTimer) {
+      setSeconds(globalActiveTimer.seconds);
+    }
+  }, [globalActiveTimer?.taskId, globalActiveTimer?.isPaused]);
+
+  // Tick seconds every second
+  useEffect(() => {
+    if (!globalActiveTimer || globalActiveTimer.isPaused) return;
+
+    const interval = setInterval(() => {
+      setSeconds((s) => {
+        const next = s + 1;
+        // Keep Zustand store seconds in sync occasionally
+        if (next % 5 === 0) {
+          useStore.setState((state) => {
+            if (state.globalActiveTimer) {
+              return {
+                globalActiveTimer: {
+                  ...state.globalActiveTimer,
+                  seconds: next,
+                }
+              };
+            }
+            return state;
+          });
+        }
+        return next;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [globalActiveTimer?.taskId, globalActiveTimer?.isPaused]);
+
+  const handleHUDPauseToggle = async () => {
+    if (!globalActiveTimer) return;
+    try {
+      if (globalActiveTimer.isPaused) {
+        await api.post('/time-logs/resume', { taskId: globalActiveTimer.taskId, projectId: globalActiveTimer.projectId });
+        setGlobalActiveTimer({ ...globalActiveTimer, isPaused: false });
+      } else {
+        await api.post('/time-logs/pause', { taskId: globalActiveTimer.taskId });
+        setGlobalActiveTimer({ ...globalActiveTimer, isPaused: true, seconds });
+      }
+    } catch (err) {
+      console.error('HUD Timer sync failed:', err);
+    }
+  };
+
+  const handleHUDStop = async () => {
+    if (!globalActiveTimer) return;
+    try {
+      await api.post('/time-logs/stop', { taskId: globalActiveTimer.taskId });
+      setGlobalActiveTimer(null);
+      // Refresh active view data to update completed counters
+      useStore.getState().fetchData();
+    } catch (err) {
+      console.error('HUD Stop timer failed:', err);
+    }
+  };
+
+  const formatTime = (totalSeconds: number) => {
+    const hrs = Math.floor(totalSeconds / 3600);
+    const mins = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
+    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProjectName.trim()) return;
-    await addProject({ 
-      name: newProjectName, 
-      description: newProjectDesc, 
+    await addProject({
+      name: newProjectName,
+      description: newProjectDesc,
       status: 'active',
       visibility: 'public',
       priority: 'medium',
@@ -111,6 +206,7 @@ export const Sidebar: React.FC = () => {
     members: 0,
     analytics: 0,
     tracker: 0,
+    calendar: 0,
   };
 
   return (
@@ -202,6 +298,7 @@ export const Sidebar: React.FC = () => {
 
           return (
             <button
+              id={`tour-sidebar-${item.view}`}
               key={item.view}
               onClick={() => setActiveView(item.view)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-300 group ${isActive
@@ -228,6 +325,45 @@ export const Sidebar: React.FC = () => {
 
       {/* Bottom Section: Stats & User */}
       <div className="shrink-0 p-3 space-y-3 border-t border-gray-200/40 dark:border-gray-800/40 bg-gray-50/50 dark:bg-gray-900/40">
+
+        {/* Global Active Time Tracker HUD */}
+        {globalActiveTimer && (
+          <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 dark:from-emerald-500/5 dark:to-teal-500/5 border border-emerald-500/20 dark:border-emerald-500/10 rounded-2xl p-3 shadow-md shadow-emerald-500/5 space-y-2 animate-fade-in select-none">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className={`w-1.5 h-1.5 bg-emerald-500 rounded-full ${globalActiveTimer.isPaused ? '' : 'animate-ping'}`} />
+                <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest truncate">
+                  {globalActiveTimer.isPaused ? 'Timer Paused' : 'Active Tracking'}
+                </span>
+              </div>
+              <span className="text-[11px] font-mono font-black text-emerald-600 dark:text-emerald-400">
+                {formatTime(seconds)}
+              </span>
+            </div>
+
+            <p className="text-xs font-bold text-gray-800 dark:text-slate-100 truncate pr-1">
+              {globalActiveTimer.taskTitle}
+            </p>
+
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={handleHUDPauseToggle}
+                className="flex-1 py-1 px-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-[10px] font-black text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
+              >
+                {globalActiveTimer.isPaused ? <Play size={10} className="fill-current text-emerald-500" /> : <Pause size={10} className="fill-current text-amber-500" />}
+                {globalActiveTimer.isPaused ? 'Resume' : 'Pause'}
+              </button>
+              <button
+                onClick={handleHUDStop}
+                className="py-1 px-2 rounded-lg bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-black flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95 shadow-sm"
+              >
+                <Square size={10} className="fill-current" />
+                Stop
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Compact Premium Stats Widget */}
         <div className="glass-panel rounded-2xl p-3 relative overflow-hidden group transition-all duration-300 hover:shadow-indigo-500/5 dark:hover:shadow-indigo-500/10">
           <div className="flex items-center gap-4">

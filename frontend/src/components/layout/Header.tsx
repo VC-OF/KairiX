@@ -19,6 +19,7 @@ const viewTitles: Record<string, { title: string; subtitle: string }> = {
   analytics: { title: 'Analytics', subtitle: 'Productivity stats and work trends' },
   tracker: { title: 'Time Tracker', subtitle: 'Track and log work sessions for tasks' },
   files: { title: 'Files & Docs', subtitle: 'Upload and manage project documents' },
+  calendar: { title: 'Calendar View', subtitle: 'Track worked hours, workload indicators and employee task timelines' },
 };
 
 export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpen }) => {
@@ -35,6 +36,7 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
     setSelectedTaskId,
     setIsTourActive,
     setTourStep,
+    users,
   } = useStore();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -124,27 +126,27 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
       </div>
 
       {/* Multiplayer Presence indicators */}
-      <div className="hidden md:flex items-center gap-3 bg-white/40 dark:bg-[#090d16]/30 border border-gray-100 dark:border-gray-800/80 px-3 py-1.5 rounded-xl backdrop-blur-md">
+      <div id="tour-presence" className="hidden md:flex items-center gap-3 bg-white/40 dark:bg-[#090d16]/30 border border-gray-100 dark:border-gray-800/80 px-3 py-1.5 rounded-xl backdrop-blur-md">
         <div className="flex -space-x-2">
-          {/* Admin Avatar */}
-          <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-[10px] font-bold border-2 border-white dark:border-gray-900 shadow-sm relative" title="Admin (Active)">
-            <span>AD</span>
-            <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border border-white dark:border-gray-900 animate-pulse" />
-          </div>
-          {/* Jane Smith Avatar */}
-          <div className="w-7 h-7 rounded-full bg-pink-500 flex items-center justify-center text-white text-[10px] font-bold border-2 border-white dark:border-gray-900 shadow-sm relative" title="Jane Smith (Active)">
-            <span>JS</span>
-            <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border border-white dark:border-gray-900 animate-pulse" />
-          </div>
-          {/* John Doe Avatar */}
-          <div className="w-7 h-7 rounded-full bg-amber-500 flex items-center justify-center text-white text-[10px] font-bold border-2 border-white dark:border-gray-900 shadow-sm relative" title="John Doe (Active)">
-            <span>JD</span>
-            <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border border-white dark:border-gray-900 animate-pulse" />
-          </div>
+          {users.slice(0, 3).map((u) => {
+            const isImage = u.avatar && (u.avatar.startsWith('http') || u.avatar.startsWith('data:image'));
+            return (
+              <div key={u.id} className="relative w-7 h-7 rounded-full border-2 border-white dark:border-gray-900 shadow-sm" style={{ backgroundColor: u.color || '#6366f1' }} title={`${u.name} (Active)`}>
+                <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center text-white text-[10px] font-bold">
+                  {isImage ? (
+                    <img src={u.avatar} alt={u.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span>{u.avatar?.substring(0, 2) || u.name.substring(0, 2).toUpperCase()}</span>
+                  )}
+                </div>
+                <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border border-white dark:border-gray-900 animate-pulse" />
+              </div>
+            );
+          })}
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping animate-pulse-glow" />
-          <span className="text-[11px] font-bold tracking-tight text-gray-500 dark:text-gray-400 select-none">3 Active</span>
+          <span className="text-[11px] font-bold tracking-tight text-gray-500 dark:text-gray-400 select-none">{Math.min(3, users.length)} Active</span>
         </div>
       </div>
 

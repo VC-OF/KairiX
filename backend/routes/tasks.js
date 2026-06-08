@@ -149,27 +149,32 @@ router.put('/:projectId/:taskId',
         }
       }
 
-      // All roles with project access can update; TeamMember limited to own tasks / status only
-      if (req.projectRole === 'TeamMember') {
-        if (task.assignedTo?.toString() !== req.user.userId) {
-          return res.status(403).json({ message: 'Can only update your own tasks' });
-        }
-        if (status) task.status = status;
-      } else {
-        if (title) task.title = title;
-        if (description !== undefined) task.description = description;
-        if (status) task.status = status;
-        if (priority) task.priority = priority;
-        if (assignees !== undefined) {
-          task.assignees = assignees || [];
-          task.assignedTo = (assignees && assignees.length > 0) ? assignees[0] : null;
-        } else if (assignedTo !== undefined) {
-          task.assignedTo = assignedTo || null;
-          task.assignees = assignedTo ? [assignedTo] : [];
-        }
-        if (dueDate !== undefined) task.dueDate = dueDate ? new Date(dueDate) : null;
-        if (tags) task.tags = tags;
+      // Check if user is assigned to the task
+      const isAssigned = (task.assignedTo?.toString() === req.user.userId) || 
+                         (task.assignees && task.assignees.some(id => id.toString() === req.user.userId));
+      
+      const isAdminOrManager = req.user.globalRole === 'admin' || 
+                               req.user.globalRole === 'executive' || 
+                               req.projectRole === 'ProjectManager' || 
+                               req.projectRole === 'TeamLead';
+
+      if (!isAdminOrManager && !isAssigned) {
+        return res.status(403).json({ message: 'You do not have permission to edit this task' });
       }
+
+      if (title) task.title = title;
+      if (description !== undefined) task.description = description;
+      if (status) task.status = status;
+      if (priority) task.priority = priority;
+      if (assignees !== undefined) {
+        task.assignees = assignees || [];
+        task.assignedTo = (assignees && assignees.length > 0) ? assignees[0] : null;
+      } else if (assignedTo !== undefined) {
+        task.assignedTo = assignedTo || null;
+        task.assignees = assignedTo ? [assignedTo] : [];
+      }
+      if (dueDate !== undefined) task.dueDate = dueDate ? new Date(dueDate) : null;
+      if (tags) task.tags = tags;
 
       await task.save();
       await task.populate('createdBy', 'name email avatar');

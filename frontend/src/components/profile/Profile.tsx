@@ -222,7 +222,8 @@ export const Profile: React.FC = () => {
                   <select 
                     value={role}
                     onChange={(e) => setRole(e.target.value as any)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all appearance-none rounded-lg text-sm"
+                    disabled={user.globalRole !== 'admin'}
+                    className={`w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all appearance-none rounded-lg text-sm ${user.globalRole !== 'admin' ? 'bg-gray-50 dark:bg-gray-800 cursor-not-allowed opacity-70' : 'bg-white dark:bg-gray-900'}`}
                   >
                     <option value="user">User</option>
                     <option value="executive">Executive</option>

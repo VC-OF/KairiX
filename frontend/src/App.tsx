@@ -7,18 +7,22 @@ import { Login } from './components/auth/Login';
 import { Signup } from './components/auth/Signup';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
-import { Dashboard } from './components/dashboard/Dashboard';
-import { KanbanBoard } from './components/board/KanbanBoard';
-import { DailyLogs } from './components/logs/DailyLogs';
-import { Members } from './components/members/Members';
-import { Profile } from './components/profile/Profile';
-import { AnalyticsDashboard } from './components/dashboard/AnalyticsDashboard';
-import { GlobalTimeTracker } from './components/tracker/GlobalTimeTracker';
-import { FilesDocs } from './components/files/FilesDocs';
 import { TaskDetail } from './components/tasks/TaskDetail';
-import { DependencyWorkspace } from './components/dependency/DependencyWorkspace';
-import { connectSocket, joinProjectRoom, disconnectSocket } from './utils/socket';
 import { TourGuide } from './components/ui/TourGuide';
+import { KairixStudio } from './components/studio/KairixStudio';
+
+const Dashboard = React.lazy(() => import('./components/dashboard/Dashboard').then(m => ({ default: m.Dashboard })));
+const KanbanBoard = React.lazy(() => import('./components/board/KanbanBoard').then(m => ({ default: m.KanbanBoard })));
+const DailyLogs = React.lazy(() => import('./components/logs/DailyLogs').then(m => ({ default: m.DailyLogs })));
+const Members = React.lazy(() => import('./components/members/Members').then(m => ({ default: m.Members })));
+const Profile = React.lazy(() => import('./components/profile/Profile').then(m => ({ default: m.Profile })));
+const AnalyticsDashboard = React.lazy(() => import('./components/dashboard/AnalyticsDashboard').then(m => ({ default: m.AnalyticsDashboard })));
+const GlobalTimeTracker = React.lazy(() => import('./components/tracker/GlobalTimeTracker').then(m => ({ default: m.GlobalTimeTracker })));
+const FilesDocs = React.lazy(() => import('./components/files/FilesDocs').then(m => ({ default: m.FilesDocs })));
+const DependencyWorkspace = React.lazy(() => import('./components/dependency/DependencyWorkspace').then(m => ({ default: m.DependencyWorkspace })));
+const CalendarView = React.lazy(() => import('./components/calendar/CalendarView').then(m => ({ default: m.CalendarView })));
+
+import { connectSocket, joinProjectRoom, disconnectSocket } from './utils/socket';
 
 function AppLayout() {
   const {
@@ -62,7 +66,7 @@ function AppLayout() {
   // Sync active view with URL on first load
   useEffect(() => {
     const path = window.location.pathname.replace('/', '');
-    const validViews = ['dashboard', 'board', 'logs', 'members', 'profile', 'analytics', 'tracker', 'files', 'dependency'];
+    const validViews = ['dashboard', 'board', 'logs', 'members', 'profile', 'analytics', 'tracker', 'files', 'dependency', 'calendar'];
     if (validViews.includes(path)) {
       setActiveView(path as any);
     }
@@ -80,6 +84,7 @@ function AppLayout() {
       tracker: 'Time Tracker',
       files: 'Files & Docs',
       dependency: 'Dependency Map',
+      calendar: 'Calendar View',
     };
     const viewTitle = titles[activeView] || 'Dashboard';
     document.title = `${viewTitle} — KairiX`;
@@ -216,18 +221,32 @@ function AppLayout() {
   }, [fetchNotifications]);
 
   const renderView = () => {
-    switch (activeView) {
-      case 'dashboard': return <Dashboard />;
-      case 'board': return <KanbanBoard />;
-      case 'logs': return <DailyLogs />;
-      case 'members': return <Members />;
-      case 'profile': return <Profile />;
-      case 'analytics': return <AnalyticsDashboard />;
-      case 'tracker': return <GlobalTimeTracker />;
-      case 'files': return <FilesDocs />;
-      case 'dependency': return <DependencyWorkspace />;
-      default: return <Dashboard />;
-    }
+    return (
+      <React.Suspense fallback={
+        <div className="flex-1 flex items-center justify-center p-12 bg-white/40 dark:bg-[#090d16]/30 border border-gray-150/45 dark:border-gray-800 rounded-3xl animate-pulse h-full w-full">
+          <div className="flex flex-col items-center gap-3 select-none">
+            <div className="w-8 h-8 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
+            <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Loading workspace view...</p>
+          </div>
+        </div>
+      }>
+        {(() => {
+          switch (activeView) {
+            case 'dashboard': return <Dashboard />;
+            case 'board': return <KanbanBoard />;
+            case 'logs': return <DailyLogs />;
+            case 'members': return <Members />;
+            case 'profile': return <Profile />;
+            case 'analytics': return <AnalyticsDashboard />;
+            case 'tracker': return <GlobalTimeTracker />;
+            case 'files': return <FilesDocs />;
+            case 'dependency': return <DependencyWorkspace />;
+            case 'calendar': return <CalendarView />;
+            default: return <Dashboard />;
+          }
+        })()}
+      </React.Suspense>
+    );
   };
 
   return (
@@ -263,12 +282,12 @@ function AppLayout() {
         />
         <main
           className={`flex-1 ${
-            activeView === 'board' || activeView === 'dependency'
+            activeView === 'board' || activeView === 'dependency' || activeView === 'calendar'
               ? 'flex flex-col overflow-hidden'
               : 'overflow-y-auto p-6'
           }`}
         >
-          <div key={activeView} className={`animate-fade-in-slide h-full w-full ${activeView === 'board' || activeView === 'dependency' ? 'flex flex-col overflow-hidden' : ''}`}>
+          <div key={activeView} className={`animate-fade-in-slide h-full w-full ${activeView === 'board' || activeView === 'dependency' || activeView === 'calendar' ? 'flex flex-col overflow-hidden' : ''}`}>
             {renderView()}
           </div>
         </main>
@@ -322,10 +341,11 @@ const App: React.FC = () => {
         <Route path="/tracker" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
         <Route path="/files" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
         <Route path="/dependency" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
+        <Route path="/calendar" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
 
-        {/* Redirect */}
-        <Route path="/" element={<Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />} />
-        <Route path="*" element={<Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />} />
+        {/* Public Landing & Redirects */}
+        <Route path="/" element={<KairixStudio />} />
+        <Route path="*" element={<Navigate to={isAuthenticated ? '/dashboard' : '/'} replace />} />
       </Routes>
     </Router>
   );

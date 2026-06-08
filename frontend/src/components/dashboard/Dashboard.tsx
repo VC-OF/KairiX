@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import { Avatar, AvatarGroup } from '../ui/Avatar';
-import { StatusBadge, PriorityBadge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import {
@@ -113,7 +112,7 @@ const getAccentText = (c: string) => {
 };
 
 export const Dashboard: React.FC = () => {
-  const { project, tasks, users, currentUser, updateProject, setActiveView } = useStore();
+  const { project, tasks, users, currentUser, updateProject, setActiveView, dailyLogs } = useStore();
   const [editingProject, setEditingProject] = useState(false);
   const [projName, setProjName] = useState(project.name);
   const [projDesc, setProjDesc] = useState(project.description);
@@ -221,6 +220,10 @@ export const Dashboard: React.FC = () => {
 
   const activeAccent = colorAccents[project.color || 'indigo'] || colorAccents.indigo;
 
+  const recentActivities = [...dailyLogs]
+    .sort((a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime())
+    .slice(0, 5);
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Project Header */}
@@ -249,6 +252,7 @@ export const Dashboard: React.FC = () => {
             {isAdmin && (
               <div className="flex gap-2">
                 <Button
+                  id="tour-edit-project"
                   variant="ghost"
                   size="sm"
                   icon={<Edit3 size={13} />}
@@ -366,8 +370,8 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Recent Activity */}
-        <div className="lg:col-span-2 glass-panel rounded-3xl p-5 relative overflow-hidden">
+        {/* Recent Tasks */}
+        <div className="lg:col-span-1 glass-panel rounded-3xl p-5 relative overflow-hidden">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <div className="p-1.5 bg-indigo-500/10 rounded-xl text-indigo-500">
@@ -384,9 +388,8 @@ export const Dashboard: React.FC = () => {
               View Board →
             </Button>
           </div>
-          <div className="space-y-2.5">
+          <div className="space-y-2.5 max-h-[360px] overflow-y-auto pr-1 custom-scrollbar">
             {recentTasks.map((task) => {
-              const assignedUsers = users.filter((u) => task.assignees.includes(u.id));
               return (
                 <div
                   key={task.id}
@@ -406,17 +409,8 @@ export const Dashboard: React.FC = () => {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-800 dark:text-slate-100 truncate group-hover/row:text-indigo-600 dark:group-hover/row:text-indigo-400 transition-colors">{task.title}</p>
                     <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 mt-0.5">
-                      Updated {task.updatedAt ? format(parseISO(task.updatedAt), 'MMM d, h:mm a') : 'Recently'}
+                      Updated {task.updatedAt ? format(parseISO(task.updatedAt), 'MMM d') : 'Recently'}
                     </p>
-                  </div>
-                  <div className="flex items-center gap-3 flex-shrink-0">
-                    <PriorityBadge priority={task.priority} />
-                    <StatusBadge status={task.status} />
-                    <div className="flex -space-x-2">
-                      {assignedUsers.slice(0, 3).map((u) => (
-                        <Avatar key={u.id} user={u} size="xs" showTooltip />
-                      ))}
-                    </div>
                   </div>
                 </div>
               );
@@ -436,6 +430,82 @@ export const Dashboard: React.FC = () => {
                   className="mx-auto"
                 >
                   Create First Task
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Recent Workspace Activity (Operations Audit Feed) */}
+        <div className="lg:col-span-1 glass-panel rounded-3xl p-5 relative overflow-hidden">
+          <div className="flex items-center gap-2 mb-5">
+            <div className="p-1.5 bg-emerald-500/10 rounded-xl text-emerald-500">
+              <Zap size={16} />
+            </div>
+            <h3 className="font-bold text-sm text-gray-900 dark:text-slate-100 tracking-tight font-sans">Recent Activity</h3>
+          </div>
+
+          <div className="space-y-4 max-h-[360px] overflow-y-auto pr-1 custom-scrollbar">
+            {recentActivities.map((log) => {
+              const logAuthor = users.find((u) => u.id === log.userId);
+              const initials = logAuthor
+                ? logAuthor.name
+                    .split(' ')
+                    .map((n) => n[0])
+                    .join('')
+                    .toUpperCase()
+                : '??';
+              const name = logAuthor ? logAuthor.name : 'Unknown User';
+              const color = logAuthor ? logAuthor.color : '#6366f1';
+              
+              const formatLogTime = (dateStr: string) => {
+                try {
+                  return format(parseISO(dateStr), 'MMM d, h:mm a');
+                } catch (e) {
+                  return 'Recently';
+                }
+              };
+
+              return (
+                <div key={log.id} className="flex gap-3 text-xs animate-fade-in-slide border-b border-gray-50 dark:border-gray-800/40 pb-3 last:border-0 last:pb-0">
+                  <div 
+                    className="w-7 h-7 rounded-lg text-white flex items-center justify-center font-extrabold flex-shrink-0 text-[10px] shadow-sm"
+                    style={{ backgroundColor: color }}
+                  >
+                    {initials}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-gray-800 dark:text-gray-200 text-xs">
+                      {name} <span className="font-medium text-gray-500 dark:text-gray-400">posted a progress update</span>
+                    </p>
+                    <p className="text-[11px] text-gray-600 dark:text-slate-300 mt-1 line-clamp-2 italic">
+                      "{log.content}"
+                    </p>
+                    {log.blockers && (
+                      <span className="inline-block mt-1 px-1.5 py-0.5 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 rounded text-[9px] font-semibold text-rose-600 dark:text-rose-400">
+                        Blocker: {log.blockers}
+                      </span>
+                    )}
+                    <p className="text-[10px] text-gray-400 mt-1 font-semibold">{formatLogTime(log.createdAt || log.date)}</p>
+                  </div>
+                </div>
+              );
+            })}
+
+            {recentActivities.length === 0 && (
+              <div className="text-center py-12">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/50 flex items-center justify-center mx-auto mb-4">
+                  <Zap size={24} className="text-emerald-500 dark:text-emerald-400" />
+                </div>
+                <p className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">No activity logged yet</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">Post status updates in the Daily Logs feed</p>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setActiveView('logs')}
+                  className="mx-auto"
+                >
+                  Go to Daily Logs
                 </Button>
               </div>
             )}

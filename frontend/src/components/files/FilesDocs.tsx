@@ -212,41 +212,72 @@ export const FilesDocs: React.FC = () => {
               <div 
                 key={folder._id} 
                 onDoubleClick={() => enterFolder(folder)}
-                className="group relative flex flex-col items-center p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-all cursor-pointer border border-transparent hover:border-gray-100 dark:hover:border-gray-700"
+                className="group relative glass-panel glass-panel-hover p-4 rounded-2xl cursor-pointer flex flex-col justify-between h-32 border border-gray-100 dark:border-gray-800/80 hover:border-indigo-500/20 select-none animate-fade-in-slide"
               >
-                <Folder size={48} className="text-indigo-400 fill-indigo-50 mb-2 group-hover:scale-110 transition-transform" />
-                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 text-center truncate w-full">{folder.name}</span>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); deleteFolder(folder._id); }}
-                  className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Trash2 size={14} />
-                </button>
+                <div className="flex justify-between items-start">
+                  <div className="p-2 bg-indigo-50 dark:bg-indigo-950/45 rounded-xl text-indigo-500 dark:text-indigo-400 group-hover:scale-110 transition-transform shadow-sm">
+                    <Folder size={20} className="fill-indigo-500/10" />
+                  </div>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); deleteFolder(folder._id); }}
+                    className="p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-gray-900 dark:text-slate-100 truncate w-full tracking-tight">
+                    {folder.name}
+                  </h4>
+                  <p className="text-[9px] text-gray-400 dark:text-gray-500 font-extrabold uppercase mt-1">Directory Folder</p>
+                </div>
               </div>
             ))}
             
             {/* Files */}
-            {items.files.map(file => (
-              <div 
-                key={file._id}
-                className="group relative flex flex-col items-center p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-all cursor-pointer border border-transparent hover:border-gray-100 dark:hover:border-gray-700"
-              >
-                <div className="h-12 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                  {getFileIcon(file.mimeType)}
+            {items.files.map(file => {
+              const extension = file.name.split('.').pop()?.toUpperCase() || 'FILE';
+              return (
+                <div 
+                  key={file._id}
+                  className="group relative glass-panel glass-panel-hover p-4 rounded-2xl cursor-pointer flex flex-col justify-between h-32 border border-gray-100 dark:border-gray-800/80 hover:border-indigo-500/20 select-none animate-fade-in-slide"
+                >
+                  <div className="flex justify-between items-start">
+                    <span className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-150/45 dark:border-indigo-900/40 rounded text-[9px] font-mono font-black tracking-wider shadow-sm uppercase">
+                      {extension}
+                    </span>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <a 
+                        href={getFileUrl(file.url)} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="p-1 text-gray-400 hover:text-indigo-500 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" 
+                        title="Download"
+                      >
+                        <Download size={13} />
+                      </a>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); deleteFile(file._id); }} 
+                        className="p-1 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" 
+                        title="Delete"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-gray-900 dark:text-slate-100 truncate w-full tracking-tight" title={file.name}>
+                      {file.name}
+                    </h4>
+                    <div className="flex items-center justify-between mt-1 text-[10px] text-gray-400 dark:text-gray-500 font-semibold leading-none">
+                      <span>{formatFileSize(file.size)}</span>
+                      <span>•</span>
+                      <span>Hub Doc</span>
+                    </div>
+                  </div>
                 </div>
-                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 text-center truncate w-full" title={file.name}>{file.name}</span>
-                <span className="text-[10px] text-gray-400 mt-1">{formatFileSize(file.size)}</span>
-                
-                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <a href={getFileUrl(file.url)} target="_blank" rel="noopener noreferrer" className="p-1 text-gray-400 hover:text-indigo-500" title="Download">
-                    <Download size={14} />
-                  </a>
-                  <button onClick={() => deleteFile(file._id)} className="p-1 text-gray-400 hover:text-red-500" title="Delete">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           /* List View */
@@ -336,12 +367,14 @@ export const FilesDocs: React.FC = () => {
       <Modal isOpen={showUploadModal} onClose={() => setShowUploadModal(false)} title="Upload Files">
         <div className="space-y-6">
           <div 
-            className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl p-12 flex flex-col items-center justify-center gap-3 bg-gray-50/50 dark:bg-gray-900/20 hover:border-indigo-400 transition-colors cursor-pointer relative"
+            className="border-2 border-dashed border-indigo-200 dark:border-indigo-900/60 rounded-3xl p-14 flex flex-col items-center justify-center gap-4 bg-indigo-50/10 dark:bg-indigo-950/5 hover:border-indigo-500 dark:hover:border-indigo-400 transition-all duration-300 cursor-pointer relative shadow-sm group"
             onClick={() => document.getElementById('file-upload-input')?.click()}
           >
-            <Upload size={40} className="text-gray-400" />
+            <div className="p-4 bg-indigo-50 dark:bg-indigo-950/40 rounded-full text-indigo-500 group-hover:scale-110 transition-transform shadow-sm">
+              <Upload size={32} />
+            </div>
             <div className="text-center">
-              <p className="text-sm font-bold text-gray-700 dark:text-gray-300">Click or drag files to upload</p>
+              <p className="text-sm font-bold text-gray-700 dark:text-gray-300">Click or drag files here to upload</p>
               <p className="text-xs text-gray-400 mt-1">Maximum file size: 50MB</p>
             </div>
             <input 
@@ -352,9 +385,9 @@ export const FilesDocs: React.FC = () => {
               onChange={handleFileUpload}
             />
             {uploading && (
-              <div className="absolute inset-0 bg-white/80 dark:bg-gray-800/80 rounded-2xl flex flex-col items-center justify-center gap-3 z-10">
+              <div className="absolute inset-0 bg-white/80 dark:bg-gray-800/80 rounded-[22px] flex flex-col items-center justify-center gap-3 z-10">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                <p className="text-sm font-bold text-indigo-600">Uploading...</p>
+                <p className="text-sm font-bold text-indigo-600">Uploading documents...</p>
               </div>
             )}
           </div>

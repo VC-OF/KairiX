@@ -82,6 +82,47 @@ router.get('/stats/today', authenticateToken, async (req, res) => {
   }
 });
 
+// Get calendar data - time logs for a date range, optionally filtered by user
+router.get('/calendar-data', authenticateToken, async (req, res) => {
+  try {
+    const { projectId, startDate, endDate, userId } = req.query;
+    const query = {};
+    if (projectId) query.projectId = projectId;
+    if (userId) query.userId = userId;
+    if (startDate && endDate) {
+      query.workDate = { $gte: startDate, $lte: endDate };
+    }
+    
+    const TimeLog = require('../models/TimeLog');
+    const logs = await TimeLog.find(query)
+      .populate('userId', 'name email avatar')
+      .populate('taskId', 'title status priority tags')
+      .sort({ startTime: 1 });
+    
+    res.json(logs);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Get all active timers for a project
+router.get('/active-timers', authenticateToken, async (req, res) => {
+  try {
+    const { projectId } = req.query;
+    const query = { status: 'active' };
+    if (projectId) query.projectId = projectId;
+    
+    const TimeLog = require('../models/TimeLog');
+    const activeTimers = await TimeLog.find(query)
+      .populate('userId', 'name email avatar')
+      .populate('taskId', 'title status priority');
+    
+    res.json(activeTimers);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Get task timer status
 router.get('/status/:taskId', authenticateToken, async (req, res) => {
   try {

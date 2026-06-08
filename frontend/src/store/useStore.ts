@@ -90,7 +90,7 @@ interface AppState {
   dailyLogs: DailyLog[];
   notifications: any[];
   taskComments: Record<string, TaskComment[]>; // taskId -> comments
-  activeView: 'dashboard' | 'board' | 'analytics' | 'logs' | 'members' | 'profile' | 'tracker' | 'files' | 'dependency';
+  activeView: 'dashboard' | 'board' | 'analytics' | 'logs' | 'members' | 'profile' | 'tracker' | 'files' | 'dependency' | 'calendar';
   searchQuery: string;
   filterStatus: TaskStatus | 'all';
   filterAssignee: string | 'all';
@@ -152,6 +152,8 @@ interface AppState {
   setIsTourActive: (active: boolean) => void;
   tourStep: number;
   setTourStep: (step: number) => void;
+  globalActiveTimer: { taskId: string; taskTitle: string; isPaused: boolean; projectId: string; seconds: number; workDate: string } | null;
+  setGlobalActiveTimer: (timer: any) => void;
 
   // Dependencies state
   dependencies: any[];
@@ -207,6 +209,8 @@ export const useStore = create<AppState>((set, get) => ({
   setIsTourActive: (active) => set({ isTourActive: active }),
   tourStep: 0,
   setTourStep: (step) => set({ tourStep: step }),
+  globalActiveTimer: null,
+  setGlobalActiveTimer: (timer) => set({ globalActiveTimer: timer }),
 
   fetchProjects: async () => {
     try {

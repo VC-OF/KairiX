@@ -236,6 +236,28 @@ export const Members: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Live Activity HUD */}
+                <div className="mx-5 my-3.5 p-3 bg-gray-50/50 dark:bg-[#090d16]/30 border border-gray-105 dark:border-gray-800 rounded-xl flex items-center justify-between transition-colors">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className={`w-2 h-2 rounded-full ${user.name.toLowerCase().includes('jane') || user.name.toLowerCase().includes('john') || user.role === 'admin' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'} shrink-0`} />
+                    <div className="min-w-0 leading-tight">
+                      <p className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">
+                        {user.name.toLowerCase().includes('jane') ? 'Working on guided onboarding tour' :
+                         user.name.toLowerCase().includes('john') ? 'Developing multiplayer sockets' :
+                         user.role === 'admin' ? 'Active: Global Timer Tracking' : 'Idle: Reviewing code reviews'}
+                      </p>
+                      <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium truncate mt-0.5">
+                        {user.name.toLowerCase().includes('jane') ? 'TourGuide.tsx' :
+                         user.name.toLowerCase().includes('john') ? 'socket.ts' :
+                         user.role === 'admin' ? 'GlobalTimeTracker.tsx' : 'System standby'}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[9px] uppercase tracking-wider font-extrabold text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded border border-transparent shrink-0">
+                    {user.name.toLowerCase().includes('jane') || user.name.toLowerCase().includes('john') || user.role === 'admin' ? 'ACTIVE' : 'IDLE'}
+                  </span>
+                </div>
+
                 {/* Stats */}
                 <div className="px-5 py-4">
                   <div className="grid grid-cols-3 gap-3 mb-4">

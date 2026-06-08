@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore, DailyLog } from '../../store/useStore';
 import { Avatar } from '../ui/Avatar';
 import { Modal } from '../ui/Modal';
+import { ThreadedComment, Reply } from './ThreadedComment';
 import {
   Plus,
   Calendar,
@@ -10,14 +11,20 @@ import {
   AlertTriangle,
   CheckSquare,
   BookOpen,
-  ChevronDown,
-  ChevronUp,
-  Filter,
-  History,
-  Activity
+  ArrowBigUp,
+  ArrowBigDown,
+  MessageSquare,
+  Award,
+  Share2,
+  Bookmark,
+  Users,
+  Info,
+  ShieldCheck,
+  Filter
 } from 'lucide-react';
 import { format, parseISO, isToday, isYesterday } from 'date-fns';
 
+// ═══════════════════════ NEW LOG MODAL FORM ═══════════════════════
 const LogForm: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -54,32 +61,32 @@ const LogForm: React.FC<{
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={log ? 'Edit Log Entry' : 'Share Progress'} size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title={log ? 'Edit Status Post' : 'Submit Progress Update'} size="lg">
       <form onSubmit={handleSubmit} className="space-y-6 p-2">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+            <label className="text-[10px] font-black text-slate-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-2">
               <Calendar size={12} /> Work Date
             </label>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full px-4 py-3 rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-violet-500 transition-all font-bold"
+              className="w-full px-4 py-3 rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-indigo-500 transition-all font-bold"
             />
           </div>
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-            <BookOpen size={12} /> Progress Update
+          <label className="text-[10px] font-black text-slate-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-2">
+            <BookOpen size={12} /> Progress Update Content
           </label>
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Describe your achievements today..."
             rows={5}
-            className="w-full px-4 py-3 rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-violet-500 resize-none transition-all"
+            className="w-full px-4 py-3 rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-indigo-500 resize-none transition-all"
           />
         </div>
 
@@ -99,7 +106,7 @@ const LogForm: React.FC<{
         {completedTasks.length > 0 && (
           <div className="space-y-2">
             <label className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-2">
-              <CheckSquare size={12} /> Linked Tasks
+              <CheckSquare size={12} /> Linked Achievements
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto p-1">
               {completedTasks.map((task) => (
@@ -133,15 +140,15 @@ const LogForm: React.FC<{
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition-all"
+            className="flex-1 px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="flex-1 px-6 py-4 rounded-2xl bg-violet-600 text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-violet-600/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+            className="flex-1 px-6 py-4 rounded-2xl bg-indigo-600 text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-indigo-600/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
           >
-            {log ? 'Update Log' : 'Publish Update'}
+            {log ? 'Update Post' : 'Post Progress'}
           </button>
         </div>
       </form>
@@ -149,116 +156,228 @@ const LogForm: React.FC<{
   );
 };
 
-const LogCard: React.FC<{ log: DailyLog }> = ({ log }) => {
-  const { users, tasks, deleteLog, currentUser } = useStore();
+// ═══════════════════════ REDDIT POST CARD OVERHAUL ═══════════════════════
+interface LogCardProps {
+  log: DailyLog;
+  threadData: { score: number; userVote: 'up' | 'down' | null; comments: Reply[] };
+  onPostVote: (logId: string, direction: 'up' | 'down') => void;
+  onCommentVote: (logId: string, commentId: string, direction: 'up' | 'down') => void;
+  onAddCommentReply: (logId: string, parentCommentId: string | null, content: string) => void;
+}
+
+const LogCard: React.FC<LogCardProps> = ({ 
+  log, 
+  threadData,
+  onPostVote,
+  onCommentVote,
+  onAddCommentReply
+}) => {
+  const { users, tasks, deleteLog, currentUser, project } = useStore();
   const [showEdit, setShowEdit] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [showComments, setShowComments] = useState(true);
+  const [newRootCommentText, setNewRootCommentText] = useState('');
 
   const author = users.find((u) => u.id === log.userId);
   const linkedTasks = tasks.filter((t) => log.completedTasks.includes(t.id));
   const isOwner = currentUser?.id === log.userId || currentUser?.role === 'admin';
 
+  const handleRootCommentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newRootCommentText.trim()) return;
+    onAddCommentReply(log.id, null, newRootCommentText);
+    setNewRootCommentText('');
+  };
 
-
+  const usernameHandle = `u/${author?.name.toLowerCase().replace(/\s+/g, '_') || 'unknown'}`;
+  const subredditHandle = `r/${project.name.replace(/\s+/g, '')}`;
 
   return (
     <>
-      <div className="group bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-violet-500/30 transition-all duration-500 overflow-hidden relative">
-        <div className="flex items-start gap-4 p-6 md:p-8">
-          <div className="flex-shrink-0 relative">
-            {author && <Avatar user={author} size="lg" />}
-            <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-4 border-white dark:border-slate-900 flex items-center justify-center ${
-              log.blockers ? 'bg-amber-500' : 'bg-emerald-500'
-            }`}>
-              {log.blockers ? <AlertTriangle size={8} className="text-white" /> : <Plus size={8} className="text-white" />}
-            </div>
-          </div>
+      <div className="group bg-white dark:bg-[#0c1018] rounded-[2rem] border border-gray-150 dark:border-gray-850 shadow-sm hover:shadow-xl hover:border-indigo-500/20 transition-all duration-500 overflow-hidden flex relative select-none">
+        
+        {/* Left Side: Score Upvoting Rail */}
+        <div className="w-14 bg-gray-50/50 dark:bg-black/10 flex flex-col items-center py-5 border-r border-gray-100 dark:border-gray-850 shrink-0">
+          <button 
+            onClick={() => onPostVote(log.id, 'up')}
+            className={`p-1 rounded-lg transition-all duration-150 active:scale-125 cursor-pointer ${
+              threadData.userVote === 'up' 
+                ? 'text-[#ff4500]' 
+                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+            }`}
+          >
+            <ArrowBigUp size={24} fill={threadData.userVote === 'up' ? 'currentColor' : 'none'} />
+          </button>
+          
+          <span className={`text-xs font-black my-1 ${
+            threadData.userVote === 'up' 
+              ? 'text-[#ff4500]' 
+              : threadData.userVote === 'down' 
+                ? 'text-[#7193ff]' 
+                : 'text-gray-600 dark:text-gray-400'
+          }`}>
+            {threadData.score}
+          </span>
+          
+          <button 
+            onClick={() => onPostVote(log.id, 'down')}
+            className={`p-1 rounded-lg transition-all duration-150 active:scale-125 cursor-pointer ${
+              threadData.userVote === 'down' 
+                ? 'text-[#7193ff]' 
+                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+            }`}
+          >
+            <ArrowBigDown size={24} fill={threadData.userVote === 'down' ? 'currentColor' : 'none'} />
+          </button>
+        </div>
 
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-3 mb-2">
-              <div>
-                <h4 className="font-black text-slate-900 dark:text-white flex items-center gap-2">
-                  {author?.name || 'Unknown'}
+        {/* Right Side: Post content */}
+        <div className="flex-1 p-6 md:p-8 min-w-0">
+          {/* Post Header */}
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="relative">
+                {author && <Avatar user={author} size="sm" />}
+                <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center ${
+                  log.blockers ? 'bg-amber-500' : 'bg-emerald-500'
+                }`} />
+              </div>
+              
+              <div className="leading-tight truncate">
+                <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                  <span className="font-black text-gray-800 dark:text-gray-200 hover:underline cursor-pointer">{subredditHandle}</span>
+                  <span className="text-gray-400 dark:text-gray-600 font-bold">•</span>
+                  <span className="text-gray-400 dark:text-gray-500 font-bold">Posted by {usernameHandle}</span>
                   {author?.role === 'admin' && (
-                    <span className="text-[10px] font-black bg-violet-600 text-white px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-sm">Admin</span>
+                    <span className="text-[8px] font-black bg-indigo-600 text-white px-1.5 py-0.2 rounded uppercase tracking-wide">MOD</span>
                   )}
-                </h4>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mt-1">
-                  <History size={10} /> {format(parseISO(log.createdAt), 'h:mm a')}
+                </div>
+                <p className="text-[9px] font-black text-gray-400 dark:text-gray-550 uppercase tracking-widest mt-1">
+                  {format(parseISO(log.createdAt), 'h:mm a')}
                 </p>
               </div>
-
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                {isOwner && (
-                  <>
-                    <button
-                      onClick={() => setShowEdit(true)}
-                      className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-violet-600 transition-all"
-                    >
-                      <Edit3 size={16} />
-                    </button>
-                    <button
-                      onClick={() => deleteLog(log.id)}
-                      className="p-2 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-900/30 text-slate-400 hover:text-rose-500 transition-all"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </>
-                )}
-              </div>
             </div>
 
-            <div className="relative mt-4">
-              <div className="absolute left-[-2rem] top-0 bottom-0 w-1 bg-gradient-to-b from-violet-600 to-indigo-600 rounded-full opacity-0 group-hover:opacity-100 transition-all" />
-              <p className={`text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium ${!expanded ? 'line-clamp-3' : ''}`}>
-                {log.content}
-              </p>
-            </div>
-
-            {/* Blockers Section */}
-            {log.blockers && (
-              <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/10 border-l-4 border-amber-500 rounded-2xl rounded-tl-none">
-                <div className="flex items-center gap-2 mb-1">
-                  <AlertTriangle size={14} className="text-amber-500" />
-                  <span className="text-[10px] font-black text-amber-600 uppercase tracking-[2px]">Blocker Identified</span>
-                </div>
-                <p className="text-xs text-amber-700 dark:text-amber-400/80 font-bold leading-relaxed">{log.blockers}</p>
-              </div>
-            )}
-
-            {/* Completed Tasks */}
-            {linkedTasks.length > 0 && (
-              <div className="mt-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800" />
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Achievements</span>
-                  <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800" />
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {linkedTasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-xl text-[10px] font-black uppercase tracking-wider"
-                    >
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      {task.title}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Expander */}
-            <div className="mt-6 flex justify-center">
-               <button 
-                onClick={() => setExpanded(!expanded)}
-                className="group/btn px-4 py-2 bg-slate-50 dark:bg-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-violet-600 hover:bg-violet-50 transition-all flex items-center gap-2"
-               >
-                 {expanded ? 'Collapse Report' : 'Show Full Update'}
-                 {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-               </button>
+            {/* Owner Actions */}
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+              {isOwner && (
+                <>
+                  <button
+                    onClick={() => setShowEdit(true)}
+                    className="p-1.5 rounded-lg hover:bg-slate-105 dark:hover:bg-slate-800 text-gray-400 hover:text-indigo-600 transition-all cursor-pointer"
+                  >
+                    <Edit3 size={14} />
+                  </button>
+                  <button
+                    onClick={() => deleteLog(log.id)}
+                    className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/30 text-gray-400 hover:text-rose-500 transition-all cursor-pointer"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </>
+              )}
             </div>
           </div>
+
+          {/* Post Content */}
+          <div className="relative mt-2 pl-0.5">
+            <p className="text-sm text-gray-700 dark:text-slate-205 leading-relaxed font-semibold">
+              {log.content}
+            </p>
+          </div>
+
+          {/* Blockers */}
+          {log.blockers && (
+            <div className="mt-4 p-4 bg-amber-500/10 dark:bg-amber-500/5 border border-amber-500/20 rounded-2xl flex gap-3">
+              <AlertTriangle className="text-amber-500 w-5 h-5 shrink-0" />
+              <div>
+                <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest block mb-0.5">Blocker Identified</span>
+                <p className="text-xs text-amber-700 dark:text-amber-400 font-bold leading-relaxed">{log.blockers}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Connected Achievements */}
+          {linkedTasks.length > 0 && (
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider mr-1">Linked Tasks:</span>
+              {linkedTasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/15 rounded-xl text-[9px] font-black uppercase tracking-wider"
+                >
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  {task.title}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Post Footer Controls */}
+          <div className="flex flex-wrap items-center gap-4 mt-6 pt-4 border-t border-gray-100 dark:border-gray-850/60 text-[10px] text-gray-400 font-black uppercase tracking-wider">
+            <button 
+              onClick={() => setShowComments(!showComments)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl transition-all cursor-pointer ${
+                showComments ? 'bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400' : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+              }`}
+            >
+              <MessageSquare size={13} />
+              <span>{threadData.comments.length} Comments</span>
+            </button>
+            <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-all cursor-pointer">
+              <Award size={13} />
+              <span>Award</span>
+            </button>
+            <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-all cursor-pointer">
+              <Share2 size={13} />
+              <span>Share</span>
+            </button>
+            <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-all cursor-pointer">
+              <Bookmark size={13} />
+              <span>Save</span>
+            </button>
+          </div>
+
+          {/* Collapsible Reddit Thread Nested Comments */}
+          {showComments && (
+            <div className="mt-5 space-y-4 pt-4 border-t border-dashed border-gray-100 dark:border-gray-850/60">
+              
+              {/* Recursive comments list */}
+              {threadData.comments.length > 0 ? (
+                <div className="space-y-4">
+                  {threadData.comments.map((comment) => (
+                    <ThreadedComment
+                      key={comment.id}
+                      comment={comment}
+                      onAddReply={(parentCommentId, text) => onAddCommentReply(log.id, parentCommentId, text)}
+                      onVote={(commentId, dir) => onCommentVote(log.id, commentId, dir)}
+                      depth={0}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[10px] text-gray-400 italic py-2">No comments yet. Be the first to reply!</p>
+              )}
+
+              {/* Add Root Comment Form */}
+              <form onSubmit={handleRootCommentSubmit} className="mt-4 flex gap-2 items-stretch">
+                <textarea
+                  value={newRootCommentText}
+                  onChange={(e) => setNewRootCommentText(e.target.value)}
+                  placeholder="Share a status reply or ask a question..."
+                  rows={1}
+                  className="flex-1 px-3.5 py-2.5 bg-gray-50 dark:bg-black/30 border border-gray-205 dark:border-gray-800 rounded-xl text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none transition-all"
+                />
+                <button
+                  type="submit"
+                  className="px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-sm cursor-pointer transition-all active:scale-95 flex items-center justify-center"
+                >
+                  Comment
+                </button>
+              </form>
+
+            </div>
+          )}
+
         </div>
       </div>
 
@@ -269,10 +388,185 @@ const LogCard: React.FC<{ log: DailyLog }> = ({ log }) => {
   );
 };
 
+// ═══════════════════════ MAIN SUBREDDIT FEED OVERVIEW ═══════════════════════
 export const DailyLogs: React.FC = () => {
-  const { dailyLogs, users, project } = useStore();
+  const { dailyLogs, users, project, currentUser } = useStore();
   const [showAdd, setShowAdd] = useState(false);
   const [filterUser, setFilterUser] = useState<string>('all');
+  
+  // Local threaded comments & score tracking map
+  const [threads, setThreads] = useState<Record<string, { score: number; userVote: 'up' | 'down' | null; comments: Reply[] }>>({});
+
+  // Helper to preseed initial comment conversations on component mount
+  useEffect(() => {
+    const preseeded: Record<string, { score: number; userVote: 'up' | 'down' | null; comments: Reply[] }> = {};
+    
+    dailyLogs.forEach((log) => {
+      // Generate some default scores
+      const defaultScore = Math.floor(Math.random() * 12) + 4;
+      
+      // Default preseeded discussion nodes
+      let defaultComments: Reply[] = [];
+      
+      if (log.content.toLowerCase().includes('dependency') || log.content.toLowerCase().includes('board') || log.id === 'log-1') {
+        defaultComments = [
+          {
+            id: `seed-c1-${log.id}`,
+            userId: 'user-2',
+            userName: 'Jane Smith',
+            userRole: 'executive',
+            content: 'This update is looking extremely thorough! Did you hotfix the socket synchronization in our backend room controllers?',
+            createdAt: new Date(Date.now() - 3600000 * 2.5).toISOString(),
+            score: 5,
+            userVote: null,
+            replies: [
+              {
+                id: `seed-c2-${log.id}`,
+                userId: 'user-1',
+                userName: 'Admin User',
+                userRole: 'admin',
+                content: 'Yes! Mapped the handshake socket lifecycle in branch hotfix-socket-handshake u/jane_smith. It is fully merged and active in production now.',
+                createdAt: new Date(Date.now() - 3600000 * 1.8).toISOString(),
+                score: 3,
+                userVote: null,
+                replies: [
+                  {
+                    id: `seed-c3-${log.id}`,
+                    userId: 'user-2',
+                    userName: 'Jane Smith',
+                    userRole: 'executive',
+                    content: 'Excellent, pulling the changes now. Speed looks super stable!',
+                    createdAt: new Date(Date.now() - 3600000 * 1.2).toISOString(),
+                    score: 2,
+                    userVote: null,
+                    replies: []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: `seed-c4-${log.id}`,
+            userId: 'user-3',
+            userName: 'John Doe',
+            userRole: 'developer',
+            content: 'Awesome spent estimation updates here u/admin. Linking these logs to completed task maps really clarifies critical paths.',
+            createdAt: new Date(Date.now() - 3600000 * 4).toISOString(),
+            score: 4,
+            userVote: null,
+            replies: []
+          }
+        ];
+      } else {
+        defaultComments = [];
+      }
+
+      preseeded[log.id] = {
+        score: defaultScore,
+        userVote: null,
+        comments: defaultComments
+      };
+    });
+
+    setThreads((prev) => ({ ...preseeded, ...prev }));
+  }, [dailyLogs.length]);
+
+  const handlePostVote = (logId: string, direction: 'up' | 'down') => {
+    setThreads(prev => {
+      const thread = prev[logId] || { score: 6, userVote: null, comments: [] };
+      let newScore = thread.score;
+      let newVote = thread.userVote;
+
+      if (direction === 'up') {
+        if (thread.userVote === 'up') { newScore -= 1; newVote = null; }
+        else if (thread.userVote === 'down') { newScore += 2; newVote = 'up'; }
+        else { newScore += 1; newVote = 'up'; }
+      } else {
+        if (thread.userVote === 'down') { newScore += 1; newVote = null; }
+        else if (thread.userVote === 'up') { newScore -= 2; newVote = 'down'; }
+        else { newScore -= 1; newVote = 'down'; }
+      }
+
+      return {
+        ...prev,
+        [logId]: { ...thread, score: newScore, userVote: newVote }
+      };
+    });
+  };
+
+  const handleCommentVote = (logId: string, commentId: string, direction: 'up' | 'down') => {
+    const updateVoteRecursive = (repliesList: Reply[]): Reply[] => {
+      return repliesList.map(item => {
+        if (item.id === commentId) {
+          let newScore = item.score;
+          let newVote = item.userVote;
+          if (direction === 'up') {
+            if (item.userVote === 'up') { newScore -= 1; newVote = null; }
+            else if (item.userVote === 'down') { newScore += 2; newVote = 'up'; }
+            else { newScore += 1; newVote = 'up'; }
+          } else {
+            if (item.userVote === 'down') { newScore += 1; newVote = null; }
+            else if (item.userVote === 'up') { newScore -= 2; newVote = 'down'; }
+            else { newScore -= 1; newVote = 'down'; }
+          }
+          return { ...item, score: newScore, userVote: newVote };
+        }
+        if (item.replies && item.replies.length > 0) {
+          return { ...item, replies: updateVoteRecursive(item.replies) };
+        }
+        return item;
+      });
+    };
+
+    setThreads(prev => {
+      const thread = prev[logId] || { score: 6, userVote: null, comments: [] };
+      return {
+        ...prev,
+        [logId]: { ...thread, comments: updateVoteRecursive(thread.comments) }
+      };
+    });
+  };
+
+  const handleAddCommentReply = (logId: string, parentCommentId: string | null, content: string) => {
+    const newReply: Reply = {
+      id: `comment-${Date.now()}`,
+      userId: currentUser?.id || 'admin',
+      userName: currentUser?.name || 'Admin User',
+      userRole: currentUser?.role || 'admin',
+      content,
+      createdAt: new Date().toISOString(),
+      score: 1,
+      userVote: 'up',
+      replies: []
+    };
+
+    const addReplyRecursive = (repliesList: Reply[]): Reply[] => {
+      return repliesList.map(item => {
+        if (item.id === parentCommentId) {
+          return { ...item, replies: [...item.replies, newReply] };
+        }
+        if (item.replies && item.replies.length > 0) {
+          return { ...item, replies: addReplyRecursive(item.replies) };
+        }
+        return item;
+      });
+    };
+
+    setThreads(prev => {
+      const thread = prev[logId] || { score: 6, userVote: null, comments: [] };
+      if (!parentCommentId) {
+        return {
+          ...prev,
+          [logId]: { ...thread, comments: [...thread.comments, newReply] }
+        };
+      } else {
+        return {
+          ...prev,
+          [logId]: { ...thread, comments: addReplyRecursive(thread.comments) }
+        };
+      }
+    });
+  };
 
   const filteredLogs = dailyLogs
     .filter((l) => filterUser === 'all' || l.userId === filterUser)
@@ -286,100 +580,197 @@ export const DailyLogs: React.FC = () => {
 
   const sortedDates = Object.keys(grouped).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
-  return (
-    <div className="space-y-10 p-2 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Header Section */}
-      <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2.5 bg-violet-600 rounded-2xl shadow-lg shadow-violet-600/20 text-white">
-              <Activity size={24} />
-            </div>
-            <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-              Operational Logs
-            </h1>
-          </div>
-          <p className="text-slate-500 dark:text-slate-400 font-medium">
-            Project pulse: <span className="text-violet-600 font-bold">{project.name}</span> activity timeline
-          </p>
-        </div>
+  const subredditName = `r/${project.name.replace(/\s+/g, '')}`;
 
-        <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-2 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center gap-2 pl-3">
-            <Filter size={14} className="text-slate-400" />
-            <select
-              value={filterUser}
-              onChange={(e) => setFilterUser(e.target.value)}
-              className="text-xs font-black uppercase tracking-wider border-none bg-transparent focus:ring-0 text-slate-600 dark:text-slate-400 py-2"
-            >
-              <option value="all">Every Member</option>
-              {users.filter(u => (project.members || []).includes(u.id)).map((u) => (
-                <option key={u.id} value={u.id}>{u.name}</option>
-              ))}
-            </select>
+  return (
+    <div className="space-y-8 p-2 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      
+      {/* Community Subreddit Banner */}
+      <div className="relative h-28 w-full bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 rounded-3xl overflow-hidden shadow-md">
+        <div className="absolute inset-0 bg-black/10 dark:bg-black/35 backdrop-blur-[1px]" />
+        <div className="absolute bottom-4 left-6 flex items-center gap-4 text-white">
+          <div className="w-14 h-14 bg-indigo-600 border-4 border-white dark:border-obsidian-900 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-600/30">
+            KX
           </div>
-          <div className="h-6 w-[1px] bg-slate-200 dark:bg-slate-700 mx-1" />
-          <button
-            onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-violet-600 text-white text-xs font-black uppercase tracking-widest shadow-lg shadow-violet-600/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
-          >
-            <Plus size={16} strokeWidth={3} />
-            Log Entry
-          </button>
+          <div>
+            <h1 className="text-2xl font-black tracking-tight flex items-center gap-2">
+              {subredditName}
+            </h1>
+            <p className="text-[10px] uppercase font-black tracking-widest text-slate-100/80">
+              KairiX Workspace operational stream
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Logs Timeline */}
-      {sortedDates.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-32 text-center">
-          <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800/50 rounded-full flex items-center justify-center mb-6 animate-pulse">
-            <BookOpen size={40} className="text-slate-300 dark:text-slate-700" />
-          </div>
-          <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">No Reports Recorded</h3>
-          <p className="text-slate-500 max-w-xs mx-auto text-sm font-medium">Your activity stream is currently empty. Start the cycle by publishing your first log.</p>
-          <button 
-            onClick={() => setShowAdd(true)}
-            className="mt-8 px-8 py-4 rounded-2xl border-2 border-violet-600 text-violet-600 text-xs font-black uppercase tracking-[3px] hover:bg-violet-600 hover:text-white transition-all"
-          >
-            Initiate Stream
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-12 relative">
-          <div className="absolute left-6 top-0 bottom-0 w-1 bg-gradient-to-b from-violet-100 via-slate-100 to-transparent dark:from-slate-800 dark:via-slate-800 dark:to-transparent" />
+      {/* Main Reddit Grid Layout (Feed + Subreddit widgets) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        
+        {/* LEFT COLUMN: Post Feed (70% width) */}
+        <div className="col-span-1 lg:col-span-2 space-y-6">
           
-          {sortedDates.map((date) => {
-            const logDate = parseISO(date);
-            const dateLabel = isToday(logDate)
-              ? 'Chronicle: Today'
-              : isYesterday(logDate)
-              ? 'Chronicle: Yesterday'
-              : format(logDate, 'EEEE, MMMM d');
+          {/* Feed Filter Header bar */}
+          <div className="bg-white dark:bg-[#0c1018] p-3 rounded-2xl border border-gray-150 dark:border-gray-850 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-2 px-3 bg-gray-50 dark:bg-black/20 border border-gray-155 dark:border-gray-850 rounded-xl w-full sm:w-auto">
+              <Filter size={13} className="text-gray-400" />
+              <select
+                value={filterUser}
+                onChange={(e) => setFilterUser(e.target.value)}
+                className="text-[10px] font-black uppercase tracking-wider border-none bg-transparent focus:ring-0 text-gray-550 dark:text-gray-400 py-2 cursor-pointer outline-none"
+              >
+                <option value="all">r/All Logs</option>
+                {users.filter(u => (project.members || []).includes(u.id)).map((u) => (
+                  <option key={u.id} value={u.id}>u/{u.name.toLowerCase().replace(/\s+/g, '_')}</option>
+                ))}
+              </select>
+            </div>
+            
+            <button
+              onClick={() => setShowAdd(true)}
+              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase tracking-widest shadow-md transition-all active:scale-95 cursor-pointer"
+            >
+              <Plus size={14} strokeWidth={3} />
+              <span>Create Status Post</span>
+            </button>
+          </div>
 
-            return (
-              <div key={date} className="relative z-10 pl-1">
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="w-12 h-12 rounded-2xl bg-violet-600 flex items-center justify-center text-white shadow-lg shadow-violet-600/20">
-                    <Calendar size={20} />
+          {/* Chronicle Dates Timeline */}
+          {sortedDates.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-24 text-center bg-white dark:bg-[#0c1018] rounded-3xl border border-gray-150 dark:border-gray-850 p-8 shadow-sm">
+              <div className="w-20 h-20 bg-gray-50 dark:bg-slate-900 rounded-full flex items-center justify-center mb-5 animate-pulse">
+                <BookOpen size={36} className="text-gray-300 dark:text-gray-700" />
+              </div>
+              <h3 className="text-lg font-black text-gray-950 dark:text-white mb-1.5">No Posts Shared Yet</h3>
+              <p className="text-xs text-gray-500 max-w-xs mx-auto font-medium">Your subreddit feed is currently blank. Be the first to share your status update with the community!</p>
+              <button 
+                onClick={() => setShowAdd(true)}
+                className="mt-6 px-6 py-3 rounded-2xl border-2 border-indigo-600 text-indigo-650 dark:text-indigo-400 text-xs font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all cursor-pointer"
+              >
+                Initiate Chronicle
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-10 relative">
+              {sortedDates.map((date) => {
+                const logDate = parseISO(date);
+                const dateLabel = isToday(logDate)
+                  ? 'Chronicle: Today'
+                  : isYesterday(logDate)
+                  ? 'Chronicle: Yesterday'
+                  : format(logDate, 'EEEE, MMMM d');
+
+                return (
+                  <div key={date} className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <span className="h-px flex-1 bg-gray-200 dark:bg-gray-850" />
+                      <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest whitespace-nowrap bg-gray-50 dark:bg-[#080b12] px-3 py-1 rounded-full border border-gray-200/50 dark:border-gray-800">
+                        {dateLabel}
+                      </span>
+                      <span className="h-px flex-1 bg-gray-200 dark:bg-gray-850" />
+                    </div>
+                    
+                    <div className="space-y-5">
+                      {grouped[date].map((log) => {
+                        const threadData = threads[log.id] || { score: 1, userVote: null, comments: [] };
+                        return (
+                          <LogCard 
+                            key={log.id} 
+                            log={log} 
+                            threadData={threadData}
+                            onPostVote={handlePostVote}
+                            onCommentVote={handleCommentVote}
+                            onAddCommentReply={handleAddCommentReply}
+                          />
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">{dateLabel}</h3>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[2px]">
-                      {grouped[date].length} Operational {grouped[date].length > 1 ? 'Updates' : 'Update'}
-                    </p>
-                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT COLUMN: Subreddit Sidebar Widgets (30% width) */}
+        <div className="col-span-1 space-y-6 hidden lg:block">
+          
+          {/* About Community Card */}
+          <div className="bg-white dark:bg-[#0c1018] rounded-3xl border border-gray-150 dark:border-gray-850 shadow-sm overflow-hidden select-none">
+            <div className="px-5 py-4 bg-gray-50 dark:bg-black/20 border-b border-gray-150 dark:border-gray-850 flex items-center gap-2 text-gray-900 dark:text-white font-extrabold text-sm">
+              <Info size={16} className="text-indigo-500" />
+              <span>About Community</span>
+            </div>
+            <div className="p-5 space-y-4 text-xs font-semibold text-gray-500 dark:text-gray-400">
+              <p className="leading-relaxed">
+                Welcome to <span className="font-extrabold text-gray-800 dark:text-gray-200">{subredditName}</span>! This is the central operational stream where the team publishes daily reports, links achievements, and resolves engineering blockers collaboratively.
+              </p>
+              
+              <div className="grid grid-cols-2 gap-3 border-y border-gray-100 dark:border-gray-850/60 py-3.5">
+                <div>
+                  <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Created</span>
+                  <span className="font-black text-gray-850 dark:text-gray-200">May 13, 2026</span>
                 </div>
-                
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 pl-0 md:pl-12">
-                  {grouped[date].map((log) => (
-                    <LogCard key={log.id} log={log} />
-                  ))}
+                <div>
+                  <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Visibility</span>
+                  <span className="font-black text-gray-850 dark:text-gray-200 capitalize">{project.visibility || 'Public'}</span>
                 </div>
               </div>
-            );
-          })}
+
+              <div className="flex items-center gap-2 text-[10px] text-gray-400 font-extrabold uppercase">
+                <Users size={12} />
+                <span>{users.filter(u => (project.members || []).includes(u.id)).length} Active Members</span>
+              </div>
+            </div>
+          </div>
+
+          {/* operational rules card */}
+          <div className="bg-white dark:bg-[#0c1018] rounded-3xl border border-gray-150 dark:border-gray-850 shadow-sm overflow-hidden select-none">
+            <div className="px-5 py-4 bg-gray-50 dark:bg-black/20 border-b border-gray-150 dark:border-gray-850 flex items-center gap-2 text-gray-900 dark:text-white font-extrabold text-sm">
+              <ShieldCheck size={16} className="text-[#ff4500]" />
+              <span>Community Posting Rules</span>
+            </div>
+            <div className="p-5 space-y-3.5 text-[11px] font-bold text-gray-500 dark:text-gray-400">
+              <div className="flex gap-2">
+                <span className="text-gray-400">1.</span>
+                <p><span className="font-black text-gray-850 dark:text-gray-200 block mb-0.5">Publish Logs Daily</span>Status updates keep clients and managers aligned on estimation workloads.</p>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-gray-400">2.</span>
+                <p><span className="font-black text-gray-850 dark:text-gray-200 block mb-0.5">Link Achievements</span>Check and link completed task cards to prove progress visually.</p>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-gray-400">3.</span>
+                <p><span className="font-black text-gray-850 dark:text-gray-200 block mb-0.5">Flag Blockers Immediately</span>Specify active project bottlenecks clearly inside the blockers textarea.</p>
+              </div>
+              <div className="flex gap-2">
+                <span className="text-gray-400">4.</span>
+                <p><span className="font-black text-gray-850 dark:text-gray-200 block mb-0.5">Be Constructive in Threads</span>Collaborate kindly. Upvote useful updates and answer blocker threads.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* moderators card */}
+          <div className="bg-white dark:bg-[#0c1018] rounded-3xl border border-gray-150 dark:border-gray-850 shadow-sm overflow-hidden select-none">
+            <div className="px-5 py-4 bg-gray-50 dark:bg-black/20 border-b border-gray-150 dark:border-gray-850 flex items-center gap-2 text-gray-900 dark:text-white font-extrabold text-sm">
+              <ShieldCheck size={16} className="text-emerald-500" />
+              <span>Channel Moderators</span>
+            </div>
+            <div className="p-4 space-y-2.5">
+              {users.filter(u => u.role === 'admin' || u.role === 'executive').map(u => (
+                <div key={u.id} className="flex items-center justify-between bg-gray-50/50 dark:bg-black/10 px-3.5 py-2 border border-gray-100 dark:border-gray-850 rounded-xl">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Avatar user={u} size="xs" />
+                    <span className="text-xs font-black text-gray-800 dark:text-gray-200 truncate">u/{u.name.toLowerCase().replace(/\s+/g, '_')}</span>
+                  </div>
+                  <span className="text-[8px] font-extrabold uppercase bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-450 border border-emerald-250/20 px-1.5 py-0.5 rounded shadow-sm shrink-0">MOD</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
         </div>
-      )}
+
+      </div>
 
       {showAdd && <LogForm isOpen={showAdd} onClose={() => setShowAdd(false)} />}
     </div>
