@@ -18,14 +18,14 @@ router.get('/', authenticateToken, async (req, res) => {
 // Update user (admin only for others, or self)
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
-    const { name, email, globalRole, status, bio, avatar } = req.body;
+    const { name, email, globalRole, status, bio, avatar, jobTitle } = req.body;
     
     // Check if updating self or is admin
     if (req.user.userId !== req.params.id && req.user.globalRole !== 'admin') {
       return res.status(403).json({ message: 'Not authorized to update this user' });
     }
 
-    const updateData = { name, email, bio, avatar };
+    const updateData = { name, email, bio, avatar, jobTitle };
     if (req.user.globalRole === 'admin') {
       if (globalRole) updateData.globalRole = globalRole;
       if (status) updateData.status = status;

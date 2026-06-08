@@ -9,6 +9,7 @@ const DailyLog = require('../models/DailyLog');
 const TaskComment = require('../models/TaskComment');
 const File = require('../models/File');
 const Folder = require('../models/Folder');
+const SystemSettings = require('../models/SystemSettings');
 const fs = require('fs');
 const path = require('path');
 const { authenticateToken, requireGlobalRole, hasProjectAccess, requireProjectRole } = require('../middleware/auth');
@@ -228,9 +229,20 @@ router.post('/:projectId/members',
       const isGlobalAdmin = req.user.globalRole === 'admin' || req.user.globalRole === 'executive';
       if (!isGlobalAdmin) {
         const member = project.members.find(m => m.userId.toString() === req.user.userId);
-        if (!member || member.role !== 'ProjectManager') {
+        const settings = await SystemSettings.findOne();
+        const teamLeadEnabled = settings ? settings.team_lead_enabled : true;
+        let actorRole = member?.role;
+        if (actorRole === 'TeamLead' && teamLeadEnabled) {
+          actorRole = 'ProjectManager';
+        }
+        if (!member || actorRole !== 'ProjectManager') {
           return res.status(403).json({ message: 'Only Project Managers can add members' });
         }
+      }
+
+      // Only Global Admins can assign Team Lead role
+      if (role === 'TeamLead' && req.user.globalRole !== 'admin') {
+        return res.status(403).json({ message: 'Only Global Admins can assign the Team Lead role' });
       }
 
       // Check if user exists
@@ -307,6 +319,11 @@ router.put('/:projectId/members/:memberId',
         return res.status(404).json({ message: 'Member not found' });
       }
 
+      // Only Global Admins can assign, modify, or remove Team Lead role
+      if ((role === 'TeamLead' || member.role === 'TeamLead') && req.user.globalRole !== 'admin') {
+        return res.status(403).json({ message: 'Only Global Admins can assign or modify Team Lead roles' });
+      }
+
       member.role = role;
       await req.project.save();
       await req.project.populate('members.userId', 'name email avatar globalRole');
@@ -340,7 +357,16 @@ router.delete('/:projectId/members/:memberId',
       const projectManagers = req.project.members.filter(m => m.role === 'ProjectManager');
       const memberToRemove = req.project.members.find(m => m.userId.toString() === memberId);
 
-      if (memberToRemove && memberToRemove.role === 'ProjectManager' && projectManagers.length === 1) {
+      if (!memberToRemove) {
+        return res.status(404).json({ message: 'Member not found' });
+      }
+
+      // Only Global Admins can remove Team Leads
+      if (memberToRemove.role === 'TeamLead' && req.user.globalRole !== 'admin') {
+        return res.status(403).json({ message: 'Only Global Admins can remove Team Leads from a project' });
+      }
+
+      if (memberToRemove.role === 'ProjectManager' && projectManagers.length === 1) {
         return res.status(400).json({ message: 'Cannot remove the only ProjectManager' });
       }
 

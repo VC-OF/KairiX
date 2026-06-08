@@ -7,9 +7,11 @@ const {
   JWT_SECRET 
 } = require('./auth');
 const Project = require('../models/Project');
+const SystemSettings = require('../models/SystemSettings');
 
 jest.mock('jsonwebtoken');
 jest.mock('../models/Project');
+jest.mock('../models/SystemSettings');
 
 describe('Auth Middleware', () => {
   let req, res, next;
@@ -26,6 +28,7 @@ describe('Auth Middleware', () => {
     };
     next = jest.fn();
     jest.clearAllMocks();
+    SystemSettings.findOne.mockResolvedValue({ team_lead_enabled: true });
   });
 
   describe('authenticateToken', () => {
@@ -160,7 +163,7 @@ describe('Auth Middleware', () => {
       expect(res.json).toHaveBeenCalledWith({ message: 'Access denied: Not a member of this project' });
     });
 
-    it('should allow access and set project role if user is a member of the project', async () => {
+    it('should allow access and set project role if user is a member of the project (TeamLead behaves as ProjectManager when enabled)', async () => {
       req.user = { userId: 'user123', globalRole: 'user' };
       req.params.projectId = validProjectId;
       const mockProject = {
@@ -174,7 +177,26 @@ describe('Auth Middleware', () => {
       await middleware(req, res, next);
 
       expect(req.project).toEqual(mockProject);
-      expect(req.projectRole).toBe('TeamLead');
+      expect(req.projectRole).toBe('ProjectManager');
+      expect(next).toHaveBeenCalled();
+    });
+
+    it('should allow access and set project role to TeamMember for TeamLead if team_lead_enabled is false', async () => {
+      req.user = { userId: 'user123', globalRole: 'user' };
+      req.params.projectId = validProjectId;
+      const mockProject = {
+        _id: validProjectId,
+        name: 'Test Project',
+        members: [{ userId: { toString: () => 'user123' }, role: 'TeamLead' }]
+      };
+      Project.findById.mockResolvedValue(mockProject);
+      SystemSettings.findOne.mockResolvedValue({ team_lead_enabled: false });
+
+      const middleware = hasProjectAccess();
+      await middleware(req, res, next);
+
+      expect(req.project).toEqual(mockProject);
+      expect(req.projectRole).toBe('TeamMember');
       expect(next).toHaveBeenCalled();
     });
   });

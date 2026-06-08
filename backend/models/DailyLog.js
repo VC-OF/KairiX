@@ -7,6 +7,9 @@ const DailyLogSchema = new mongoose.Schema({
   content: { type: String, default: '' },
   completedTasks: [{ type: String }],
   blockers: { type: String },
+  score: { type: Number, default: 1 },
+  upvotedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  downvotedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 }, { timestamps: true });
 
 module.exports = mongoose.model('DailyLog', DailyLogSchema);

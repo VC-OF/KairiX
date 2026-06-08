@@ -30,10 +30,10 @@ export function Login() {
 
   const fillDemo = (type: 'admin' | 'member') => {
     if (type === 'admin') {
-      setEmail('admin@KairiX.io');
+      setEmail('admin@oryfolks.com');
       setPassword('Admin@123');
     } else {
-      setEmail('john@projectflow.io');
+      setEmail('john@oryfolks.com');
       setPassword('John@123');
     }
     setShowDemo(false);
@@ -76,7 +76,7 @@ export function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.04] text-gray-100 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-sm font-medium"
-                placeholder="you@company.com"
+                placeholder="username@oryfolks.com"
                 required
                 autoComplete="email"
               />

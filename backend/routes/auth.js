@@ -12,7 +12,7 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
  */
 router.post('/signup', async (req, res) => {
   try {
-    const { name, email, password, confirmPassword, globalRole } = req.body;
+    const { name, email, password, confirmPassword, globalRole, jobTitle } = req.body;
 
     // Validation
     if (!name || !email || !password || !confirmPassword) {
@@ -39,6 +39,7 @@ router.post('/signup', async (req, res) => {
       email,
       password,
       globalRole: globalRole || 'user',
+      jobTitle: jobTitle || '',
       avatar: name.charAt(0).toUpperCase() + (name.split(' ')[1]?.charAt(0) || '').toUpperCase()
     });
 
@@ -59,7 +60,8 @@ router.post('/signup', async (req, res) => {
         name: user.name,
         email: user.email,
         globalRole: user.globalRole,
-        avatar: user.avatar
+        avatar: user.avatar,
+        jobTitle: user.jobTitle
       }
     });
   } catch (err) {
@@ -113,7 +115,8 @@ router.post('/login', async (req, res) => {
         name: user.name,
         email: user.email,
         globalRole: user.globalRole,
-        avatar: user.avatar
+        avatar: user.avatar,
+        jobTitle: user.jobTitle
       }
     });
   } catch (err) {
@@ -153,8 +156,8 @@ router.get('/me', authenticateToken, async (req, res) => {
  */
 router.put('/profile', authenticateToken, async (req, res) => {
   try {
-    const { name, bio, avatar, globalRole } = req.body;
-    const updateData = { name, bio, avatar };
+    const { name, bio, avatar, globalRole, jobTitle } = req.body;
+    const updateData = { name, bio, avatar, jobTitle };
     
     // Only admins can change global roles
     if (globalRole && req.user.globalRole === 'admin') {

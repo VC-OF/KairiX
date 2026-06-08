@@ -125,30 +125,6 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
         <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{viewInfo.subtitle}</p>
       </div>
 
-      {/* Multiplayer Presence indicators */}
-      <div id="tour-presence" className="hidden md:flex items-center gap-3 bg-white/40 dark:bg-[#090d16]/30 border border-gray-100 dark:border-gray-800/80 px-3 py-1.5 rounded-xl backdrop-blur-md">
-        <div className="flex -space-x-2">
-          {users.slice(0, 3).map((u) => {
-            const isImage = u.avatar && (u.avatar.startsWith('http') || u.avatar.startsWith('data:image'));
-            return (
-              <div key={u.id} className="relative w-7 h-7 rounded-full border-2 border-white dark:border-gray-900 shadow-sm" style={{ backgroundColor: u.color || '#6366f1' }} title={`${u.name} (Active)`}>
-                <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center text-white text-[10px] font-bold">
-                  {isImage ? (
-                    <img src={u.avatar} alt={u.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <span>{u.avatar?.substring(0, 2) || u.name.substring(0, 2).toUpperCase()}</span>
-                  )}
-                </div>
-                <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border border-white dark:border-gray-900 animate-pulse" />
-              </div>
-            );
-          })}
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping animate-pulse-glow" />
-          <span className="text-[11px] font-bold tracking-tight text-gray-500 dark:text-gray-400 select-none">{Math.min(3, users.length)} Active</span>
-        </div>
-      </div>
 
       {/* Onboarding Tour Trigger */}
       <button

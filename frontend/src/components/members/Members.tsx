@@ -140,7 +140,17 @@ const MemberForm: React.FC<MemberFormProps> = ({ isOpen, onClose, member }) => {
 };
 
 export const Members: React.FC = () => {
-  const { users, tasks, currentUser, removeUser, project, addMemberToProject } = useStore();
+  const { 
+    users, 
+    tasks, 
+    currentUser, 
+    project, 
+    addMemberToProject,
+    teamLeadEnabled,
+    setTeamLeadEnabled,
+    updateProjectMemberRole,
+    removeMemberFromProject
+  } = useStore();
   const [showAdd, setShowAdd] = useState(false);
   const [editMember, setEditMember] = useState<User | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -148,6 +158,11 @@ export const Members: React.FC = () => {
   const isAdmin = currentUser?.role === 'admin';
   const projectMembers = users.filter(u => project.members.includes(u.id));
   const otherUsers = users.filter(u => !project.members.includes(u.id));
+
+  const getProjectRole = (userId: string) => {
+    const member = project.memberDetails?.find(m => m.userId === userId);
+    return member ? member.role : 'TeamMember';
+  };
 
   const getMemberStats = (userId: string) => {
     const userTasks = tasks.filter((t) => t.assignees.includes(userId));
@@ -172,11 +187,32 @@ export const Members: React.FC = () => {
             {users.length}/50 members · Managing access and assignments
           </p>
         </div>
-        {isAdmin && users.length < 50 && (
-          <Button variant="primary" size="sm" icon={<Plus size={15} />} onClick={() => setShowAdd(true)}>
-            Add Member
-          </Button>
-        )}
+        
+        <div className="flex items-center gap-3">
+          {isAdmin && (
+            <div className="flex items-center gap-2 bg-white dark:bg-gray-800 px-3.5 py-1.5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm transition-colors">
+              <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Enable Team Leads</span>
+              <button
+                type="button"
+                onClick={() => setTeamLeadEnabled(!teamLeadEnabled)}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
+                  teamLeadEnabled ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'
+                }`}
+              >
+                <span
+                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                    teamLeadEnabled ? 'translate-x-5' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+          )}
+          {isAdmin && users.length < 50 && (
+            <Button variant="primary" size="sm" icon={<Plus size={15} />} onClick={() => setShowAdd(true)}>
+              Add Member
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Capacity Bar */}
@@ -204,6 +240,7 @@ export const Members: React.FC = () => {
           {projectMembers.map((user) => {
             const stats = getMemberStats(user.id);
             const isSelf = currentUser?.id === user.id;
+            const projRole = getProjectRole(user.id);
 
             return (
               <div
@@ -214,9 +251,12 @@ export const Members: React.FC = () => {
                 <div className="flex items-center gap-4 p-5 border-b border-gray-50 dark:border-gray-700/50">
                   <Avatar user={user} size="lg" />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-bold text-gray-900 dark:text-gray-100 truncate">{user.name}</h3>
                       {user.role === 'admin' && <Crown size={14} className="text-amber-500 flex-shrink-0" />}
+                      {projRole === 'TeamLead' && teamLeadEnabled && (
+                        <span className="text-[10px] bg-indigo-600 text-white font-extrabold px-1.5 py-0.5 rounded flex items-center justify-center shadow-sm shrink-0" title="Team Lead">TL</span>
+                      )}
                       {isSelf && (
                         <span className="text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-full font-medium">You</span>
                       )}
@@ -226,13 +266,28 @@ export const Members: React.FC = () => {
                       <p className="text-sm text-gray-600 dark:text-gray-300 truncate">{user.email}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${user.role === 'admin'
-                      ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-500'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                  <div className="flex items-center gap-1.5">
+                    {isAdmin ? (
+                      <select
+                        value={projRole}
+                        onChange={(e) => updateProjectMemberRole(project.id, user.id, e.target.value as any)}
+                        className="text-xs bg-gray-50 dark:bg-gray-850 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 font-semibold text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors"
+                      >
+                        <option value="ProjectManager">Project Manager</option>
+                        <option value="TeamLead">Team Lead</option>
+                        <option value="TeamMember">Team Member</option>
+                      </select>
+                    ) : (
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
+                        projRole === 'ProjectManager'
+                          ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-500'
+                          : projRole === 'TeamLead'
+                          ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-500'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                       }`}>
-                      {user.role}
-                    </span>
+                        {projRole === 'ProjectManager' ? 'Project Manager' : projRole === 'TeamLead' ? 'Team Lead' : 'Team Member'}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -325,14 +380,31 @@ export const Members: React.FC = () => {
                   <h3 className="font-bold text-gray-900 dark:text-white truncate">{user.name}</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-300 truncate">{user.email}</p>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  icon={<Plus size={14} />}
-                  onClick={() => addMemberToProject(project.id, user.id)}
-                >
-                  Add to Project
-                </Button>
+                <div className="flex items-center gap-2">
+                  {isAdmin && (
+                    <select
+                      id={`add-role-${user.id}`}
+                      defaultValue="TeamMember"
+                      className="text-xs bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 font-semibold text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="TeamMember">Member</option>
+                      <option value="TeamLead">Team Lead</option>
+                      <option value="ProjectManager">Manager</option>
+                    </select>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={<Plus size={14} />}
+                    onClick={() => {
+                      const roleSelect = document.getElementById(`add-role-${user.id}`) as HTMLSelectElement | null;
+                      const chosenRole = roleSelect ? roleSelect.value : 'TeamMember';
+                      addMemberToProject(project.id, user.id, chosenRole);
+                    }}
+                  >
+                    Add to Project
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -357,15 +429,15 @@ export const Members: React.FC = () => {
         <div className="space-y-4">
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Are you sure you want to remove{' '}
-            <strong className="text-gray-900 dark:text-gray-100">{users.find((u) => u.id === confirmDelete)?.name}</strong> from the team?
-            They will be unassigned from all tasks.
+            <strong className="text-gray-900 dark:text-gray-100">{users.find((u) => u.id === confirmDelete)?.name}</strong> from the project?
+            They will be unassigned from all project tasks.
           </p>
           <div className="flex gap-3">
             <Button variant="outline" className="flex-1" onClick={() => setConfirmDelete(null)}>Cancel</Button>
             <Button
               variant="danger"
               className="flex-1"
-              onClick={() => { if (confirmDelete) { removeUser(confirmDelete); setConfirmDelete(null); } }}
+              onClick={() => { if (confirmDelete) { removeMemberFromProject(project.id, confirmDelete); setConfirmDelete(null); } }}
             >
               Remove Member
             </Button>

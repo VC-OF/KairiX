@@ -101,7 +101,8 @@ export const Sidebar: React.FC = () => {
     showArchived,
     setShowArchived,
     globalActiveTimer,
-    setGlobalActiveTimer
+    setGlobalActiveTimer,
+    teamLeadEnabled
   } = useStore();
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
@@ -412,13 +413,18 @@ export const Sidebar: React.FC = () => {
             <Avatar user={currentUser} size="sm" />
             <div className="flex-1 min-w-0">
               <p className="text-gray-900 dark:text-white text-sm font-bold truncate leading-none mb-1">{currentUser.name}</p>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 flex-wrap">
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50/50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-extrabold border border-indigo-100/60 dark:border-indigo-800/40 uppercase tracking-tighter">
                   {currentUser.role}
                 </span>
                 {currentUser.role === 'admin' && (
                   <span className="text-[9px] px-1.5 py-0.5 rounded bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black uppercase tracking-widest scale-95 shadow-[0_0_8px_rgba(245,158,11,0.4)]">
                     PRO
+                  </span>
+                )}
+                {project.memberDetails?.find(m => m.userId === currentUser.id)?.role === 'TeamLead' && teamLeadEnabled && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-indigo-600 text-white font-black uppercase tracking-widest scale-95 shadow-[0_0_8px_rgba(99,102,241,0.4)]" title="Team Lead">
+                    TL
                   </span>
                 )}
               </div>

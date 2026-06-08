@@ -39,9 +39,11 @@ const commentRoutes = require('./routes/comments');
 const logRoutes = require('./routes/logs');
 const fileRoutes = require('./routes/files');
 const dependencyRoutes = require('./routes/dependencies');
+const settingsRoutes = require('./routes/settings');
 const { authenticateToken, requireGlobalRole } = require('./middleware/auth');
 const cron = require('node-cron');
 const analyticsService = require('./services/AnalyticsService');
+const SystemSettings = require('./models/SystemSettings');
 
 const app = express();
 const http = require('http').createServer(app);
@@ -145,6 +147,7 @@ app.use('/api/tasks', commentRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/dependencies', authenticateToken, dependencyRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {
@@ -181,6 +184,32 @@ mongoose.connect(MONGODB_URI)
  */
 async function seedDatabase() {
   try {
+    // Seed global settings if not present
+    const settingsCount = await SystemSettings.countDocuments();
+    if (settingsCount === 0) {
+      await SystemSettings.create({ team_lead_enabled: true });
+      console.log('Seeded default system settings');
+    }
+
+    // Migrate any existing users from @KairiX.io / @projectflow.io to @oryfolks.com
+    const usersToUpdate = await User.find({ email: /@(KairiX\.io|projectflow\.io)$/i });
+    for (let u of usersToUpdate) {
+      try {
+        const targetEmail = u.email.replace(/@(KairiX\.io|projectflow\.io)/i, '@oryfolks.com');
+        // Check if a user with the target email already exists
+        const exists = await User.findOne({ email: targetEmail });
+        if (exists) {
+          console.warn(`Cannot migrate ${u.email} to ${targetEmail} because that email already exists.`);
+          continue;
+        }
+        u.email = targetEmail;
+        await u.save();
+        console.log(`Migrated email for user ${u.name} to ${u.email}`);
+      } catch (err) {
+        console.error(`Error migrating email for user ${u.name}:`, err);
+      }
+    }
+
     const userCount = await User.countDocuments();
     if (userCount > 0) {
       console.log('Database already seeded, skipping...');
@@ -191,7 +220,7 @@ async function seedDatabase() {
 
     const admin = await User.create({
       name: 'Admin User',
-      email: 'admin@KairiX.io',
+      email: 'admin@oryfolks.com',
       password: 'Admin@123',
       globalRole: 'admin',
       avatar: 'AU',
@@ -200,7 +229,7 @@ async function seedDatabase() {
 
     const executive = await User.create({
       name: 'Executive User',
-      email: 'executive@KairiX.io',
+      email: 'executive@oryfolks.com',
       password: 'Executive@123',
       globalRole: 'executive',
       avatar: 'EU',
@@ -209,7 +238,7 @@ async function seedDatabase() {
 
     const user1 = await User.create({
       name: 'John Doe',
-      email: 'john@KairiX.io',
+      email: 'john@oryfolks.com',
       password: 'John@123',
       globalRole: 'user',
       avatar: 'JD',
@@ -218,7 +247,7 @@ async function seedDatabase() {
 
     const user2 = await User.create({
       name: 'Jane Smith',
-      email: 'jane@KairiX.io',
+      email: 'jane@oryfolks.com',
       password: 'Jane@123',
       globalRole: 'user',
       avatar: 'JS',
@@ -227,7 +256,7 @@ async function seedDatabase() {
 
     const user3 = await User.create({
       name: 'Mike Johnson',
-      email: 'mike@KairiX.io',
+      email: 'mike@oryfolks.com',
       password: 'Mike@123',
       globalRole: 'user',
       avatar: 'MJ',
@@ -299,9 +328,9 @@ async function seedDatabase() {
 
     console.log('Database seeded successfully');
     console.log('Test credentials:');
-    console.log('  Admin: admin@KairiX.io / Admin@123');
-    console.log('  Executive: executive@KairiX.io / Executive@123');
-    console.log('  User: john@KairiX.io / John@123');
+    console.log('  Admin: admin@oryfolks.com / Admin@123');
+    console.log('  Executive: executive@oryfolks.com / Executive@123');
+    console.log('  User: john@oryfolks.com / John@123');
   } catch (err) {
     console.error('Error seeding database:', err);
   }

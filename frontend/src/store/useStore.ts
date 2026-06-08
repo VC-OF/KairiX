@@ -14,6 +14,7 @@ export interface User {
   color: string;
   joinedAt: string;
   bio?: string;
+  jobTitle?: string;
 }
 
 export interface Task {
@@ -48,6 +49,18 @@ export interface TimeLog {
   status: 'active' | 'paused' | 'completed';
 }
 
+export interface Reply {
+  id: string;
+  userId: string;
+  userName: string;
+  userRole?: string;
+  content: string;
+  createdAt: string;
+  score: number;
+  userVote: 'up' | 'down' | null;
+  replies: Reply[];
+}
+
 export interface DailyLog {
   id: string;
   date: string;
@@ -57,6 +70,16 @@ export interface DailyLog {
   blockers: string;
   createdAt: string;
   updatedAt: string;
+  thread?: {
+    score: number;
+    userVote: 'up' | 'down' | null;
+    comments: Reply[];
+  };
+}
+
+export interface ProjectMember {
+  userId: string;
+  role: 'ProjectManager' | 'TeamLead' | 'TeamMember';
 }
 
 export interface Project {
@@ -68,6 +91,7 @@ export interface Project {
   priority: 'low' | 'medium' | 'high';
   isLocked: boolean;
   members: string[];
+  memberDetails?: ProjectMember[];
   createdAt: string;
   updatedAt: string;
   color?: string;
@@ -113,7 +137,12 @@ interface AppState {
   // Project
   updateProject: (data: Partial<Project>) => Promise<void>;
   addProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt' | 'members'>) => Promise<void>;
-  addMemberToProject: (projectId: string, userId: string) => Promise<void>;
+  addMemberToProject: (projectId: string, userId: string, role?: string) => Promise<void>;
+  updateProjectMemberRole: (projectId: string, userId: string, role: string) => Promise<void>;
+  removeMemberFromProject: (projectId: string, userId: string) => Promise<void>;
+  teamLeadEnabled: boolean;
+  fetchSettings: () => Promise<void>;
+  setTeamLeadEnabled: (enabled: boolean) => Promise<void>;
 
   // Users
   addUser: (user: Omit<User, 'id' | 'joinedAt'>, password?: string) => Promise<void>;
@@ -136,6 +165,9 @@ interface AppState {
   addLog: (log: Omit<DailyLog, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   updateLog: (id: string, data: Partial<DailyLog>) => Promise<void>;
   deleteLog: (id: string) => Promise<void>;
+  voteLogPost: (logId: string, direction: 'up' | 'down') => Promise<void>;
+  addLogComment: (logId: string, parentCommentId: string | null, content: string) => Promise<void>;
+  voteLogComment: (logId: string, commentId: string, direction: 'up' | 'down') => Promise<void>;
 
   // UI
   setActiveView: (view: AppState['activeView']) => void;
@@ -219,6 +251,10 @@ export const useStore = create<AppState>((set, get) => ({
         ...p,
         id: p._id,
         members: (p.members || []).map((m: any) => m.userId?._id || m.userId || m),
+        memberDetails: (p.members || []).map((m: any) => ({
+          userId: m.userId?._id || m.userId,
+          role: m.role
+        })),
       }));
       set({ projects: mappedProjects });
       return mappedProjects;
@@ -279,9 +315,29 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
+  teamLeadEnabled: true,
+  fetchSettings: async () => {
+    try {
+      const settings = await api.get('/settings');
+      set({ teamLeadEnabled: settings.team_lead_enabled });
+    } catch (error) {
+      console.error('Failed to fetch settings:', error);
+    }
+  },
+  setTeamLeadEnabled: async (enabled: boolean) => {
+    try {
+      const settings = await api.put('/settings', { team_lead_enabled: enabled });
+      set({ teamLeadEnabled: settings.team_lead_enabled });
+      await get().fetchData();
+    } catch (error) {
+      console.error('Failed to update settings:', error);
+    }
+  },
+
   fetchData: async () => {
     set({ isLoading: true });
     try {
+      await get().fetchSettings();
       const [mappedProjects, mappedUsers] = await Promise.all([
         get().fetchProjects(),
         get().fetchUsers(),
@@ -296,6 +352,19 @@ export const useStore = create<AppState>((set, get) => ({
           const storedUser = JSON.parse(storedUserStr);
           actualCurrentUser = mappedUsers.find((u: User) => u.id === (storedUser.id || storedUser._id));
         } catch (e) { }
+      }
+
+      if (actualCurrentUser && currentProject && currentProject.memberDetails) {
+        const member = currentProject.memberDetails.find((m: any) => m.userId === actualCurrentUser.id);
+        if (member) {
+          let role = member.role;
+          if (role === 'TeamLead') {
+            role = get().teamLeadEnabled ? 'ProjectManager' : 'TeamMember';
+          }
+          (actualCurrentUser as any).projectRole = role;
+        } else if (actualCurrentUser.role === 'admin' || actualCurrentUser.role === 'executive') {
+          (actualCurrentUser as any).projectRole = actualCurrentUser.role;
+        }
       }
 
       set({
@@ -319,7 +388,21 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   setProject: async (project) => {
-    set({ project, isLoading: true });
+    const currentUser = get().currentUser;
+    if (currentUser && project && project.memberDetails) {
+      const member = project.memberDetails.find((m: any) => m.userId === currentUser.id);
+      let role = 'TeamMember';
+      if (member) {
+        role = member.role;
+        if (role === 'TeamLead') {
+          role = get().teamLeadEnabled ? 'ProjectManager' : 'TeamMember';
+        }
+      } else if (currentUser.role === 'admin' || currentUser.role === 'executive') {
+        role = currentUser.role;
+      }
+      (currentUser as any).projectRole = role;
+    }
+    set({ project, currentUser, isLoading: true });
     try {
       await Promise.all([
         get().fetchTasks(project.id),
@@ -344,6 +427,10 @@ export const useStore = create<AppState>((set, get) => ({
       ...response,
       id: response._id || response.id,
       members: (response.members || []).map((m: any) => m.userId?._id || m.userId || m),
+      memberDetails: (response.members || []).map((m: any) => ({
+        userId: m.userId?._id || m.userId,
+        role: m.role
+      })),
     };
     set((state) => ({
       project: updated,
@@ -365,6 +452,10 @@ export const useStore = create<AppState>((set, get) => ({
       ...saved,
       id: saved._id || saved.id,
       members: (saved.members || []).map((m: any) => m.userId?._id || m.userId || m),
+      memberDetails: (saved.members || []).map((m: any) => ({
+        userId: m.userId?._id || m.userId,
+        role: m.role
+      })),
     };
     set((state) => ({
       projects: [...state.projects, mapped]
@@ -372,16 +463,77 @@ export const useStore = create<AppState>((set, get) => ({
     await get().setProject(mapped);
   },
 
-  addMemberToProject: async (projectId, userId) => {
-    const response = await api.post(`/projects/${projectId}/members`, { userId, role: 'TeamMember' });
+  addMemberToProject: async (projectId, userId, role) => {
+    const response = await api.post(`/projects/${projectId}/members`, { userId, role: role || 'TeamMember' });
     const updated = {
       ...response,
       id: response._id || response.id,
       members: (response.members || []).map((m: any) => m.userId?._id || m.userId || m),
+      memberDetails: (response.members || []).map((m: any) => ({
+        userId: m.userId?._id || m.userId,
+        role: m.role
+      })),
     };
+    let currentUser = get().currentUser;
+    if (currentUser && currentUser.id === userId) {
+      let pRole = role || 'TeamMember';
+      if (pRole === 'TeamLead') {
+        pRole = get().teamLeadEnabled ? 'ProjectManager' : 'TeamMember';
+      }
+      (currentUser as any).projectRole = pRole;
+    }
     set((state) => ({
       projects: state.projects.map((p) => (p.id === projectId ? updated : p)),
       project: state.project.id === projectId ? updated : state.project,
+      currentUser: state.project.id === projectId ? currentUser : state.currentUser,
+    }));
+  },
+
+  updateProjectMemberRole: async (projectId, userId, role) => {
+    const response = await api.put(`/projects/${projectId}/members/${userId}`, { role });
+    const updated = {
+      ...response,
+      id: response._id || response.id,
+      members: (response.members || []).map((m: any) => m.userId?._id || m.userId || m),
+      memberDetails: (response.members || []).map((m: any) => ({
+        userId: m.userId?._id || m.userId,
+        role: m.role
+      })),
+    };
+    let currentUser = get().currentUser;
+    if (currentUser && currentUser.id === userId) {
+      let pRole = role;
+      if (pRole === 'TeamLead') {
+        pRole = get().teamLeadEnabled ? 'ProjectManager' : 'TeamMember';
+      }
+      (currentUser as any).projectRole = pRole;
+    }
+    set((state) => ({
+      projects: state.projects.map((p) => (p.id === projectId ? updated : p)),
+      project: state.project.id === projectId ? updated : state.project,
+      currentUser: state.project.id === projectId ? currentUser : state.currentUser,
+    }));
+  },
+
+  removeMemberFromProject: async (projectId, userId) => {
+    const response = await api.delete(`/projects/${projectId}/members/${userId}`);
+    const updated = {
+      ...response,
+      id: response._id || response.id,
+      members: (response.members || []).map((m: any) => m.userId?._id || m.userId || m),
+      memberDetails: (response.members || []).map((m: any) => ({
+        userId: m.userId?._id || m.userId,
+        role: m.role
+      })),
+    };
+    let currentUser = get().currentUser;
+    if (currentUser && currentUser.id === userId) {
+      (currentUser as any).projectRole = undefined;
+    }
+    set((state) => ({
+      projects: state.projects.map((p) => (p.id === projectId ? updated : p)),
+      project: state.project.id === projectId ? updated : state.project,
+      currentUser: state.project.id === projectId ? currentUser : state.currentUser,
     }));
   },
 
@@ -533,6 +685,99 @@ export const useStore = create<AppState>((set, get) => ({
   deleteLog: async (id) => {
     await api.delete(`/logs/${id}`);
     set((state) => ({ dailyLogs: state.dailyLogs.filter((l) => l.id !== id) }));
+  },
+
+  voteLogPost: async (logId, direction) => {
+    const response = await api.post(`/logs/${logId}/vote`, { direction });
+    set((state) => ({
+      dailyLogs: state.dailyLogs.map((log) => {
+        if (log.id === logId) {
+          return {
+            ...log,
+            thread: {
+              ...(log.thread || { comments: [] }),
+              score: response.score,
+              userVote: response.userVote,
+            },
+          };
+        }
+        return log;
+      }),
+    }));
+  },
+
+  addLogComment: async (logId, parentCommentId, content) => {
+    const saved = await api.post(`/logs/${logId}/comments`, { content, parentId: parentCommentId });
+    
+    const addReplyRecursive = (repliesList: Reply[]): Reply[] => {
+      return repliesList.map(item => {
+        if (item.id === parentCommentId) {
+          return { ...item, replies: [...(item.replies || []), saved] };
+        }
+        if (item.replies && item.replies.length > 0) {
+          return { ...item, replies: addReplyRecursive(item.replies) };
+        }
+        return item;
+      });
+    };
+
+    set((state) => ({
+      dailyLogs: state.dailyLogs.map((log) => {
+        if (log.id === logId) {
+          const currentThread = log.thread || { score: 1, userVote: null, comments: [] };
+          let updatedComments: Reply[];
+          if (!parentCommentId) {
+            updatedComments = [...(currentThread.comments || []), saved];
+          } else {
+            updatedComments = addReplyRecursive(currentThread.comments || []);
+          }
+          return {
+            ...log,
+            thread: {
+              ...currentThread,
+              comments: updatedComments
+            }
+          };
+        }
+        return log;
+      })
+    }));
+  },
+
+  voteLogComment: async (logId, commentId, direction) => {
+    const response = await api.post(`/logs/${logId}/comments/${commentId}/vote`, { direction });
+    
+    const updateVoteRecursive = (repliesList: Reply[]): Reply[] => {
+      return repliesList.map(item => {
+        if (item.id === commentId) {
+          return {
+            ...item,
+            score: response.score,
+            userVote: response.userVote
+          };
+        }
+        if (item.replies && item.replies.length > 0) {
+          return { ...item, replies: updateVoteRecursive(item.replies) };
+        }
+        return item;
+      });
+    };
+
+    set((state) => ({
+      dailyLogs: state.dailyLogs.map((log) => {
+        if (log.id === logId) {
+          const currentThread = log.thread || { score: 1, userVote: null, comments: [] };
+          return {
+            ...log,
+            thread: {
+              ...currentThread,
+              comments: updateVoteRecursive(currentThread.comments || [])
+            }
+          };
+        }
+        return log;
+      })
+    }));
   },
 
   setActiveView: (view) => set({ activeView: view }),

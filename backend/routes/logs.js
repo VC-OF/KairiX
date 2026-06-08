@@ -1,7 +1,51 @@
 const express = require('express');
 const DailyLog = require('../models/DailyLog');
+const DailyLogComment = require('../models/DailyLogComment');
 const { authenticateToken } = require('../middleware/auth');
 const router = express.Router();
+
+// Helper to build recursive threaded comment tree
+function buildCommentTree(comments, currentUserId) {
+  const commentsMap = {};
+  const rootComments = [];
+
+  comments.forEach(c => {
+    let userVote = null;
+    if (c.upvotedBy && c.upvotedBy.some(id => id.toString() === currentUserId)) {
+      userVote = 'up';
+    } else if (c.downvotedBy && c.downvotedBy.some(id => id.toString() === currentUserId)) {
+      userVote = 'down';
+    }
+
+    commentsMap[c._id.toString()] = {
+      id: c._id.toString(),
+      userId: c.userId ? (c.userId._id || c.userId).toString() : '',
+      userName: c.userId ? c.userId.name : 'Unknown User',
+      userRole: c.userId ? (c.userId.globalRole || c.userId.role || 'user') : 'user',
+      content: c.content,
+      createdAt: c.createdAt.toISOString(),
+      score: c.score !== undefined ? c.score : 1,
+      userVote,
+      replies: []
+    };
+  });
+
+  comments.forEach(c => {
+    const node = commentsMap[c._id.toString()];
+    if (c.parentId) {
+      const parentNode = commentsMap[c.parentId.toString()];
+      if (parentNode) {
+        parentNode.replies.push(node);
+      } else {
+        rootComments.push(node);
+      }
+    } else {
+      rootComments.push(node);
+    }
+  });
+
+  return rootComments;
+}
 
 // Get logs
 router.get('/', authenticateToken, async (req, res) => {
@@ -13,15 +57,40 @@ router.get('/', authenticateToken, async (req, res) => {
 
     const [logs, total] = await Promise.all([
       DailyLog.find(query)
-        .populate('userId', 'name email avatar')
+        .populate('userId', 'name email avatar globalRole')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit)),
       DailyLog.countDocuments(query)
     ]);
 
+    const logsWithThreads = await Promise.all(logs.map(async (log) => {
+      const comments = await DailyLogComment.find({ logId: log._id })
+        .populate('userId', 'name email avatar globalRole')
+        .sort({ createdAt: 1 });
+
+      const rootComments = buildCommentTree(comments, req.user.userId);
+
+      let logUserVote = null;
+      if (log.upvotedBy && log.upvotedBy.some(id => id.toString() === req.user.userId)) {
+        logUserVote = 'up';
+      } else if (log.downvotedBy && log.downvotedBy.some(id => id.toString() === req.user.userId)) {
+        logUserVote = 'down';
+      }
+
+      return {
+        ...log.toObject(),
+        id: log._id.toString(),
+        thread: {
+          score: log.score !== undefined ? log.score : 1,
+          userVote: logUserVote,
+          comments: rootComments
+        }
+      };
+    }));
+
     res.json({
-      logs,
+      logs: logsWithThreads,
       pagination: {
         total,
         page: parseInt(page),
@@ -30,6 +99,7 @@ router.get('/', authenticateToken, async (req, res) => {
       }
     });
   } catch (err) {
+    console.error('Get logs error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -45,9 +115,21 @@ router.post('/', authenticateToken, async (req, res) => {
       content: content || '',
       completedTasks: completedTasks || [],
       blockers: blockers || '',
+      score: 1,
+      upvotedBy: [req.user.userId], // Creator auto-upvotes their log
+      downvotedBy: []
     });
-    await log.populate('userId', 'name email avatar');
-    res.status(201).json(log);
+    await log.populate('userId', 'name email avatar globalRole');
+    
+    res.status(201).json({
+      ...log.toObject(),
+      id: log._id.toString(),
+      thread: {
+        score: 1,
+        userVote: 'up',
+        comments: []
+      }
+    });
   } catch (err) {
     console.error('Create log error:', err);
     res.status(500).json({ message: 'Server error' });
@@ -62,9 +144,32 @@ router.put('/:id', authenticateToken, async (req, res) => {
       req.params.id,
       { content, completedTasks, blockers },
       { new: true }
-    ).populate('userId', 'name email avatar');
+    ).populate('userId', 'name email avatar globalRole');
+    
     if (!log) return res.status(404).json({ message: 'Log not found' });
-    res.json(log);
+    
+    const comments = await DailyLogComment.find({ logId: log._id })
+      .populate('userId', 'name email avatar globalRole')
+      .sort({ createdAt: 1 });
+
+    const rootComments = buildCommentTree(comments, req.user.userId);
+
+    let logUserVote = null;
+    if (log.upvotedBy && log.upvotedBy.some(id => id.toString() === req.user.userId)) {
+      logUserVote = 'up';
+    } else if (log.downvotedBy && log.downvotedBy.some(id => id.toString() === req.user.userId)) {
+      logUserVote = 'down';
+    }
+
+    res.json({
+      ...log.toObject(),
+      id: log._id.toString(),
+      thread: {
+        score: log.score !== undefined ? log.score : 1,
+        userVote: logUserVote,
+        comments: rootComments
+      }
+    });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -74,8 +179,133 @@ router.put('/:id', authenticateToken, async (req, res) => {
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     await DailyLog.findByIdAndDelete(req.params.id);
+    await DailyLogComment.deleteMany({ logId: req.params.id });
     res.json({ message: 'Log deleted' });
   } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Vote on a log post
+router.post('/:id/vote', authenticateToken, async (req, res) => {
+  try {
+    const { direction } = req.body; // 'up' or 'down'
+    const log = await DailyLog.findById(req.params.id);
+    if (!log) return res.status(404).json({ message: 'Log not found' });
+
+    const userIdStr = req.user.userId;
+    let upvoted = log.upvotedBy.map(id => id.toString());
+    let downvoted = log.downvotedBy.map(id => id.toString());
+
+    if (direction === 'up') {
+      if (upvoted.includes(userIdStr)) {
+        // Toggle off upvote
+        upvoted = upvoted.filter(id => id !== userIdStr);
+      } else {
+        // Upvote
+        upvoted.push(userIdStr);
+        downvoted = downvoted.filter(id => id !== userIdStr);
+      }
+    } else if (direction === 'down') {
+      if (downvoted.includes(userIdStr)) {
+        // Toggle off downvote
+        downvoted = downvoted.filter(id => id !== userIdStr);
+      } else {
+        // Downvote
+        downvoted.push(userIdStr);
+        upvoted = upvoted.filter(id => id !== userIdStr);
+      }
+    }
+
+    log.upvotedBy = upvoted;
+    log.downvotedBy = downvoted;
+    log.score = upvoted.length - downvoted.length;
+    await log.save();
+
+    res.json({
+      score: log.score,
+      userVote: upvoted.includes(userIdStr) ? 'up' : (downvoted.includes(userIdStr) ? 'down' : null)
+    });
+  } catch (err) {
+    console.error('Vote log error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Add comment or reply to a log
+router.post('/:logId/comments', authenticateToken, async (req, res) => {
+  try {
+    const { content, parentId } = req.body;
+    const logId = req.params.logId;
+
+    const comment = await DailyLogComment.create({
+      logId,
+      parentId: parentId || null,
+      userId: req.user.userId,
+      content,
+      score: 1,
+      upvotedBy: [req.user.userId],
+      downvotedBy: []
+    });
+
+    await comment.populate('userId', 'name email avatar globalRole');
+
+    res.status(201).json({
+      id: comment._id.toString(),
+      userId: comment.userId._id.toString(),
+      userName: comment.userId.name,
+      userRole: comment.userId.globalRole || 'user',
+      content: comment.content,
+      createdAt: comment.createdAt.toISOString(),
+      score: comment.score,
+      userVote: 'up',
+      replies: []
+    });
+  } catch (err) {
+    console.error('Add log comment error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Vote on a comment
+router.post('/:logId/comments/:commentId/vote', authenticateToken, async (req, res) => {
+  try {
+    const { direction } = req.body; // 'up' or 'down'
+    const comment = await DailyLogComment.findById(req.params.commentId);
+    if (!comment) return res.status(404).json({ message: 'Comment not found' });
+
+    const userIdStr = req.user.userId;
+    let upvoted = comment.upvotedBy.map(id => id.toString());
+    let downvoted = comment.downvotedBy.map(id => id.toString());
+
+    if (direction === 'up') {
+      if (upvoted.includes(userIdStr)) {
+        upvoted = upvoted.filter(id => id !== userIdStr);
+      } else {
+        upvoted.push(userIdStr);
+        downvoted = downvoted.filter(id => id !== userIdStr);
+      }
+    } else if (direction === 'down') {
+      if (downvoted.includes(userIdStr)) {
+        downvoted = downvoted.filter(id => id !== userIdStr);
+      } else {
+        downvoted.push(userIdStr);
+        upvoted = upvoted.filter(id => id !== userIdStr);
+      }
+    }
+
+    comment.upvotedBy = upvoted;
+    comment.downvotedBy = downvoted;
+    comment.score = upvoted.length - downvoted.length;
+    await comment.save();
+
+    res.json({
+      commentId: comment._id.toString(),
+      score: comment.score,
+      userVote: upvoted.includes(userIdStr) ? 'up' : (downvoted.includes(userIdStr) ? 'down' : null)
+    });
+  } catch (err) {
+    console.error('Vote log comment error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });

@@ -643,33 +643,33 @@ export const CalendarView: React.FC = () => {
                         onClick={() => setSelectedDayIndex(idx)}
                         className={`text-left p-5 rounded-3xl border transition-all duration-300 flex flex-col justify-between h-[280px] shadow-sm select-none cursor-pointer ${
                           isSelected 
-                            ? 'bg-white dark:bg-obsidian-900 border-indigo-400 ring-2 ring-indigo-500/20' 
+                            ? 'bg-black text-white dark:bg-zinc-950 border-black dark:border-zinc-800 ring-2 ring-zinc-500/20 shadow-md scale-[1.02]' 
                             : isToday 
-                              ? 'bg-gradient-to-br from-violet-500/10 via-fuchsia-500/10 to-orange-500/10 border-fuchsia-500/50 ring-1 ring-fuchsia-500/50 hover:shadow-md'
+                              ? 'bg-gradient-to-tr from-[#f9ce34]/10 via-[#ee2a7b]/10 to-[#6228d7]/10 border-[#ee2a7b]/40 ring-1 ring-[#ee2a7b]/30 hover:shadow-md hover:scale-[1.01]'
                               : 'bg-white dark:bg-obsidian-900 border-slate-200 dark:border-gray-800 hover:border-slate-300 dark:border-gray-700 hover:shadow-md'
                         }`}
                       >
                         <div>
                           <div className="flex items-center justify-between">
-                            <p className="text-xs font-black text-slate-800 dark:text-slate-200 leading-none">{DAY_NAMES[date.getDay()]}</p>
-                            {isToday && <span className="text-[8px] font-black text-white bg-gradient-to-r from-violet-600 via-fuchsia-600 to-orange-500 px-1.5 py-0.5 rounded shadow-sm">TODAY</span>}
+                            <p className={`text-xs font-black leading-none ${isSelected ? 'text-white' : 'text-slate-800 dark:text-slate-200'}`}>{DAY_NAMES[date.getDay()]}</p>
+                            {isToday && <span className="text-[8px] font-black text-white bg-gradient-to-r from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] px-1.5 py-0.5 rounded shadow-sm">TODAY</span>}
                           </div>
-                          <p className="text-[10px] font-bold text-slate-400 dark:text-gray-500 mt-1">
+                          <p className={`text-[10px] font-bold mt-1 ${isSelected ? 'text-zinc-400' : 'text-slate-400 dark:text-gray-500'}`}>
                             {MONTH_NAMES[date.getMonth()]} {date.getDate()}
                           </p>
                         </div>
 
-                        <div className="mt-auto">
-                          <p className="text-2xl font-black text-slate-800 dark:text-slate-200 tracking-tight leading-none">
+                        <div className="mt-auto w-full">
+                          <p className={`text-2xl font-black tracking-tight leading-none ${isSelected ? 'text-white' : 'text-slate-800 dark:text-slate-200'}`}>
                             {hasData ? summary!.totalFormatted : '0h 0m'}
                           </p>
-                          <p className="text-[10px] font-bold text-slate-400 dark:text-gray-500 mt-1 uppercase tracking-wider">Work Hours</p>
+                          <p className={`text-[10px] font-bold mt-1 uppercase tracking-wider ${isSelected ? 'text-zinc-400' : 'text-slate-400 dark:text-gray-500'}`}>Work Hours</p>
                           
-                          <div className="mt-5 space-y-2 border-t border-slate-100 dark:border-gray-800/50 dark:border-gray-800/50 pt-3">
-                            <div className="flex justify-between items-center text-[10px] text-slate-500 dark:text-gray-400 font-extrabold leading-none">
+                          <div className={`mt-5 space-y-2 border-t pt-3 ${isSelected ? 'border-zinc-800' : 'border-slate-100 dark:border-gray-800/50'}`}>
+                            <div className={`flex justify-between items-center text-[10px] font-extrabold leading-none ${isSelected ? 'text-zinc-300' : 'text-slate-500 dark:text-gray-400'}`}>
                               <span>{summary?.employeesWorked || 0} Employee{(summary?.employeesWorked || 0) !== 1 ? 's' : ''}</span>
                             </div>
-                            <div className="flex justify-between items-center text-[10px] text-slate-500 dark:text-gray-400 font-extrabold leading-none">
+                            <div className={`flex justify-between items-center text-[10px] font-extrabold leading-none ${isSelected ? 'text-zinc-300' : 'text-slate-500 dark:text-gray-400'}`}>
                               <span>{summary?.tasksWorked || 0} Task{(summary?.tasksWorked || 0) !== 1 ? 's' : ''} Worked</span>
                             </div>
                             {/* Show active workers */}
@@ -683,13 +683,13 @@ export const CalendarView: React.FC = () => {
                         </div>
 
                         <div className="mt-4 w-full">
-                          <div className="flex items-center justify-between text-[9px] font-black text-slate-500 dark:text-gray-400 mb-1">
+                          <div className={`flex items-center justify-between text-[9px] font-black mb-1 ${isSelected ? 'text-zinc-350' : 'text-slate-500 dark:text-gray-400'}`}>
                             <span>Productivity</span>
-                            <span className="text-indigo-600 dark:text-indigo-400">{summary?.productivity || 0}%</span>
+                            <span className={isSelected ? 'text-white' : 'text-indigo-600 dark:text-indigo-400'}>{summary?.productivity || 0}%</span>
                           </div>
-                          <div className="w-full bg-slate-100 dark:bg-gray-800/50 h-1.5 rounded-full overflow-hidden">
+                          <div className={`w-full h-1.5 rounded-full overflow-hidden ${isSelected ? 'bg-zinc-800' : 'bg-slate-100 dark:bg-gray-800/50'}`}>
                             <div 
-                              className="bg-indigo-600 h-full rounded-full transition-all duration-500"
+                              className={`h-full rounded-full transition-all duration-500 ${isSelected ? 'bg-white' : 'bg-indigo-600'}`}
                               style={{ width: `${summary?.productivity || 0}%` }}
                             />
                           </div>
@@ -1095,16 +1095,16 @@ export const CalendarView: React.FC = () => {
                       : (summary?.productivity || 0);
 
                     // Color based on productivity
-                    let bgCol = 'bg-white dark:bg-obsidian-900 border-slate-200 dark:border-gray-800';
+                    let bgCol = 'bg-white dark:bg-obsidian-900 border-slate-200 dark:border-gray-800 text-slate-800 dark:text-slate-200';
                     if (hasData) {
                       if (productivity >= 80) {
-                        bgCol = 'bg-emerald-50 dark:bg-emerald-500/100 text-white border-transparent shadow-[0_0_8px_rgba(16,185,129,0.2)]';
+                        bgCol = 'bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] text-white border-transparent shadow-[0_0_12px_rgba(238,42,123,0.3)] hover:scale-[1.01]';
                       } else if (productivity >= 60) {
-                        bgCol = 'bg-emerald-100/50 border-emerald-200 dark:border-emerald-500/30 text-emerald-900';
+                        bgCol = 'bg-black text-white dark:bg-zinc-950 border-black dark:border-zinc-800 shadow-md hover:scale-[1.01]';
                       } else if (productivity >= 40) {
-                        bgCol = 'bg-amber-200/50 border-amber-300 text-amber-950';
+                        bgCol = 'bg-slate-850 text-white dark:bg-zinc-900 border-slate-700 dark:border-zinc-850';
                       } else {
-                        bgCol = 'bg-amber-100/50 border-amber-200 text-amber-900';
+                        bgCol = 'bg-slate-700 text-white dark:bg-zinc-850 border-slate-600 dark:border-zinc-700';
                       }
                     }
 
@@ -1112,11 +1112,15 @@ export const CalendarView: React.FC = () => {
                       <div
                         key={dateStr}
                         className={`text-left p-3.5 rounded-2xl border transition-all duration-200 hover:shadow-md flex flex-col justify-between min-h-[90px] ${bgCol} ${
-                          isToday ? 'ring-2 ring-fuchsia-500 border-transparent shadow-[0_0_15px_rgba(217,70,239,0.2)]' : ''
+                          isToday ? 'ring-2 ring-[#ee2a7b] border-transparent shadow-[0_0_15px_rgba(238,42,123,0.35)]' : ''
                         }`}
                       >
                         <span className={`text-[10px] font-black w-5 h-5 flex items-center justify-center rounded ${
-                          isToday ? 'bg-gradient-to-tr from-violet-600 to-fuchsia-600 text-white shadow-sm' : 'text-slate-400 dark:text-gray-500'
+                          isToday 
+                            ? 'bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] text-white shadow-sm font-extrabold' 
+                            : productivity >= 60 
+                            ? 'text-white/80' 
+                            : 'text-slate-400 dark:text-gray-500'
                         }`}>
                           {date.getDate()}
                         </span>
@@ -1132,8 +1136,8 @@ export const CalendarView: React.FC = () => {
                                   <span 
                                     key={t.taskId}
                                     className={`text-[7px] font-black px-1 py-0.5 rounded leading-none ${
-                                      productivity >= 80 
-                                        ? 'bg-white dark:bg-obsidian-900/20 text-white' 
+                                      productivity >= 60 
+                                        ? 'bg-white/20 text-white' 
                                         : 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300'
                                     }`}
                                     title={`${t.taskTitle} — ${t.durationFormatted}`}
@@ -1146,14 +1150,14 @@ export const CalendarView: React.FC = () => {
 
                             {/* Team view: task count */}
                             {!isEmployeeMonth && (
-                              <p className={`text-[9px] font-black mt-1 ${productivity >= 80 ? 'text-white/80' : 'text-slate-400 dark:text-gray-500'}`}>
+                              <p className={`text-[9px] font-black mt-1 ${productivity >= 60 ? 'text-white/85' : 'text-slate-400 dark:text-gray-500'}`}>
                                 {summary!.tasksWorked} task{summary!.tasksWorked !== 1 ? 's' : ''} · {productivity}%
                               </p>
                             )}
 
                             {/* Employee view: productivity */}
                             {isEmployeeMonth && (
-                              <p className={`text-[9px] font-black mt-1 ${productivity >= 80 ? 'text-white/80' : 'text-slate-400 dark:text-gray-500'}`}>
+                              <p className={`text-[9px] font-black mt-1 ${productivity >= 60 ? 'text-white/85' : 'text-slate-400 dark:text-gray-500'}`}>
                                 {productivity}%
                               </p>
                             )}
@@ -1162,7 +1166,7 @@ export const CalendarView: React.FC = () => {
                             {empDayData?.isActiveNow && (
                               <div className="flex items-center gap-1 mt-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-white dark:bg-obsidian-900 animate-pulse" />
-                                <span className={`text-[8px] font-black ${productivity >= 80 ? 'text-white/90' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                <span className={`text-[8px] font-black ${productivity >= 60 ? 'text-white/90' : 'text-emerald-600 dark:text-emerald-400'}`}>
                                   WORKING
                                 </span>
                               </div>
@@ -1170,7 +1174,7 @@ export const CalendarView: React.FC = () => {
                             {!isEmployeeMonth && summary!.userSummaries.some(us => us.isActiveNow) && (
                               <div className="flex items-center gap-1 mt-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-white dark:bg-obsidian-900 animate-pulse" />
-                                <span className={`text-[8px] font-black ${productivity >= 80 ? 'text-white/90' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                <span className={`text-[8px] font-black ${productivity >= 60 ? 'text-white/90' : 'text-emerald-600 dark:text-emerald-400'}`}>
                                   ACTIVE
                                 </span>
                               </div>
@@ -1195,19 +1199,19 @@ export const CalendarView: React.FC = () => {
                       <span className="text-[9px] font-bold text-slate-500 dark:text-gray-400">No Data</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <div className="w-3.5 h-3.5 rounded bg-amber-100/50 border border-amber-200" />
+                      <div className="w-3.5 h-3.5 rounded bg-slate-700 dark:bg-zinc-850 border border-slate-600" />
                       <span className="text-[9px] font-bold text-slate-500 dark:text-gray-400">Low (&lt;40%)</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <div className="w-3.5 h-3.5 rounded bg-amber-200/50 border border-amber-300" />
+                      <div className="w-3.5 h-3.5 rounded bg-slate-850 dark:bg-zinc-900 border border-slate-700" />
                       <span className="text-[9px] font-bold text-slate-500 dark:text-gray-400">Medium (40-59%)</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <div className="w-3.5 h-3.5 rounded bg-emerald-100/50 border border-emerald-200 dark:border-emerald-500/30" />
+                      <div className="w-3.5 h-3.5 rounded bg-black dark:bg-zinc-950 border border-black" />
                       <span className="text-[9px] font-bold text-slate-500 dark:text-gray-400">Good (60-79%)</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <div className="w-3.5 h-3.5 rounded bg-emerald-50 dark:bg-emerald-500/100" />
+                      <div className="w-3.5 h-3.5 rounded bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7]" />
                       <span className="text-[9px] font-bold text-slate-500 dark:text-gray-400">High (80%+)</span>
                     </div>
                   </div>

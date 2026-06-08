@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Project = require('../models/Project');
+const SystemSettings = require('../models/SystemSettings');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_change_in_production';
 
@@ -69,6 +70,10 @@ function hasProjectAccess(projectIdParam = 'projectId') {
         return res.status(404).json({ message: 'Project not found' });
       }
 
+      // Get global system settings for team lead feature
+      const settings = await SystemSettings.findOne();
+      const teamLeadEnabled = settings ? settings.team_lead_enabled : true;
+
       // Admin and Executive roles have access to all projects
       if (req.user.globalRole === 'admin' || req.user.globalRole === 'executive') {
         req.project = project;
@@ -83,7 +88,15 @@ function hasProjectAccess(projectIdParam = 'projectId') {
       }
 
       req.project = project;
-      req.projectRole = member.role;
+      
+      // Compute effective project role
+      let role = member.role;
+      if (role === 'TeamLead') {
+        req.projectRole = teamLeadEnabled ? 'ProjectManager' : 'TeamMember';
+      } else {
+        req.projectRole = role;
+      }
+      
       next();
     } catch (err) {
       console.error('Project access error:', err);

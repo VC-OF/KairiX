@@ -390,183 +390,9 @@ const LogCard: React.FC<LogCardProps> = ({
 
 // ═══════════════════════ MAIN SUBREDDIT FEED OVERVIEW ═══════════════════════
 export const DailyLogs: React.FC = () => {
-  const { dailyLogs, users, project, currentUser } = useStore();
+  const { dailyLogs, users, project, currentUser, voteLogPost, voteLogComment, addLogComment } = useStore();
   const [showAdd, setShowAdd] = useState(false);
   const [filterUser, setFilterUser] = useState<string>('all');
-  
-  // Local threaded comments & score tracking map
-  const [threads, setThreads] = useState<Record<string, { score: number; userVote: 'up' | 'down' | null; comments: Reply[] }>>({});
-
-  // Helper to preseed initial comment conversations on component mount
-  useEffect(() => {
-    const preseeded: Record<string, { score: number; userVote: 'up' | 'down' | null; comments: Reply[] }> = {};
-    
-    dailyLogs.forEach((log) => {
-      // Generate some default scores
-      const defaultScore = Math.floor(Math.random() * 12) + 4;
-      
-      // Default preseeded discussion nodes
-      let defaultComments: Reply[] = [];
-      
-      if (log.content.toLowerCase().includes('dependency') || log.content.toLowerCase().includes('board') || log.id === 'log-1') {
-        defaultComments = [
-          {
-            id: `seed-c1-${log.id}`,
-            userId: 'user-2',
-            userName: 'Jane Smith',
-            userRole: 'executive',
-            content: 'This update is looking extremely thorough! Did you hotfix the socket synchronization in our backend room controllers?',
-            createdAt: new Date(Date.now() - 3600000 * 2.5).toISOString(),
-            score: 5,
-            userVote: null,
-            replies: [
-              {
-                id: `seed-c2-${log.id}`,
-                userId: 'user-1',
-                userName: 'Admin User',
-                userRole: 'admin',
-                content: 'Yes! Mapped the handshake socket lifecycle in branch hotfix-socket-handshake u/jane_smith. It is fully merged and active in production now.',
-                createdAt: new Date(Date.now() - 3600000 * 1.8).toISOString(),
-                score: 3,
-                userVote: null,
-                replies: [
-                  {
-                    id: `seed-c3-${log.id}`,
-                    userId: 'user-2',
-                    userName: 'Jane Smith',
-                    userRole: 'executive',
-                    content: 'Excellent, pulling the changes now. Speed looks super stable!',
-                    createdAt: new Date(Date.now() - 3600000 * 1.2).toISOString(),
-                    score: 2,
-                    userVote: null,
-                    replies: []
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            id: `seed-c4-${log.id}`,
-            userId: 'user-3',
-            userName: 'John Doe',
-            userRole: 'developer',
-            content: 'Awesome spent estimation updates here u/admin. Linking these logs to completed task maps really clarifies critical paths.',
-            createdAt: new Date(Date.now() - 3600000 * 4).toISOString(),
-            score: 4,
-            userVote: null,
-            replies: []
-          }
-        ];
-      } else {
-        defaultComments = [];
-      }
-
-      preseeded[log.id] = {
-        score: defaultScore,
-        userVote: null,
-        comments: defaultComments
-      };
-    });
-
-    setThreads((prev) => ({ ...preseeded, ...prev }));
-  }, [dailyLogs.length]);
-
-  const handlePostVote = (logId: string, direction: 'up' | 'down') => {
-    setThreads(prev => {
-      const thread = prev[logId] || { score: 6, userVote: null, comments: [] };
-      let newScore = thread.score;
-      let newVote = thread.userVote;
-
-      if (direction === 'up') {
-        if (thread.userVote === 'up') { newScore -= 1; newVote = null; }
-        else if (thread.userVote === 'down') { newScore += 2; newVote = 'up'; }
-        else { newScore += 1; newVote = 'up'; }
-      } else {
-        if (thread.userVote === 'down') { newScore += 1; newVote = null; }
-        else if (thread.userVote === 'up') { newScore -= 2; newVote = 'down'; }
-        else { newScore -= 1; newVote = 'down'; }
-      }
-
-      return {
-        ...prev,
-        [logId]: { ...thread, score: newScore, userVote: newVote }
-      };
-    });
-  };
-
-  const handleCommentVote = (logId: string, commentId: string, direction: 'up' | 'down') => {
-    const updateVoteRecursive = (repliesList: Reply[]): Reply[] => {
-      return repliesList.map(item => {
-        if (item.id === commentId) {
-          let newScore = item.score;
-          let newVote = item.userVote;
-          if (direction === 'up') {
-            if (item.userVote === 'up') { newScore -= 1; newVote = null; }
-            else if (item.userVote === 'down') { newScore += 2; newVote = 'up'; }
-            else { newScore += 1; newVote = 'up'; }
-          } else {
-            if (item.userVote === 'down') { newScore += 1; newVote = null; }
-            else if (item.userVote === 'up') { newScore -= 2; newVote = 'down'; }
-            else { newScore -= 1; newVote = 'down'; }
-          }
-          return { ...item, score: newScore, userVote: newVote };
-        }
-        if (item.replies && item.replies.length > 0) {
-          return { ...item, replies: updateVoteRecursive(item.replies) };
-        }
-        return item;
-      });
-    };
-
-    setThreads(prev => {
-      const thread = prev[logId] || { score: 6, userVote: null, comments: [] };
-      return {
-        ...prev,
-        [logId]: { ...thread, comments: updateVoteRecursive(thread.comments) }
-      };
-    });
-  };
-
-  const handleAddCommentReply = (logId: string, parentCommentId: string | null, content: string) => {
-    const newReply: Reply = {
-      id: `comment-${Date.now()}`,
-      userId: currentUser?.id || 'admin',
-      userName: currentUser?.name || 'Admin User',
-      userRole: currentUser?.role || 'admin',
-      content,
-      createdAt: new Date().toISOString(),
-      score: 1,
-      userVote: 'up',
-      replies: []
-    };
-
-    const addReplyRecursive = (repliesList: Reply[]): Reply[] => {
-      return repliesList.map(item => {
-        if (item.id === parentCommentId) {
-          return { ...item, replies: [...item.replies, newReply] };
-        }
-        if (item.replies && item.replies.length > 0) {
-          return { ...item, replies: addReplyRecursive(item.replies) };
-        }
-        return item;
-      });
-    };
-
-    setThreads(prev => {
-      const thread = prev[logId] || { score: 6, userVote: null, comments: [] };
-      if (!parentCommentId) {
-        return {
-          ...prev,
-          [logId]: { ...thread, comments: [...thread.comments, newReply] }
-        };
-      } else {
-        return {
-          ...prev,
-          [logId]: { ...thread, comments: addReplyRecursive(thread.comments) }
-        };
-      }
-    });
-  };
 
   const filteredLogs = dailyLogs
     .filter((l) => filterUser === 'all' || l.userId === filterUser)
@@ -671,15 +497,15 @@ export const DailyLogs: React.FC = () => {
                     
                     <div className="space-y-5">
                       {grouped[date].map((log) => {
-                        const threadData = threads[log.id] || { score: 1, userVote: null, comments: [] };
+                        const threadData = log.thread || { score: 1, userVote: null, comments: [] };
                         return (
                           <LogCard 
                             key={log.id} 
                             log={log} 
                             threadData={threadData}
-                            onPostVote={handlePostVote}
-                            onCommentVote={handleCommentVote}
-                            onAddCommentReply={handleAddCommentReply}
+                            onPostVote={voteLogPost}
+                            onCommentVote={voteLogComment}
+                            onAddCommentReply={addLogComment}
                           />
                         );
                       })}

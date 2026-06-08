@@ -107,7 +107,7 @@ export function Signup() {
                 value={formData.email}
                 onChange={handleChange}
                 className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/30 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm font-semibold"
-                placeholder="you@kairix.io"
+                placeholder="username@oryfolks.com"
                 required
               />
             </div>
