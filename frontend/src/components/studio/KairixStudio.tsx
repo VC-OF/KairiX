@@ -702,12 +702,12 @@ export const KairixStudio: React.FC = () => {
             </div>
             <span className="font-extrabold text-sm text-gray-900 dark:text-white">KairiX Studio</span>
           </div>
-          <p className="text-[10px] uppercase tracking-widest font-black text-slate-450 dark:text-slate-500">
+          <div className="text-[10px] uppercase tracking-widest font-black text-slate-450 dark:text-slate-500">
           © 2026 KairiX Enterprise. All rights reserved.
           <p>
           Crafted for OryFolks - A Unified SaaS Project Management Platform.
           </p>
-          </p>
+          </div>
         </div>
       </footer>
 

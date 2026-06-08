@@ -40,7 +40,7 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 relative overflow-hidden flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-950 relative overflow-y-auto flex items-center justify-center p-4">
       {/* Ambient background glows */}
       <div className="absolute top-1/4 left-1/3 w-[500px] h-[500px] bg-indigo-500/8 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/3 w-[400px] h-[400px] bg-purple-500/8 rounded-full blur-[100px] pointer-events-none" />

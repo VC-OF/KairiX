@@ -209,13 +209,13 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
                             key={n._id}
                             className={`relative group rounded-xl p-3 flex gap-3 transition-all duration-200 border ${
                               !n.read 
-                                ? 'bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-800/60' 
+                                ? 'bg-[#ee2a7b]/[0.02] dark:bg-[#ee2a7b]/10 border-[#ee2a7b]/20 hover:bg-[#ee2a7b]/[0.04] dark:hover:bg-[#ee2a7b]/20' 
                                 : 'bg-transparent border-transparent hover:bg-gray-50 dark:hover:bg-gray-800/20'
                             }`}
                           >
                             {/* Unread Indicator dot */}
                             {!n.read && (
-                              <div className="absolute left-[-4px] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-[var(--theme-accent)] shadow-[0_0_8px_var(--theme-accent-glow)]" />
+                              <div className="absolute left-[-4px] top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] shadow-[0_0_8px_rgba(238,42,123,0.5)]" />
                             )}
 
                             {/* Icon */}
@@ -226,9 +226,16 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
                             {/* Content */}
                             <div className="flex-1 min-w-0 py-0.5">
                               <div className="flex justify-between items-start gap-2">
-                                <p className={`text-sm leading-tight truncate font-bold ${!n.read ? 'text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'}`}>
-                                  {category}
-                                </p>
+                                <div className="flex items-center gap-2 overflow-hidden">
+                                  <p className={`text-sm leading-tight truncate font-bold ${!n.read ? 'text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'}`}>
+                                    {category}
+                                  </p>
+                                  {n.data?.taskId && (
+                                    <span className="text-[10px] font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800/50 px-1.5 py-0.5 rounded-md border border-gray-200 dark:border-gray-700/50 shrink-0">
+                                      #{n.data.taskId.slice(-6)}
+                                    </span>
+                                  )}
+                                </div>
                                 <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 whitespace-nowrap shrink-0 mt-0.5">
                                   {new Date(n.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                 </span>

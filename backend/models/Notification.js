@@ -7,6 +7,7 @@ const NotificationSchema = new mongoose.Schema({
   type: { type: String, enum: ['task', 'project', 'system', 'alert'], default: 'task' },
   read: { type: Boolean, default: false },
   link: { type: String },
+  data: { type: mongoose.Schema.Types.Mixed },
 }, { timestamps: true });
 
 NotificationSchema.index({ userId: 1, createdAt: -1 });

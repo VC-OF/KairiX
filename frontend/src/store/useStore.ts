@@ -252,8 +252,14 @@ export const useStore = create<AppState>((set, get) => ({
     if (id) {
       localStorage.setItem('lastOpenedTaskId', id);
       try {
-        await api.post(`/tasks/recent/${id}`);
-        await get().fetchRecentTasks();
+        const currentTask = get().tasks.find(t => t.id === id);
+        if (currentTask) {
+          const recentTasks = get().recentTasks;
+          const filtered = recentTasks.filter((rt: any) => rt.id !== id);
+          const newRecent = [currentTask, ...filtered].slice(0, 10);
+          set({ recentTasks: newRecent });
+          localStorage.setItem('recentTasks', JSON.stringify(newRecent));
+        }
       } catch (err) {
         console.error('Failed to update recent tasks:', err);
       }
@@ -261,13 +267,13 @@ export const useStore = create<AppState>((set, get) => ({
       localStorage.removeItem('lastOpenedTaskId');
     }
   },
-  recentTasks: [],
+  recentTasks: JSON.parse(localStorage.getItem('recentTasks') || '[]'),
   fetchRecentTasks: async () => {
     try {
-      const response = await api.get('/tasks/recent');
-      set({ recentTasks: response || [] });
+      const local = JSON.parse(localStorage.getItem('recentTasks') || '[]');
+      set({ recentTasks: local });
     } catch (err) {
-      console.error('Failed to fetch recent tasks:', err);
+      console.error('Failed to fetch recent tasks from local storage:', err);
     }
   },
   fetchActiveTimer: async () => {

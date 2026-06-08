@@ -141,14 +141,6 @@ router.put('/:projectId/:taskId',
       const { title, description, status, priority, assignees, assignedTo, dueDate, tags } = req.body;
       const oldStatus = task.status;
 
-      if (status && status === 'in-progress') {
-        const isAssigned = (task.assignedTo?.toString() === req.user.userId) ||
-          (task.assignees && task.assignees.some(id => id.toString() === req.user.userId));
-        if (!isAssigned) {
-          return res.status(403).json({ message: 'Only assigned members can start this task' });
-        }
-      }
-
       // Check if user is assigned to the task
       const isAssigned = (task.assignedTo?.toString() === req.user.userId) ||
         (task.assignees && task.assignees.some(id => id.toString() === req.user.userId));
@@ -159,7 +151,11 @@ router.put('/:projectId/:taskId',
         req.projectRole === 'TeamLead';
 
       if (!isAdminOrManager && !isAssigned) {
-        return res.status(403).json({ message: 'You do not have permission to edit this task' });
+        // Allow project members to update status in Kanban
+        const isOnlyStatusUpdate = Object.keys(req.body).length === 1 && req.body.status !== undefined;
+        if (!isOnlyStatusUpdate) {
+          return res.status(403).json({ message: 'You do not have permission to edit this task' });
+        }
       }
 
       if (title) task.title = title;
