@@ -47,10 +47,15 @@ const SystemSettings = require('./models/SystemSettings');
 
 const app = express();
 const http = require('http').createServer(app);
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
+  : ['http://localhost:5173'];
+
 const io = require('socket.io')(http, {
   cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
@@ -58,9 +63,15 @@ const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/KairiX?directConnection=true';
 
 // Middleware
-const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()) : '*';
 app.use(cors({
-  origin: true, // Allow all origins for now to unblock
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin) || allowedOrigins.includes('*') || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS blocked: ${origin}`));
+    }
+  },
   credentials: true
 }));
 app.use(helmet({
@@ -138,12 +149,12 @@ cron.schedule('0 0 * * *', () => {
 // ... (Routes) ...
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', authenticateToken, projectRoutes);
+app.use('/api/tasks', authenticateToken, commentRoutes);
 app.use('/api/tasks', authenticateToken, taskRoutes);
 app.use('/api/time-logs', authenticateToken, timeLogRoutes);
 app.use('/api/analytics', authenticateToken, analyticsRoutes);
 app.use('/api/notifications', authenticateToken, notificationRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/tasks', commentRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/dependencies', authenticateToken, dependencyRoutes);

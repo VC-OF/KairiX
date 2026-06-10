@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
 import { useAuth } from '../../hooks/useAuth';
-import { ChevronDown, Bell, Menu, X, Sun, Moon, LogOut, User, Sparkles, Palette, Check, Star } from 'lucide-react';
+import { ChevronDown, Bell, Menu, X, Sun, Moon, LogOut, User, Sparkles, Palette, Check, Star, PanelLeftOpen } from 'lucide-react';
 import { NotificationsPanel } from './NotificationsPanel';
 
 interface HeaderProps {
@@ -43,6 +43,8 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
     setTourStep,
     users,
     currentUser,
+    isSidebarCollapsed,
+    toggleSidebar,
   } = useStore();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -91,6 +93,17 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
       >
         {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
+      
+      {/* Desktop expand sidebar button */}
+      {isSidebarCollapsed && (
+        <button
+          onClick={toggleSidebar}
+          className="hidden lg:flex p-2 rounded-xl border border-gray-200/40 dark:border-gray-800/40 hover:bg-gray-100 dark:hover:bg-gray-800/45 text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition-all cursor-pointer shadow-sm"
+          title="Expand Sidebar"
+        >
+          <PanelLeftOpen size={18} />
+        </button>
+      )}
 
       {/* Mobile Logo */}
       <div className="lg:hidden flex items-center gap-2">

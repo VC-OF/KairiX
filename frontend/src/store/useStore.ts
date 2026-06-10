@@ -125,6 +125,8 @@ interface AppState {
   colorTheme: ColorTheme;
   defaultTheme: ColorTheme;
   showArchived: boolean;
+  isSidebarCollapsed: boolean;
+  toggleSidebar: () => void;
 
   fetchData: () => Promise<void>;
   fetchProjects: () => Promise<Project[]>;
@@ -246,6 +248,8 @@ export const useStore = create<AppState>((set, get) => ({
   colorTheme: (localStorage.getItem('kairix_color_theme') as ColorTheme) || 'default',
   defaultTheme: 'default',
   showArchived: false,
+  isSidebarCollapsed: false,
+  toggleSidebar: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
   selectedTaskId: null,
   setSelectedTaskId: async (id) => {
     set({ selectedTaskId: id });
@@ -317,7 +321,7 @@ export const useStore = create<AppState>((set, get) => ({
         members: (p.members || []).map((m: any) => m.userId?._id || m.userId || m),
         memberDetails: (p.members || []).map((m: any) => ({
           userId: m.userId?._id || m.userId,
-          role: m.role
+          role: m.role || 'TeamMember'
         })),
       }));
       set({ projects: mappedProjects });

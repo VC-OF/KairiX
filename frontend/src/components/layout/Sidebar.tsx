@@ -18,6 +18,7 @@ import {
   Pause,
   Square,
   Calendar,
+  PanelLeftClose,
 } from 'lucide-react';
 import { LogoCompact } from '../ui/Logo';
 import { useState, useEffect } from 'react';
@@ -102,7 +103,8 @@ export const Sidebar: React.FC = () => {
     setShowArchived,
     globalActiveTimer,
     setGlobalActiveTimer,
-    teamLeadEnabled
+    teamLeadEnabled,
+    toggleSidebar
   } = useStore();
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
@@ -475,6 +477,15 @@ export const Sidebar: React.FC = () => {
             </div>
           </div>
         )}
+        
+        {/* Collapse Button */}
+        <button
+          onClick={toggleSidebar}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/40 hover:text-gray-700 dark:hover:text-gray-200 transition-all cursor-pointer font-bold text-xs uppercase tracking-wider border border-transparent hover:border-gray-200/40 dark:hover:border-gray-800/40 mt-1"
+        >
+          <PanelLeftClose size={16} className="text-gray-400 shrink-0" />
+          <span>Collapse Sidebar</span>
+        </button>
       </div>
       {/* Project Modal */}
       <Modal isOpen={showProjectModal} onClose={() => setShowProjectModal(false)} title="Create New Project" size="sm">

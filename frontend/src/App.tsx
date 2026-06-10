@@ -36,6 +36,7 @@ function AppLayout() {
     tasks,
     selectedTaskId,
     setSelectedTaskId,
+    isSidebarCollapsed,
   } = useStore();
   const { token } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -270,7 +271,7 @@ function AppLayout() {
       )}
 
       {/* Sidebar - Desktop */}
-      <div className="hidden lg:flex">
+      <div className={`hidden lg:flex transition-all duration-300 ${isSidebarCollapsed ? 'w-0 overflow-hidden' : 'w-64'}`}>
         <Sidebar />
       </div>
 

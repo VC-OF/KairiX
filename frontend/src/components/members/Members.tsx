@@ -187,6 +187,14 @@ export const Members: React.FC = () => {
   const [showAdd, setShowAdd] = useState(false);
   const [editMember, setEditMember] = useState<User | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [showEmailUserId, setShowEmailUserId] = useState<Record<string, boolean>>({});
+
+  const toggleEmail = (userId: string) => {
+    setShowEmailUserId(prev => ({
+      ...prev,
+      [userId]: !prev[userId]
+    }));
+  };
 
   const isAdmin = currentUser?.role === 'admin';
   const projectMembers = users.filter(u => project.members.includes(u.id));
@@ -280,7 +288,7 @@ export const Members: React.FC = () => {
         <h3 className="text-[11px] font-extrabold text-gray-400 dark:text-gray-500 mb-3 px-1 uppercase tracking-widest">
           Project Members
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {projectMembers.map((user) => {
             const stats = getMemberStats(user.id);
             const isSelf = currentUser?.id === user.id;
@@ -298,35 +306,49 @@ export const Members: React.FC = () => {
 
                 {/* Card Header */}
                 <div className="flex items-center gap-4 p-5 border-b border-gray-50 dark:border-white/5">
-                  <div className="relative">
-                    <Avatar user={user} size="lg" />
-                    {isActive && (
-                      <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-[#0f1623] rounded-full shadow-[0_0_6px_rgba(16,185,129,0.6)]" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-bold text-gray-900 dark:text-gray-100 truncate">{user.name}</h3>
-                      {user.role === 'admin' && (
-                        <Crown size={13} className="text-amber-400 flex-shrink-0 drop-shadow-[0_0_4px_rgba(251,191,36,0.5)]" />
-                      )}
-                      {projRole === 'TeamLead' && teamLeadEnabled && (
-                        <span
-                          className="text-[9px] font-extrabold px-1.5 py-0.5 rounded flex items-center justify-center shrink-0 bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-[0_0_8px_rgba(236,72,153,0.4)]"
-                          title="Team Lead"
-                        >
-                          TL
-                        </span>
-                      )}
-                      {isSelf && (
-                        <span className="text-[10px] bg-violet-100 dark:bg-violet-500/15 text-violet-600 dark:text-violet-400 px-1.5 py-0.5 rounded-full font-bold border border-violet-200 dark:border-violet-500/20">
-                          You
-                        </span>
+                  <div 
+                    className="flex items-center gap-4 flex-1 min-w-0 cursor-pointer select-none"
+                    onClick={() => toggleEmail(user.id)}
+                    title="Click to toggle email"
+                  >
+                    <div className="relative">
+                      <Avatar user={user} size="lg" />
+                      {isActive && (
+                        <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-[#0f1623] rounded-full shadow-[0_0_6px_rgba(16,185,129,0.6)]" />
                       )}
                     </div>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <Mail size={11} className="text-gray-400" />
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-bold text-gray-900 dark:text-gray-100 truncate">{user.name}</h3>
+                        {user.role === 'admin' && (
+                          <Crown size={13} className="text-amber-400 flex-shrink-0 drop-shadow-[0_0_4px_rgba(251,191,36,0.5)]" />
+                        )}
+                        {projRole === 'TeamLead' && teamLeadEnabled && (
+                          <span
+                            className="text-[9px] font-extrabold px-1.5 py-0.5 rounded flex items-center justify-center shrink-0 bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-[0_0_8px_rgba(236,72,153,0.4)]"
+                            title="Team Lead"
+                          >
+                            TL
+                          </span>
+                        )}
+                        {isSelf && (
+                          <span className="text-[10px] bg-violet-100 dark:bg-violet-500/15 text-violet-600 dark:text-violet-400 px-1.5 py-0.5 rounded-full font-bold border border-violet-200 dark:border-violet-500/20">
+                            You
+                          </span>
+                        )}
+                      </div>
+                      <div 
+                        className={`overflow-hidden transition-all duration-300 ${
+                          showEmailUserId[user.id] 
+                            ? 'max-h-10 opacity-100 mt-1' 
+                            : 'max-h-0 opacity-0 group-hover:max-h-10 group-hover:opacity-100 group-hover:mt-1'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <Mail size={11} className="text-gray-400 shrink-0" />
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate" title={user.email}>{user.email}</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -446,16 +468,30 @@ export const Members: React.FC = () => {
           <h3 className="text-[11px] font-extrabold text-gray-400 dark:text-gray-500 mb-3 px-1 uppercase tracking-widest">
             Available Team Members
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {otherUsers.map((user) => (
               <div
                 key={user.id}
-                className="bg-white dark:bg-[#0f1623] rounded-2xl border border-gray-100 dark:border-white/8 shadow-sm overflow-hidden p-5 flex items-center gap-4 hover:border-violet-500/20 dark:hover:border-violet-500/20 hover:shadow-md transition-all duration-300"
+                className="bg-white dark:bg-[#0f1623] rounded-2xl border border-gray-100 dark:border-white/8 shadow-sm overflow-hidden p-5 flex items-center gap-4 hover:border-violet-500/20 dark:hover:border-violet-500/20 hover:shadow-md transition-all duration-300 group"
               >
-                <Avatar user={user} size="md" />
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-gray-900 dark:text-white truncate">{user.name}</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
+                <div 
+                  className="flex items-center gap-4 flex-1 min-w-0 cursor-pointer select-none"
+                  onClick={() => toggleEmail(user.id)}
+                  title="Click to toggle email"
+                >
+                  <Avatar user={user} size="md" />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-gray-900 dark:text-white truncate">{user.name}</h3>
+                    <div 
+                      className={`overflow-hidden transition-all duration-300 ${
+                        showEmailUserId[user.id] 
+                          ? 'max-h-10 opacity-100 mt-1' 
+                          : 'max-h-0 opacity-0 group-hover:max-h-10 group-hover:opacity-100 group-hover:mt-1'
+                      }`}
+                    >
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate" title={user.email}>{user.email}</p>
+                    </div>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {isAdmin && (
