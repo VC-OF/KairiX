@@ -5,6 +5,34 @@ const { upload, uploadToS3, deleteFromS3 } = require('../services/FileStorageSer
 const File = require('../models/File');
 const Folder = require('../models/Folder');
 
+/**
+ * @openapi
+ * /api/files/{projectId}:
+ *   get:
+ *     summary: Get all files and folders in a project or folder
+ *     tags: [Files]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: folderId
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of files and folders
+ *       500:
+ *         description: Server error
+ */
 // Get all files and folders in a project/folder
 router.get('/:projectId', authenticateToken, hasProjectAccess('projectId'), async (req, res) => {
   try {
@@ -29,6 +57,38 @@ router.get('/:projectId', authenticateToken, hasProjectAccess('projectId'), asyn
   }
 });
 
+/**
+ * @openapi
+ * /api/files/{projectId}/folders:
+ *   post:
+ *     summary: Create a folder in a project
+ *     tags: [Files]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name]
+ *             properties:
+ *               name:
+ *                 type: string
+ *               parentId:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Folder created successfully
+ *       500:
+ *         description: Server error
+ */
 // Create a folder
 router.post('/:projectId/folders', authenticateToken, hasProjectAccess('projectId'), async (req, res) => {
   try {
@@ -45,6 +105,42 @@ router.post('/:projectId/folders', authenticateToken, hasProjectAccess('projectI
   }
 });
 
+/**
+ * @openapi
+ * /api/files/{projectId}/upload:
+ *   post:
+ *     summary: Upload files to a project or folder
+ *     tags: [Files]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               folderId:
+ *                 type: string
+ *               files:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *     responses:
+ *       201:
+ *         description: Files uploaded successfully
+ *       400:
+ *         description: No files uploaded
+ *       500:
+ *         description: Server error
+ */
 // Upload files
 router.post('/:projectId/upload', authenticateToken, hasProjectAccess('projectId'), upload.array('files'), async (req, res) => {
   try {
@@ -82,6 +178,41 @@ router.post('/:projectId/upload', authenticateToken, hasProjectAccess('projectId
   }
 });
 
+/**
+ * @openapi
+ * /api/files/{projectId}/files/{fileId}:
+ *   put:
+ *     summary: Rename a file
+ *     tags: [Files]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: fileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name]
+ *             properties:
+ *               name:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: File renamed successfully
+ *       500:
+ *         description: Server error
+ */
 // Rename file
 router.put('/:projectId/files/:fileId', authenticateToken, hasProjectAccess('projectId'), async (req, res) => {
   try {
@@ -93,6 +224,33 @@ router.put('/:projectId/files/:fileId', authenticateToken, hasProjectAccess('pro
   }
 });
 
+/**
+ * @openapi
+ * /api/files/{projectId}/files/{fileId}:
+ *   delete:
+ *     summary: Soft delete a file
+ *     tags: [Files]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: fileId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: File deleted successfully
+ *       404:
+ *         description: File not found
+ *       500:
+ *         description: Server error
+ */
 // Delete file (Soft delete)
 router.delete('/:projectId/files/:fileId', authenticateToken, hasProjectAccess('projectId'), async (req, res) => {
   try {
@@ -112,6 +270,31 @@ router.delete('/:projectId/files/:fileId', authenticateToken, hasProjectAccess('
   }
 });
 
+/**
+ * @openapi
+ * /api/files/{projectId}/folders/{folderId}:
+ *   delete:
+ *     summary: Delete a folder and its contents recursively
+ *     tags: [Files]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: folderId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Folder deleted successfully
+ *       500:
+ *         description: Server error
+ */
 // Delete folder and its contents recursively (Simplified)
 router.delete('/:projectId/folders/:folderId', authenticateToken, hasProjectAccess('projectId'), async (req, res) => {
   try {

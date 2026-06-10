@@ -5,6 +5,20 @@ const Task = require('../models/Task');
 const { authenticateToken, requireGlobalRole } = require('../middleware/auth');
 const router = express.Router();
 
+/**
+ * @openapi
+ * /api/users:
+ *   get:
+ *     summary: Get all users
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of all users
+ *       500:
+ *         description: Server error
+ */
 // Get all users
 router.get('/', authenticateToken, async (req, res) => {
   try {
@@ -15,6 +29,49 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/users/{id}:
+ *   put:
+ *     summary: Update a user profile
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               globalRole:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *               bio:
+ *                 type: string
+ *               avatar:
+ *                 type: string
+ *               jobTitle:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: User updated successfully
+ *       403:
+ *         description: Not authorized
+ *       500:
+ *         description: Server error
+ */
 // Update user (admin only for others, or self)
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
@@ -38,6 +95,28 @@ router.put('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * @openapi
+ * /api/users/{id}:
+ *   delete:
+ *     summary: Delete a user (Admin only)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User deleted successfully
+ *       403:
+ *         description: Not authorized
+ *       500:
+ *         description: Server error
+ */
 // Delete user (admin only)
 router.delete('/:id', authenticateToken, requireGlobalRole('admin'), async (req, res) => {
   try {

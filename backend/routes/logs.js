@@ -47,7 +47,31 @@ function buildCommentTree(comments, currentUserId) {
   return rootComments;
 }
 
-// Get logs
+/**
+ * @openapi
+ * /api/logs:
+ *   get:
+ *     summary: Get daily logs feed
+ *     tags: [Daily Logs]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: projectId
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: List of daily logs with pagination
+ */
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const { projectId, page = 1, limit = 50 } = req.query;
@@ -104,7 +128,38 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Create log
+/**
+ * @openapi
+ * /api/logs:
+ *   post:
+ *     summary: Create a daily status update log
+ *     tags: [Daily Logs]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [date]
+ *             properties:
+ *               date:
+ *                 type: string
+ *               content:
+ *                 type: string
+ *               projectId:
+ *                 type: string
+ *               completedTasks:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               blockers:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Daily log created successfully
+ */
 router.post('/', authenticateToken, async (req, res) => {
   try {
     const { date, content, completedTasks, blockers, projectId } = req.body;
@@ -136,7 +191,43 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Update log
+/**
+ * @openapi
+ * /api/logs/{id}:
+ *   put:
+ *     summary: Update a daily log
+ *     tags: [Daily Logs]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               content:
+ *                 type: string
+ *               completedTasks:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               blockers:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Log updated successfully
+ *       403:
+ *         description: Not authorized
+ *       404:
+ *         description: Log not found
+ */
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { content, completedTasks, blockers } = req.body;

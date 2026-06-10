@@ -6,8 +6,18 @@ const router = express.Router();
 const VALID_THEMES = ['default', 'ocean', 'forest', 'royal', 'sunset', 'crimson'];
 
 /**
- * GET /api/settings
- * Fetch global system settings (requires authentication)
+ * @openapi
+ * /api/settings:
+ *   get:
+ *     summary: Fetch global system settings
+ *     tags: [Settings]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Global system settings
+ *       500:
+ *         description: Server error
  */
 router.get('/', authenticateToken, async (req, res) => {
   try {
@@ -24,8 +34,34 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 /**
- * PUT /api/settings
- * Update global system settings (requires Global Admin)
+ * @openapi
+ * /api/settings:
+ *   put:
+ *     summary: Update global system settings (Admin only)
+ *     tags: [Settings]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               team_lead_enabled:
+ *                 type: boolean
+ *               default_theme:
+ *                 type: string
+ *                 enum: [default, ocean, forest, royal, sunset, crimson]
+ *     responses:
+ *       200:
+ *         description: Settings updated successfully
+ *       400:
+ *         description: Invalid input
+ *       403:
+ *         description: Not authorized
+ *       500:
+ *         description: Server error
  */
 router.put('/', authenticateToken, requireGlobalRole('admin'), async (req, res) => {
   try {

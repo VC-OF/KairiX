@@ -292,6 +292,7 @@ export const Sidebar: React.FC = () => {
             <button
               className="text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-white transition-all hover:scale-110 active:scale-95"
               onClick={() => setShowProjectModal(true)}
+              title="Create New Project"
             >
               <Plus size={14} />
             </button>

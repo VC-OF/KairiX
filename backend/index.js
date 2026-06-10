@@ -78,6 +78,8 @@ app.use(cors({
   credentials: true
 }));
 app.use(helmet({
+  xXssProtection: false,
+  frameguard: false,
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
@@ -87,11 +89,19 @@ app.use(helmet({
       imgSrc: ["'self'", "data:", "blob:"],
       connectSrc: ["'self'", ...allowedOrigins, "ws:", "wss:"],
       frameSrc: ["'self'"],
+      frameAncestors: ["'self'"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
     },
   },
 }));
+
+// Strip deprecated headers to satisfy compliance audits
+app.use((req, res, next) => {
+  res.removeHeader('X-XSS-Protection');
+  res.removeHeader('X-Frame-Options');
+  next();
+});
 app.use(compression());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -106,7 +116,7 @@ app.use((req, res, next) => {
   if (!req.cookies || !req.cookies['csrfToken']) {
     const token = generateCsrfToken();
     res.cookie('csrfToken', token, {
-      secure: process.env.NODE_ENV === 'production',
+      secure: true,
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       path: '/'
     });
@@ -166,7 +176,7 @@ app.get('/api/csrf-token', (req, res) => {
   if (!token) {
     token = generateCsrfToken();
     res.cookie('csrfToken', token, {
-      secure: process.env.NODE_ENV === 'production',
+      secure: true,
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       path: '/'
     });

@@ -409,7 +409,10 @@ export const useStore = create<AppState>((set, get) => ({
 
   fetchTasks: async (projectId?: string, page?: number, limit?: number) => {
     const pId = projectId || get().project.id;
-    if (pId === 'project-1') return;
+    if (pId === 'project-1' || pId === 'no-project') {
+      set({ tasks: [], totalTasks: 0 });
+      return;
+    }
     try {
       const sq = get().searchQuery;
       const pg = page || get().taskPage;
@@ -439,7 +442,10 @@ export const useStore = create<AppState>((set, get) => ({
 
   fetchLogs: async (projectId?: string, page?: number, limit?: number) => {
     const pId = projectId || get().project.id;
-    if (pId === 'project-1') return;
+    if (pId === 'project-1' || pId === 'no-project') {
+      set({ dailyLogs: [], totalLogs: 0 });
+      return;
+    }
     try {
       const pg = page || get().logPage;
       const lm = limit || get().logLimit;
@@ -500,7 +506,25 @@ export const useStore = create<AppState>((set, get) => ({
         get().fetchUsers(),
       ]);
 
-      const currentProject = mappedProjects.find((p: Project) => p.id === get().project.id) || mappedProjects[0] || get().project;
+      let currentProject = mappedProjects.find((p: Project) => p.id === get().project.id) || mappedProjects[0];
+      if (!currentProject) {
+        if (mappedProjects.length === 0) {
+          currentProject = {
+            id: 'no-project',
+            name: 'No Projects Assigned',
+            description: 'You are not a member of any projects. Please contact your administrator or create a new project.',
+            status: 'active',
+            visibility: 'public',
+            priority: 'medium',
+            isLocked: false,
+            members: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+        } else {
+          currentProject = get().project;
+        }
+      }
 
       const storedUserStr = localStorage.getItem('user');
       let actualCurrentUser = null;
@@ -529,7 +553,7 @@ export const useStore = create<AppState>((set, get) => ({
         currentUser: actualCurrentUser || mappedUsers[0] || null,
       });
 
-      if (currentProject.id && currentProject.id !== 'project-1') {
+      if (currentProject.id && currentProject.id !== 'project-1' && currentProject.id !== 'no-project') {
         await Promise.all([
           get().fetchTasks(currentProject.id),
           get().fetchLogs(currentProject.id),
@@ -541,6 +565,7 @@ export const useStore = create<AppState>((set, get) => ({
           get().fetchRecentTasks(),
           get().fetchActiveTimer()
         ]);
+        set({ tasks: [], dailyLogs: [], totalTasks: 0, totalLogs: 0 });
       }
 
       // Restore active task modal from localStorage if possible
@@ -584,6 +609,10 @@ export const useStore = create<AppState>((set, get) => ({
     }
     set({ project, currentUser, isLoading: true });
     try {
+      if (project.id === 'no-project') {
+        set({ tasks: [], dailyLogs: [], totalTasks: 0, totalLogs: 0, isLoading: false });
+        return;
+      }
       await Promise.all([
         get().fetchTasks(project.id),
         get().fetchLogs(project.id)

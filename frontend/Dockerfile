@@ -19,6 +19,7 @@ COPY --from=build /app/dist /usr/share/nginx/html
 # Copy custom nginx configuration to support React Router SPA routing
 RUN echo 'server { \
     listen 80; \
+    charset utf-8; \
     location / { \
         root /usr/share/nginx/html; \
         index index.html index.htm; \

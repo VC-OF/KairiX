@@ -16,8 +16,36 @@ const { authenticateToken, requireGlobalRole, hasProjectAccess, requireProjectRo
 const router = express.Router();
 
 /**
- * POST /api/projects
- * Create a new project (Admin and User roles can create)
+ * @openapi
+ * /api/projects:
+ *   post:
+ *     summary: Create a new project
+ *     tags: [Projects]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name]
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               visibility:
+ *                 type: string
+ *               priority:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Project created successfully
+ *       400:
+ *         description: Project name is required
+ *       403:
+ *         description: Forbidden for executives
  */
 router.post('/', authenticateToken, async (req, res) => {
   try {
@@ -55,8 +83,21 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 /**
- * GET /api/projects
- * Get all projects (Admin), or only assigned projects (User/Executive)
+ * @openapi
+ * /api/projects:
+ *   get:
+ *     summary: Get all projects
+ *     tags: [Projects]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: includeArchived
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of projects retrieved successfully
  */
 router.get('/', authenticateToken, async (req, res) => {
   try {
@@ -91,8 +132,26 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 /**
- * GET /api/projects/:projectId
- * Get project by ID (Admin, Executive, or project members)
+ * @openapi
+ * /api/projects/{projectId}:
+ *   get:
+ *     summary: Get project by ID
+ *     tags: [Projects]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Project details
+ *       403:
+ *         description: Access denied
+ *       404:
+ *         description: Project not found
  */
 router.get('/:projectId', authenticateToken, hasProjectAccess('projectId'), async (req, res) => {
   try {
@@ -111,8 +170,45 @@ router.get('/:projectId', authenticateToken, hasProjectAccess('projectId'), asyn
 });
 
 /**
- * PUT /api/projects/:projectId
- * Update project (ProjectManager only)
+ * @openapi
+ * /api/projects/{projectId}:
+ *   put:
+ *     summary: Update project details
+ *     tags: [Projects]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *               visibility:
+ *                 type: string
+ *               priority:
+ *                 type: string
+ *               isLocked:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Project updated successfully
+ *       403:
+ *         description: Access denied or project is locked
+ *       404:
+ *         description: Project not found
  */
 router.put('/:projectId',
   authenticateToken,
@@ -151,8 +247,26 @@ router.put('/:projectId',
 );
 
 /**
- * DELETE /api/projects/:projectId
- * Delete project (ProjectManager only)
+ * @openapi
+ * /api/projects/{projectId}:
+ *   delete:
+ *     summary: Delete project
+ *     tags: [Projects]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Project and related entities deleted successfully
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Project not found
  */
 router.delete('/:projectId',
   authenticateToken,
@@ -202,8 +316,44 @@ router.delete('/:projectId',
 );
 
 /**
- * POST /api/projects/:projectId/members
- * Add member to project (Admin or ProjectManager)
+ * @openapi
+ * /api/projects/{projectId}/members:
+ *   post:
+ *     summary: Add member to project
+ *     tags: [Projects]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId, role]
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *               force:
+ *                 type: boolean
+ *     responses:
+ *       201:
+ *         description: Member added successfully
+ *       400:
+ *         description: Missing or invalid parameters
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Project or user not found
+ *       409:
+ *         description: User is already a member
  */
 router.post('/:projectId/members',
   authenticateToken,
@@ -294,8 +444,43 @@ router.post('/:projectId/members',
 );
 
 /**
- * PUT /api/projects/:projectId/members/:memberId
- * Update member role (ProjectManager only)
+ * @openapi
+ * /api/projects/{projectId}/members/{memberId}:
+ *   put:
+ *     summary: Update member role in project
+ *     tags: [Projects]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: memberId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [role]
+ *             properties:
+ *               role:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Member role updated successfully
+ *       400:
+ *         description: Invalid parameters
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Member or project not found
  */
 router.put('/:projectId/members/:memberId',
   authenticateToken,
@@ -342,8 +527,33 @@ router.put('/:projectId/members/:memberId',
 );
 
 /**
- * DELETE /api/projects/:projectId/members/:memberId
- * Remove member from project (ProjectManager only)
+ * @openapi
+ * /api/projects/{projectId}/members/{memberId}:
+ *   delete:
+ *     summary: Remove member from project
+ *     tags: [Projects]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: memberId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Member removed successfully
+ *       400:
+ *         description: Cannot remove last ProjectManager
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Member not found
  */
 router.delete('/:projectId/members/:memberId',
   authenticateToken,

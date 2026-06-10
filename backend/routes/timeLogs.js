@@ -31,7 +31,34 @@ async function getUserProjectIds(req) {
   return projects.map(p => p._id);
 }
 
-// Start timer
+/**
+ * @openapi
+ * /api/time-logs/start:
+ *   post:
+ *     summary: Start task timer
+ *     tags: [Time Tracking]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [taskId]
+ *             properties:
+ *               taskId:
+ *                 type: string
+ *               projectId:
+ *                 type: string
+ *               workDate:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Timer started
+ *       403:
+ *         description: Forbidden
+ */
 router.post('/start', authenticateToken, async (req, res) => {
   try {
     const { taskId, projectId, workDate } = req.body;
@@ -49,7 +76,32 @@ router.post('/start', authenticateToken, async (req, res) => {
   }
 });
 
-// Pause timer
+/**
+ * @openapi
+ * /api/time-logs/pause:
+ *   post:
+ *     summary: Pause task timer
+ *     tags: [Time Tracking]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [taskId]
+ *             properties:
+ *               taskId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Timer paused successfully
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Active timer not found
+ */
 router.post('/pause', authenticateToken, async (req, res) => {
   try {
     const { taskId } = req.body;
@@ -67,7 +119,32 @@ router.post('/pause', authenticateToken, async (req, res) => {
   }
 });
 
-// Resume timer
+/**
+ * @openapi
+ * /api/time-logs/resume:
+ *   post:
+ *     summary: Resume task timer
+ *     tags: [Time Tracking]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [taskId]
+ *             properties:
+ *               taskId:
+ *                 type: string
+ *               projectId:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Timer resumed
+ *       403:
+ *         description: Forbidden
+ */
 router.post('/resume', authenticateToken, async (req, res) => {
   try {
     const { taskId, projectId } = req.body;
@@ -84,7 +161,32 @@ router.post('/resume', authenticateToken, async (req, res) => {
   }
 });
 
-// Stop timer
+/**
+ * @openapi
+ * /api/time-logs/stop:
+ *   post:
+ *     summary: Stop task timer
+ *     tags: [Time Tracking]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [taskId]
+ *             properties:
+ *               taskId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Timer stopped
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Active timer not found
+ */
 router.post('/stop', authenticateToken, async (req, res) => {
   try {
     const { taskId } = req.body;
@@ -102,7 +204,40 @@ router.post('/stop', authenticateToken, async (req, res) => {
   }
 });
 
-// Add manual log
+/**
+ * @openapi
+ * /api/time-logs/manual:
+ *   post:
+ *     summary: Add manual time entry
+ *     tags: [Time Tracking]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [taskId, startTime, endTime]
+ *             properties:
+ *               taskId:
+ *                 type: string
+ *               projectId:
+ *                 type: string
+ *               startTime:
+ *                 type: string
+ *               endTime:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               isBillable:
+ *                 type: boolean
+ *     responses:
+ *       201:
+ *         description: Manual log created
+ *       403:
+ *         description: Forbidden
+ */
 router.post('/manual', authenticateToken, async (req, res) => {
   try {
     const { taskId, projectId, startTime, endTime, description, isBillable } = req.body;
@@ -185,7 +320,18 @@ router.get('/calendar-data', authenticateToken, async (req, res) => {
   }
 });
 
-// Get current user's active or paused timer
+/**
+ * @openapi
+ * /api/time-logs/current:
+ *   get:
+ *     summary: Get user's active timer
+ *     tags: [Time Tracking]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current active timer details
+ */
 router.get('/current', authenticateToken, async (req, res) => {
   try {
     const TimeLog = require('../models/TimeLog');

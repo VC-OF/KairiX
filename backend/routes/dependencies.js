@@ -75,6 +75,26 @@ function detectCycle(sourceId, targetId, dependencyType, existingDependencies) {
   return false;
 }
 
+/**
+ * @openapi
+ * /api/dependencies/{projectId}:
+ *   get:
+ *     summary: Get all dependencies and tasks in a project
+ *     tags: [Dependencies]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of dependencies and tasks
+ *       500:
+ *         description: Server error
+ */
 // 1. GET all dependencies and tasks in a project
 router.get('/:projectId', authenticateToken, hasProjectAccess('projectId'), async (req, res) => {
   try {
@@ -94,6 +114,47 @@ router.get('/:projectId', authenticateToken, hasProjectAccess('projectId'), asyn
   }
 });
 
+/**
+ * @openapi
+ * /api/dependencies/{projectId}:
+ *   post:
+ *     summary: Create a new task dependency relationship
+ *     tags: [Dependencies]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [sourceTaskId, targetTaskId, dependencyType]
+ *             properties:
+ *               sourceTaskId:
+ *                 type: string
+ *               targetTaskId:
+ *                 type: string
+ *               dependencyType:
+ *                 type: string
+ *                 enum: [blocks, depends-on, blocked-by, related-to, parent-child]
+ *     responses:
+ *       201:
+ *         description: Dependency created successfully
+ *       400:
+ *         description: Invalid input or circular dependency detected
+ *       404:
+ *         description: Tasks not found
+ *       409:
+ *         description: Dependency already exists
+ *       500:
+ *         description: Server error
+ */
 // 2. POST create a new dependency relation
 router.post('/:projectId', authenticateToken, hasProjectAccess('projectId'), async (req, res) => {
   try {
@@ -177,6 +238,33 @@ router.post('/:projectId', authenticateToken, hasProjectAccess('projectId'), asy
   }
 });
 
+/**
+ * @openapi
+ * /api/dependencies/{projectId}/{dependencyId}:
+ *   delete:
+ *     summary: Delete a dependency relationship
+ *     tags: [Dependencies]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: dependencyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Dependency removed successfully
+ *       404:
+ *         description: Dependency not found
+ *       500:
+ *         description: Server error
+ */
 // 3. DELETE a dependency relationship
 router.delete('/:projectId/:dependencyId', authenticateToken, hasProjectAccess('projectId'), async (req, res) => {
   try {
@@ -213,6 +301,50 @@ router.delete('/:projectId/:dependencyId', authenticateToken, hasProjectAccess('
   }
 });
 
+/**
+ * @openapi
+ * /api/dependencies/{projectId}/bulk-remap:
+ *   post:
+ *     summary: Bulk remap dependencies for a task
+ *     tags: [Dependencies]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [taskId, dependencies]
+ *             properties:
+ *               taskId:
+ *                 type: string
+ *               dependencies:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required: [targetTaskId, dependencyType]
+ *                   properties:
+ *                     targetTaskId:
+ *                       type: string
+ *                     dependencyType:
+ *                       type: string
+ *     responses:
+ *       200:
+ *         description: Dependencies successfully remapped
+ *       400:
+ *         description: Invalid input or circular dependency
+ *       404:
+ *         description: Task not found
+ *       500:
+ *         description: Server error
+ */
 // 4. POST bulk remap dependencies for a task
 router.post('/:projectId/bulk-remap', authenticateToken, hasProjectAccess('projectId'), async (req, res) => {
   try {
@@ -283,6 +415,28 @@ router.post('/:projectId/bulk-remap', authenticateToken, hasProjectAccess('proje
   }
 });
 
+/**
+ * @openapi
+ * /api/dependencies/{projectId}/critical-path:
+ *   get:
+ *     summary: Calculate critical path for a project
+ *     tags: [Dependencies]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Critical path calculation results
+ *       400:
+ *         description: Circular dependency detected
+ *       500:
+ *         description: Server error
+ */
 // 5. GET Critical Path calculation
 router.get('/:projectId/critical-path', authenticateToken, hasProjectAccess('projectId'), async (req, res) => {
   try {
@@ -432,6 +586,26 @@ router.get('/:projectId/critical-path', authenticateToken, hasProjectAccess('pro
   }
 });
 
+/**
+ * @openapi
+ * /api/dependencies/{projectId}/events:
+ *   get:
+ *     summary: Get all dependency audit events
+ *     tags: [Dependencies]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of dependency events
+ *       500:
+ *         description: Server error
+ */
 // 6. GET all dependency audit events
 router.get('/:projectId/events', authenticateToken, hasProjectAccess('projectId'), async (req, res) => {
   try {
@@ -446,6 +620,26 @@ router.get('/:projectId/events', authenticateToken, hasProjectAccess('projectId'
   }
 });
 
+/**
+ * @openapi
+ * /api/dependencies/{projectId}/ai-insights:
+ *   get:
+ *     summary: Get AI Heuristic Insights for dependency bottlenecks and risks
+ *     tags: [Dependencies]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: AI insights report
+ *       500:
+ *         description: Server error
+ */
 // 7. GET AI Heuristic Insights
 router.get('/:projectId/ai-insights', authenticateToken, hasProjectAccess('projectId'), async (req, res) => {
   try {

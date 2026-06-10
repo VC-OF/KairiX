@@ -287,6 +287,11 @@
   background: #475569;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 /* Smooth transitions */
 * {
   -webkit-font-smoothing: antialiased;
@@ -499,8 +504,8 @@
 /* Premium SaaS Glassmorphism Card styling */
 .glass-panel {
   background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   border: 1px solid rgba(226, 232, 240, 0.6);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -508,8 +513,8 @@
 
 .dark .glass-panel {
   background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.05);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
 }
@@ -529,15 +534,15 @@
 /* Glass Navbar */
 .glass-navbar {
   background: var(--theme-navbar-bg);
-  backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--theme-navbar-border);
 }
 
 .dark .glass-navbar {
   background: var(--theme-navbar-bg);
-  backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--theme-navbar-border);
 }
 
