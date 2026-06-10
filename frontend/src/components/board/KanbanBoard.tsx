@@ -37,6 +37,11 @@ export const KanbanBoard: React.FC = () => {
     filterAssignee,
     setFilterAssignee,
     project,
+    taskPage,
+    totalTasks,
+    taskLimit,
+    setTaskPage,
+    fetchTasks
   } = useStore();
   const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -249,7 +254,7 @@ export const KanbanBoard: React.FC = () => {
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
-          <div className="grid grid-cols-4 gap-4 flex-1 overflow-hidden min-h-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 flex-1 overflow-y-auto lg:overflow-hidden min-h-0">
             {STATUSES.map((status) => (
               <KanbanColumn
                 key={status}
@@ -352,6 +357,35 @@ export const KanbanBoard: React.FC = () => {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {totalTasks > taskLimit && (
+        <div className="flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
+          <button
+            disabled={taskPage === 1}
+            onClick={() => {
+              setTaskPage(taskPage - 1);
+              fetchTasks(project.id, taskPage - 1);
+            }}
+            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-black uppercase tracking-wider rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all text-gray-700 dark:text-gray-200"
+          >
+            Previous
+          </button>
+          <span className="text-xs text-gray-500 dark:text-gray-400 font-bold">
+            Page {taskPage} of {Math.ceil(totalTasks / taskLimit)}
+          </span>
+          <button
+            disabled={taskPage >= Math.ceil(totalTasks / taskLimit)}
+            onClick={() => {
+              setTaskPage(taskPage + 1);
+              fetchTasks(project.id, taskPage + 1);
+            }}
+            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-black uppercase tracking-wider rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all text-gray-700 dark:text-gray-200"
+          >
+            Next
+          </button>
         </div>
       )}
 

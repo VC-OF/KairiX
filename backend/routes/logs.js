@@ -140,13 +140,19 @@ router.post('/', authenticateToken, async (req, res) => {
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { content, completedTasks, blockers } = req.body;
-    const log = await DailyLog.findByIdAndUpdate(
-      req.params.id,
-      { content, completedTasks, blockers },
-      { new: true }
-    ).populate('userId', 'name email avatar globalRole');
-    
+    const log = await DailyLog.findById(req.params.id);
     if (!log) return res.status(404).json({ message: 'Log not found' });
+    
+    if (log.userId.toString() !== req.user.userId && req.user.globalRole !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized to edit this log' });
+    }
+
+    log.content = content !== undefined ? content : log.content;
+    log.completedTasks = completedTasks !== undefined ? completedTasks : log.completedTasks;
+    log.blockers = blockers !== undefined ? blockers : log.blockers;
+    await log.save();
+    
+    await log.populate('userId', 'name email avatar globalRole');
     
     const comments = await DailyLogComment.find({ logId: log._id })
       .populate('userId', 'name email avatar globalRole')
@@ -178,6 +184,13 @@ router.put('/:id', authenticateToken, async (req, res) => {
 // Delete log
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
+    const log = await DailyLog.findById(req.params.id);
+    if (!log) return res.status(404).json({ message: 'Log not found' });
+
+    if (log.userId.toString() !== req.user.userId && req.user.globalRole !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized to delete this log' });
+    }
+
     await DailyLog.findByIdAndDelete(req.params.id);
     await DailyLogComment.deleteMany({ logId: req.params.id });
     res.json({ message: 'Log deleted' });

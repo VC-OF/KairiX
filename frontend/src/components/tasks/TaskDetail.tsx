@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Task, useStore } from '../../store/useStore';
 import { TaskTimer } from './TaskTimer';
 import { ManualLogModal } from './ManualLogModal';
 import { Avatar } from '../ui/Avatar';
 import { StatusBadge, PriorityBadge } from '../ui/Badge';
 import { Button } from '../ui/Button';
-import { Calendar, Clock, Edit3, Tag, User, AlignLeft, MessageSquare, Send, Copy, X } from 'lucide-react';
+import { Calendar, Clock, Edit3, Tag, User, AlignLeft, MessageSquare, Send, Copy, X, CheckSquare, Square as SquareIcon, Bell, BellOff, Plus, Trash2, RefreshCw } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { api } from '../../utils/api';
+import { useToast } from '../ui/Toast';
 
 interface TaskDetailProps {
   isOpen: boolean;
@@ -16,16 +18,73 @@ interface TaskDetailProps {
 }
 
 export const TaskDetail: React.FC<TaskDetailProps> = ({ isOpen, onClose, task, onEdit }) => {
-  const { users, currentUser, taskComments, fetchTaskComments, addTaskComment } = useStore();
+  const { users, currentUser, taskComments, fetchTaskComments, addTaskComment, project } = useStore();
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showManualLog, setShowManualLog] = useState(false);
+  const [subtasks, setSubtasks] = useState<any[]>(task.subtasks || []);
+  const [newSubtask, setNewSubtask] = useState('');
+  const [addingSubtask, setAddingSubtask] = useState(false);
+  const [watching, setWatching] = useState((task.watchers || []).includes(currentUser?.id || ''));
+  const [recurrenceEnabled, setRecurrenceEnabled] = useState(task.recurrence?.enabled ?? false);
+  const [recurrenceFreq, setRecurrenceFreq] = useState<'daily'|'weekly'|'monthly'>(task.recurrence?.frequency || 'weekly');
+  const toast = useToast();
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchTaskComments(task.id);
-    }
-  }, [isOpen, task.id, fetchTaskComments]);
+  useEffect(() => { if (isOpen) { fetchTaskComments(task.id); setSubtasks(task.subtasks || []); } }, [isOpen, task.id, fetchTaskComments, task.subtasks]);
+
+  const handleAddSubtask = async () => {
+    if (!newSubtask.trim() || addingSubtask) return;
+    setAddingSubtask(true);
+    try {
+      const res = await api.post(`/tasks/${project.id}/${task.id}/subtasks`, { title: newSubtask.trim().slice(0, 200) });
+      setSubtasks(prev => [...prev, res.data]);
+      setNewSubtask('');
+      toast.success('Subtask added');
+    } catch { toast.error('Failed to add subtask'); }
+    setAddingSubtask(false);
+  };
+
+  const handleToggleSubtask = async (subtaskId: string, completed: boolean) => {
+    try {
+      await api.put(`/tasks/${project.id}/${task.id}/subtasks/${subtaskId}`, { completed: !completed });
+      setSubtasks(prev => prev.map(s => s._id === subtaskId || s.id === subtaskId ? { ...s, completed: !completed } : s));
+    } catch { toast.error('Failed to update subtask'); }
+  };
+
+  const handleDeleteSubtask = async (subtaskId: string) => {
+    try {
+      await api.delete(`/tasks/${project.id}/${task.id}/subtasks/${subtaskId}`);
+      setSubtasks(prev => prev.filter(s => (s._id || s.id) !== subtaskId));
+      toast.success('Subtask removed');
+    } catch { toast.error('Failed to delete subtask'); }
+  };
+
+  const handleWatchToggle = async () => {
+    try {
+      if (watching) {
+        await api.delete(`/tasks/${project.id}/${task.id}/watch`);
+        setWatching(false);
+        toast.info('Unwatched task', 'You will no longer receive notifications for this task');
+      } else {
+        await api.post(`/tasks/${project.id}/${task.id}/watch`);
+        setWatching(true);
+        toast.success('Now watching task', 'You will receive notifications when this task is updated');
+      }
+    } catch { toast.error('Failed to update watch status'); }
+  };
+
+  const handleSaveRecurrence = async () => {
+    try {
+      await api.put(`/tasks/${project.id}/${task.id}`, {
+        recurrence: {
+          enabled: recurrenceEnabled,
+          frequency: recurrenceFreq,
+          nextDue: recurrenceEnabled ? new Date(Date.now() + (recurrenceFreq === 'daily' ? 86400000 : recurrenceFreq === 'weekly' ? 604800000 : 2592000000)) : null,
+        }
+      });
+      toast.success('Recurrence saved');
+    } catch { toast.error('Failed to save recurrence'); }
+  };
 
   const assignedUsers = users.filter((u) => task.assignees.includes(u.id));
   const createdByUser = users.find((u) => u.id === task.createdBy);
@@ -104,6 +163,69 @@ export const TaskDetail: React.FC<TaskDetailProps> = ({ isOpen, onClose, task, o
               <div className="flex flex-wrap gap-2">
                 <StatusBadge status={task.status} />
                 <PriorityBadge priority={task.priority} />
+              </div>
+            </div>
+
+            {/* Subtask Checklist */}
+            <div className="bg-gray-50/50 dark:bg-gray-900/55 rounded-xl p-4 border border-gray-100 dark:border-gray-800 space-y-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300">
+                  <CheckSquare size={14} className="text-indigo-500" />
+                  Checklist
+                  {subtasks.length > 0 && (
+                    <span className="text-[10px] font-black text-gray-400">{subtasks.filter(s => s.completed).length}/{subtasks.length}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              {subtasks.length > 0 && (
+                <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+                    style={{ width: `${(subtasks.filter(s => s.completed).length / subtasks.length) * 100}%` }}
+                  />
+                </div>
+              )}
+
+              {/* Subtask items */}
+              <div className="space-y-1">
+                {subtasks.map(s => {
+                  const sid = s._id || s.id;
+                  return (
+                    <div key={sid} className="flex items-center gap-2.5 group/sub py-1">
+                      <button onClick={() => handleToggleSubtask(sid, s.completed)} className="shrink-0 text-gray-400 hover:text-indigo-500 transition-colors">
+                        {s.completed ? <CheckSquare size={15} className="text-indigo-500" /> : <SquareIcon size={15} />}
+                      </button>
+                      <span className={`flex-1 text-xs ${s.completed ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-300'}`}>{s.title}</span>
+                      {canManageTasks && (
+                        <button onClick={() => handleDeleteSubtask(sid)} className="opacity-0 group-hover/sub:opacity-100 text-gray-300 hover:text-rose-400 transition-all">
+                          <Trash2 size={12} />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Add subtask input */}
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="text"
+                  value={newSubtask}
+                  onChange={e => setNewSubtask(e.target.value.slice(0, 200))}
+                  onKeyDown={e => e.key === 'Enter' && handleAddSubtask()}
+                  placeholder="Add a checklist item..."
+                  className="flex-1 text-xs bg-transparent border-b border-gray-200 dark:border-gray-700 pb-1 focus:outline-none focus:border-indigo-500 text-gray-700 dark:text-gray-300 placeholder-gray-400"
+                  maxLength={200}
+                />
+                <button
+                  onClick={handleAddSubtask}
+                  disabled={!newSubtask.trim() || addingSubtask}
+                  className="shrink-0 p-1.5 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 disabled:opacity-40 transition-colors"
+                >
+                  <Plus size={12} />
+                </button>
               </div>
             </div>
 
@@ -194,6 +316,19 @@ export const TaskDetail: React.FC<TaskDetailProps> = ({ isOpen, onClose, task, o
 
           {/* Right Sidebar - Meta Info */}
           <div className="space-y-6 lg:border-l lg:border-gray-100 lg:dark:border-gray-800 lg:pl-6">
+            {/* Watch Button */}
+            <button
+              onClick={handleWatchToggle}
+              className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl border text-xs font-bold transition-all ${
+                watching
+                  ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400'
+                  : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-indigo-200 hover:text-indigo-500'
+              }`}
+            >
+              {watching ? <Bell size={13} /> : <BellOff size={13} />}
+              {watching ? 'Watching' : 'Watch Task'}
+            </button>
+
             {/* Assignees */}
             <div>
               <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
@@ -316,6 +451,42 @@ export const TaskDetail: React.FC<TaskDetailProps> = ({ isOpen, onClose, task, o
                 </div>
               </div>
             )}
+
+            {/* Recurrence */}
+            <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
+              <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+                <RefreshCw size={12} />
+                Recurrence
+              </div>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={recurrenceEnabled}
+                    onChange={e => setRecurrenceEnabled(e.target.checked)}
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">Enable recurrence</span>
+                </label>
+                {recurrenceEnabled && (
+                  <select
+                    value={recurrenceFreq}
+                    onChange={e => setRecurrenceFreq(e.target.value as any)}
+                    className="w-full text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                  >
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                )}
+                <button
+                  onClick={handleSaveRecurrence}
+                  className="w-full py-1.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs font-bold hover:bg-indigo-500/20 transition-colors"
+                >
+                  Save Recurrence
+                </button>
+              </div>
+            </div>
 
             <div className="pt-4 border-t border-gray-100 dark:border-gray-800 space-y-2">
               {canEditTask && (

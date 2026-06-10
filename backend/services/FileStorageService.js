@@ -14,9 +14,20 @@ const s3 = new AWS.S3({
 const isS3Enabled = !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY);
 
 const storage = multer.memoryStorage();
+
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
+  fileFilter: (req, file, cb) => {
+    // Specifically block dangerous, executable, scripting, and web markup extensions
+    const dangerousExts = /\.(html|htm|svg|js|ts|jsx|tsx|exe|bat|cmd|sh|msi|php|asp|aspx|jsp|vbs|wsf|scr|jar|com)$/i;
+    const isDangerous = dangerousExts.test(file.originalname.toLowerCase());
+
+    if (isDangerous) {
+      return cb(new Error('File upload blocked: dangerous file extension detected!'));
+    }
+    cb(null, true);
+  }
 });
 
 const uploadToS3 = async (file, projectId) => {

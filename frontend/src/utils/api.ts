@@ -2,16 +2,34 @@ import axios, { AxiosInstance } from 'axios';
 
 const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000/api';
 
+// Helper to get cookie value by name
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+  return null;
+}
+
 // Create axios instance
 const axiosInstance: AxiosInstance = axios.create({
   baseURL: API_URL,
+  withCredentials: true,
 });
 
-// Add token to requests
+// Add token and CSRF token to requests
 axiosInstance.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  // Inject CSRF token on mutating requests
+  if (config.method && !['get', 'head', 'options'].includes(config.method.toLowerCase())) {
+    const csrfToken = getCookie('csrfToken');
+    if (csrfToken) {
+      config.headers['x-csrf-token'] = csrfToken;
+    }
   }
   return config;
 });

@@ -19,6 +19,8 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { ProjectHealthScore } from './ProjectHealthScore';
+import { WorkloadMap } from './WorkloadMap';
 
 // Skeleton block helper
 const Skel = ({ className = '' }: { className?: string }) => (
@@ -314,6 +316,12 @@ export const Dashboard: React.FC = () => {
             <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{card.label}</p>
           </div>
         ))}
+      </div>
+
+      {/* Health Score + Workload Map */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ProjectHealthScore />
+        <WorkloadMap />
       </div>
 
       {/* Progress & Activity */}

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
 import { useAuth } from '../../hooks/useAuth';
-import { ChevronDown, Bell, Menu, X, Sun, Moon, LogOut, User, Sparkles, Palette, Check, Star, PanelLeftOpen } from 'lucide-react';
+import { ChevronDown, Bell, Menu, X, Sun, Moon, LogOut, User, Sparkles, Palette, Check, Star, PanelLeftOpen, Command, AlignJustify, AlignCenter, AlignLeft as AlignSpacious } from 'lucide-react';
 import { NotificationsPanel } from './NotificationsPanel';
 
 interface HeaderProps {
@@ -45,12 +45,15 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
     currentUser,
     isSidebarCollapsed,
     toggleSidebar,
+    layoutDensity,
+    setLayoutDensity,
   } = useStore();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
+  const [showDensityMenu, setShowDensityMenu] = useState(false);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -169,6 +172,20 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
         <span>Interactive Tour</span>
       </button>
 
+      {/* Command Palette trigger */}
+      <button
+        onClick={() => {
+          const event = new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true });
+          window.dispatchEvent(event);
+        }}
+        title="Command Palette (Ctrl+K)"
+        className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-gray-200/60 dark:border-gray-700/60 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-all text-xs font-semibold"
+      >
+        <Command size={13} />
+        <span className="hidden md:inline">Search</span>
+        <kbd className="hidden md:inline text-[9px] px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-700 font-mono text-gray-400">⌘K</kbd>
+      </button>
+
       <div className="flex-1 lg:flex-none" />
 
       {/* Notifications */}
@@ -215,7 +232,7 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
         )}
       </div>
 
-      {/* Day / Night / Themes controls */}
+      {/* Day / Night / Themes / Density controls */}
       <div className="flex items-center gap-1 bg-gray-100/70 dark:bg-gray-800/70 rounded-xl p-1">
         {/* Day Mode */}
         <button
@@ -247,7 +264,43 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
           <span className="hidden sm:inline">Night</span>
         </button>
 
-        {/* Themes Dropdown */}
+        {/* Density Switcher */}
+        <div className="relative">
+          <button
+            onClick={() => setShowDensityMenu(d => !d)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+              showDensityMenu ? 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+            title="Layout Density"
+          >
+            <AlignJustify size={14} />
+            <span className="hidden sm:inline capitalize">{layoutDensity}</span>
+          </button>
+          {showDensityMenu && (
+            <>
+              <div className="fixed inset-0 z-20" onClick={() => setShowDensityMenu(false)} />
+              <div className="absolute right-0 top-full mt-2 w-44 glass-panel rounded-2xl shadow-2xl z-30 overflow-hidden animate-dropdown">
+                <div className="p-2">
+                  {(['dense', 'comfortable', 'spacious'] as const).map(d => (
+                    <button
+                      key={d}
+                      onClick={() => { setLayoutDensity(d); setShowDensityMenu(false); }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all capitalize ${
+                        layoutDensity === d ? 'bg-gray-100 dark:bg-gray-700/80 text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                      }`}
+                    >
+                      {d === 'dense' && <AlignJustify size={14} />}
+                      {d === 'comfortable' && <AlignCenter size={14} />}
+                      {d === 'spacious' && <AlignSpacious size={14} />}
+                      {d}
+                      {layoutDensity === d && <Check size={12} className="ml-auto" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
         <div className="relative">
           <button
             id="btn-themes-menu"

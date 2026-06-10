@@ -16,7 +16,14 @@ router.get('/', authenticateToken, async (req, res) => {
 
 router.put('/:id/read', authenticateToken, async (req, res) => {
   try {
-    await Notification.findByIdAndUpdate(req.params.id, { read: true });
+    const notification = await Notification.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user.userId },
+      { read: true },
+      { new: true }
+    );
+    if (!notification) {
+      return res.status(404).json({ message: 'Notification not found or access denied' });
+    }
     res.json({ message: 'Marked as read' });
   } catch (err) {
     res.status(500).json({ message: err.message });

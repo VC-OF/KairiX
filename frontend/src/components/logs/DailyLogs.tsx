@@ -390,7 +390,20 @@ const LogCard: React.FC<LogCardProps> = ({
 
 // ═══════════════════════ MAIN SUBREDDIT FEED OVERVIEW ═══════════════════════
 export const DailyLogs: React.FC = () => {
-  const { dailyLogs, users, project, currentUser, voteLogPost, voteLogComment, addLogComment } = useStore();
+  const { 
+    dailyLogs, 
+    users, 
+    project, 
+    currentUser, 
+    voteLogPost, 
+    voteLogComment, 
+    addLogComment,
+    logPage,
+    totalLogs,
+    logLimit,
+    setLogPage,
+    fetchLogs
+  } = useStore();
   const [showAdd, setShowAdd] = useState(false);
   const [filterUser, setFilterUser] = useState<string>('all');
 
@@ -513,6 +526,35 @@ export const DailyLogs: React.FC = () => {
                   </div>
                 );
               })}
+
+              {/* Pagination Controls */}
+              {totalLogs > logLimit && (
+                <div className="flex items-center justify-between bg-white dark:bg-[#0c1018] p-4 rounded-3xl border border-gray-150 dark:border-gray-850 shadow-sm mt-6">
+                  <button
+                    disabled={logPage === 1}
+                    onClick={() => {
+                      setLogPage(logPage - 1);
+                      fetchLogs(project.id, logPage - 1);
+                    }}
+                    className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-xs font-black uppercase tracking-wider rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-xs text-gray-500 font-bold">
+                    Page {logPage} of {Math.ceil(totalLogs / logLimit)}
+                  </span>
+                  <button
+                    disabled={logPage >= Math.ceil(totalLogs / logLimit)}
+                    onClick={() => {
+                      setLogPage(logPage + 1);
+                      fetchLogs(project.id, logPage + 1);
+                    }}
+                    className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-xs font-black uppercase tracking-wider rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

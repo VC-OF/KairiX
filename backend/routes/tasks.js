@@ -7,8 +7,48 @@ const notificationService = require('../services/NotificationService');
 const router = express.Router();
 
 /**
- * POST /api/tasks/:projectId
- * Create a task (ProjectManager, TeamLead can create)
+ * @openapi
+ * /api/tasks/{projectId}:
+ *   post:
+ *     summary: Create a new task in a project
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title]
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *               priority:
+ *                 type: string
+ *               dueDate:
+ *                 type: string
+ *               assignees:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       201:
+ *         description: Task created
+ *       400:
+ *         description: Bad request
+ *       403:
+ *         description: Forbidden
  */
 router.post('/:projectId',
   hasProjectAccess('projectId'),
@@ -55,8 +95,36 @@ router.post('/:projectId',
 );
 
 /**
- * GET /api/tasks/:projectId
- * Get all tasks for a project (any project member)
+ * @openapi
+ * /api/tasks/{projectId}:
+ *   get:
+ *     summary: Get all tasks for a project
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of tasks with pagination
+ *       403:
+ *         description: Forbidden
  */
 router.get('/:projectId',
   hasProjectAccess('projectId'),
@@ -99,8 +167,29 @@ router.get('/:projectId',
 );
 
 /**
- * GET /api/tasks/:projectId/:taskId
- * Get a specific task
+ * @openapi
+ * /api/tasks/{projectId}/{taskId}:
+ *   get:
+ *     summary: Get a specific task
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Task details
+ *       404:
+ *         description: Task not found
  */
 router.get('/:projectId/:taskId',
   hasProjectAccess('projectId'),
@@ -123,10 +212,46 @@ router.get('/:projectId/:taskId',
 );
 
 /**
- * PUT /api/tasks/:projectId/:taskId
- * Update a task
- * - ProjectManager & TeamLead: can update any task
- * - TeamMember: can only update their own tasks and only status
+ * @openapi
+ * /api/tasks/{projectId}/{taskId}:
+ *   put:
+ *     summary: Update a task
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *               priority:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Task updated successfully
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Task not found
  */
 router.put('/:projectId/:taskId',
   hasProjectAccess('projectId'),
@@ -197,8 +322,31 @@ router.put('/:projectId/:taskId',
 );
 
 /**
- * DELETE /api/tasks/:projectId/:taskId
- * Delete a task (ProjectManager only)
+ * @openapi
+ * /api/tasks/{projectId}/{taskId}:
+ *   delete:
+ *     summary: Delete a task
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Task deleted successfully
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Task not found
  */
 router.delete('/:projectId/:taskId',
   hasProjectAccess('projectId'),
@@ -227,4 +375,167 @@ router.delete('/:projectId/:taskId',
   }
 );
 
+// ─────────────────────────────────────────────────────────────────────────────
+// SUBTASKS (Checklists)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * POST /api/tasks/:projectId/:taskId/subtasks
+ * Add a subtask to a task (any project member)
+ */
+router.post('/:projectId/:taskId/subtasks',
+  hasProjectAccess('projectId'),
+  async (req, res) => {
+    try {
+      const { title } = req.body;
+      if (!title || typeof title !== 'string' || title.trim().length === 0) {
+        return res.status(400).json({ message: 'Subtask title is required' });
+      }
+      if (title.trim().length > 200) {
+        return res.status(400).json({ message: 'Subtask title must not exceed 200 characters' });
+      }
+
+      const task = await Task.findById(req.params.taskId);
+      if (!task || task.projectId.toString() !== req.project._id.toString()) {
+        return res.status(404).json({ message: 'Task not found' });
+      }
+
+      task.subtasks.push({ title: title.trim(), createdBy: req.user.userId });
+      await task.save();
+
+      const io = req.app.get('io');
+      if (io) io.to(`project:${req.project._id}`).emit('task-updated', task);
+
+      res.status(201).json(task.subtasks[task.subtasks.length - 1]);
+    } catch (err) {
+      console.error('Add subtask error:', err);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
+);
+
+/**
+ * PUT /api/tasks/:projectId/:taskId/subtasks/:subtaskId
+ * Toggle or rename a subtask
+ */
+router.put('/:projectId/:taskId/subtasks/:subtaskId',
+  hasProjectAccess('projectId'),
+  async (req, res) => {
+    try {
+      const task = await Task.findById(req.params.taskId);
+      if (!task || task.projectId.toString() !== req.project._id.toString()) {
+        return res.status(404).json({ message: 'Task not found' });
+      }
+
+      const subtask = task.subtasks.id(req.params.subtaskId);
+      if (!subtask) return res.status(404).json({ message: 'Subtask not found' });
+
+      if (typeof req.body.completed === 'boolean') subtask.completed = req.body.completed;
+      if (req.body.title && typeof req.body.title === 'string') {
+        subtask.title = req.body.title.trim().slice(0, 200);
+      }
+
+      await task.save();
+
+      const io = req.app.get('io');
+      if (io) io.to(`project:${req.project._id}`).emit('task-updated', task);
+
+      res.json(subtask);
+    } catch (err) {
+      console.error('Update subtask error:', err);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
+);
+
+/**
+ * DELETE /api/tasks/:projectId/:taskId/subtasks/:subtaskId
+ * Remove a subtask (ProjectManager or TeamLead)
+ */
+router.delete('/:projectId/:taskId/subtasks/:subtaskId',
+  hasProjectAccess('projectId'),
+  requireProjectRole('ProjectManager', 'TeamLead'),
+  async (req, res) => {
+    try {
+      const task = await Task.findById(req.params.taskId);
+      if (!task || task.projectId.toString() !== req.project._id.toString()) {
+        return res.status(404).json({ message: 'Task not found' });
+      }
+
+      const subtask = task.subtasks.id(req.params.subtaskId);
+      if (!subtask) return res.status(404).json({ message: 'Subtask not found' });
+
+      subtask.deleteOne();
+      await task.save();
+
+      const io = req.app.get('io');
+      if (io) io.to(`project:${req.project._id}`).emit('task-updated', task);
+
+      res.json({ message: 'Subtask deleted' });
+    } catch (err) {
+      console.error('Delete subtask error:', err);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WATCHERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * POST /api/tasks/:projectId/:taskId/watch
+ * Watch a task (authenticated project member)
+ */
+router.post('/:projectId/:taskId/watch',
+  hasProjectAccess('projectId'),
+  async (req, res) => {
+    try {
+      const task = await Task.findById(req.params.taskId);
+      if (!task || task.projectId.toString() !== req.project._id.toString()) {
+        return res.status(404).json({ message: 'Task not found' });
+      }
+
+      const userId = req.user.userId;
+      const mongoose = require('mongoose');
+      const userOid = new mongoose.Types.ObjectId(userId);
+
+      if (!task.watchers.some(w => w.toString() === userId)) {
+        task.watchers.push(userOid);
+        await task.save();
+      }
+
+      res.json({ watching: true, watcherCount: task.watchers.length });
+    } catch (err) {
+      console.error('Watch task error:', err);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
+);
+
+/**
+ * DELETE /api/tasks/:projectId/:taskId/watch
+ * Unwatch a task
+ */
+router.delete('/:projectId/:taskId/watch',
+  hasProjectAccess('projectId'),
+  async (req, res) => {
+    try {
+      const task = await Task.findById(req.params.taskId);
+      if (!task || task.projectId.toString() !== req.project._id.toString()) {
+        return res.status(404).json({ message: 'Task not found' });
+      }
+
+      task.watchers = task.watchers.filter(w => w.toString() !== req.user.userId);
+      await task.save();
+
+      res.json({ watching: false, watcherCount: task.watchers.length });
+    } catch (err) {
+      console.error('Unwatch task error:', err);
+      res.status(500).json({ message: 'Server error' });
+    }
+  }
+);
+
 module.exports = router;
+

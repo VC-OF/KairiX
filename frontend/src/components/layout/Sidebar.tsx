@@ -19,9 +19,11 @@ import {
   Square,
   Calendar,
   PanelLeftClose,
+  Pin,
+  Search,
 } from 'lucide-react';
 import { LogoCompact } from '../ui/Logo';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { api } from '../../utils/api';
@@ -104,12 +106,43 @@ export const Sidebar: React.FC = () => {
     globalActiveTimer,
     setGlobalActiveTimer,
     teamLeadEnabled,
-    toggleSidebar
+    toggleSidebar,
+    pinnedProjects,
+    togglePinProject,
+    setSidebarWidth,
   } = useStore();
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDesc, setNewProjectDesc] = useState('');
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
+  const [projectSearch, setProjectSearch] = useState('');
+  const dragHandleRef = useRef<HTMLDivElement>(null);
+  const sidebarRef = useRef<HTMLElement>(null);
+
+  // ── Drag-to-resize logic ───────────────────────────────────────────────────
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = sidebarRef.current?.offsetWidth ?? 256;
+
+    const onMove = (ev: MouseEvent) => {
+      const newWidth = Math.min(340, Math.max(180, startWidth + ev.clientX - startX));
+      if (sidebarRef.current) sidebarRef.current.style.width = `${newWidth}px`;
+    };
+    const onUp = (ev: MouseEvent) => {
+      const finalWidth = Math.min(340, Math.max(180, startWidth + ev.clientX - startX));
+      setSidebarWidth(finalWidth);
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, [setSidebarWidth]);
 
   const [seconds, setSeconds] = useState(0);
 
@@ -214,12 +247,22 @@ export const Sidebar: React.FC = () => {
 
   return (
     <aside
-      className="w-64 backdrop-blur-md flex flex-col h-full shrink-0 transition-colors duration-300"
+      ref={sidebarRef}
+      className="backdrop-blur-md flex flex-col h-full shrink-0 transition-colors duration-300 relative"
       style={{
         background: 'var(--theme-sidebar-bg)',
         borderRight: '1px solid var(--theme-sidebar-border)',
       }}
     >
+      {/* Drag-to-resize handle */}
+      <div
+        ref={dragHandleRef}
+        onMouseDown={handleDragStart}
+        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize z-10 hover:bg-indigo-500/20 transition-colors group"
+        title="Drag to resize sidebar"
+      >
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-12 bg-indigo-500/0 group-hover:bg-indigo-500/40 rounded-full transition-all" />
+      </div>
       {/* Top Section: Logo & Projects */}
       <div className="shrink-0">
         {/* Logo */}
@@ -275,25 +318,70 @@ export const Sidebar: React.FC = () => {
                   onClick={() => setIsProjectDropdownOpen(false)}
                 />
                 <div className="absolute top-full left-0 w-full mt-2 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border border-gray-200/50 dark:border-gray-800/50 rounded-xl shadow-2xl z-30 py-1.5 overflow-hidden animate-dropdown">
-                  <div className="max-h-60 overflow-y-auto custom-scrollbar">
-                    {projects.map(p => (
-                      <button
-                        key={p.id}
-                        onClick={() => {
-                          setProject(p);
-                          setIsProjectDropdownOpen(false);
-                        }}
-                        className={`w-full text-left px-4 py-2.5 text-xs font-semibold transition-all flex items-center gap-3 ${project.id === p.id
-                          ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md'
-                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/60 dark:hover:bg-gray-800/60'
+                  {/* Search input */}
+                  <div className="px-3 pb-2 pt-1.5 border-b border-gray-100 dark:border-gray-800">
+                    <div className="relative">
+                      <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="text"
+                        value={projectSearch}
+                        onChange={e => setProjectSearch(e.target.value)}
+                        placeholder="Search projects…"
+                        className="w-full pl-7 pr-3 py-1.5 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900 dark:text-gray-100"
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+
+                  <div className="max-h-60 overflow-y-auto custom-scrollbar py-1">
+                    {/* Pinned first */}
+                    {projects.filter(p => pinnedProjects.includes(p.id) && p.name.toLowerCase().includes(projectSearch.toLowerCase())).map(p => (
+                      <div key={p.id} className="flex items-center group/proj">
+                        <button
+                          onClick={() => { setProject(p); setIsProjectDropdownOpen(false); setProjectSearch(''); }}
+                          className={`flex-1 text-left px-4 py-2.5 text-xs font-semibold transition-all flex items-center gap-3 ${
+                            project.id === p.id ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/60 dark:hover:bg-gray-800/60'
                           }`}
-                      >
-                        <div className={`w-1.5 h-1.5 rounded-full ${project.id === p.id ? 'bg-white' : 'bg-gray-300 dark:bg-gray-600'}`} />
-                        <div className="flex-1 min-w-0">
-                          <p className="truncate leading-none">{p.name}</p>
-                          {p.status === 'archived' && <p className="text-[9px] mt-1 opacity-60">Archived</p>}
-                        </div>
-                      </button>
+                        >
+                          <Pin size={9} className="shrink-0 text-amber-500" />
+                          <div className="flex-1 min-w-0">
+                            <p className="truncate leading-none">{p.name}</p>
+                          </div>
+                        </button>
+                        <button onClick={() => togglePinProject(p.id)} className="px-2 text-amber-400 hover:text-amber-600" title="Unpin">
+                          <Pin size={10} fill="currentColor" />
+                        </button>
+                      </div>
+                    ))}
+
+                    {/* Separator if both pinned and unpinned */}
+                    {pinnedProjects.length > 0 && projects.some(p => !pinnedProjects.includes(p.id)) && (
+                      <div className="mx-4 my-1 border-t border-gray-100 dark:border-gray-800" />
+                    )}
+
+                    {/* Unpinned projects */}
+                    {projects.filter(p => !pinnedProjects.includes(p.id) && p.name.toLowerCase().includes(projectSearch.toLowerCase())).map(p => (
+                      <div key={p.id} className="flex items-center group/proj">
+                        <button
+                          onClick={() => { setProject(p); setIsProjectDropdownOpen(false); setProjectSearch(''); }}
+                          className={`flex-1 text-left px-4 py-2.5 text-xs font-semibold transition-all flex items-center gap-3 ${
+                            project.id === p.id ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/60 dark:hover:bg-gray-800/60'
+                          }`}
+                        >
+                          <div className={`w-1.5 h-1.5 rounded-full ${project.id === p.id ? 'bg-white' : 'bg-gray-300 dark:bg-gray-600'}`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="truncate leading-none">{p.name}</p>
+                            {p.status === 'archived' && <p className="text-[9px] mt-1 opacity-60">Archived</p>}
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => togglePinProject(p.id)}
+                          className="px-2 opacity-0 group-hover/proj:opacity-100 text-gray-400 hover:text-amber-400 transition-all"
+                          title="Pin project"
+                        >
+                          <Pin size={10} />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </div>

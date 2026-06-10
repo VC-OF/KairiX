@@ -11,7 +11,11 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_change_in_prod
  */
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  let token = authHeader && authHeader.split(' ')[1];
+  
+  if (!token && req.cookies) {
+    token = req.cookies.token;
+  }
   
   if (!token) {
     return res.status(401).json({ message: 'No token provided' });

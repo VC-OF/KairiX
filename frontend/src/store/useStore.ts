@@ -19,20 +19,38 @@ export interface User {
 
 export interface Task {
   id: string;
+  _id?: string;
+  projectId: string;
   title: string;
-  description: string;
-  status: TaskStatus;
-  assignees: string[];
-  priority: 'low' | 'medium' | 'high';
-  createdAt: string;
-  updatedAt: string;
+  description?: string;
   createdBy: string;
+  assignees: string[];
+  status: TaskStatus;
+  priority: 'low' | 'medium' | 'high';
   dueDate?: string;
   startDate?: string;
   endDate?: string;
-  estimatedHours: number;
-  actualWorkedHours: number;
-  tags: string[];
+  estimatedHours?: number;
+  actualWorkedHours?: number;
+  tags?: string[];
+  updatedAt: string;
+  createdAt: string;
+  lastAccessedAt?: string;
+  // ── Phase 2 additions ─────────────────────────────────────────────
+  subtasks?: Array<{
+    _id?: string;
+    id?: string;
+    title: string;
+    completed: boolean;
+    createdBy?: string;
+    createdAt?: string;
+  }>;
+  watchers?: string[];
+  recurrence?: {
+    enabled: boolean;
+    frequency?: 'daily' | 'weekly' | 'monthly';
+    nextDue?: string;
+  };
 }
 
 export interface TimeLog {
@@ -127,13 +145,27 @@ interface AppState {
   showArchived: boolean;
   isSidebarCollapsed: boolean;
   toggleSidebar: () => void;
+  layoutDensity: 'dense' | 'comfortable' | 'spacious';
+  setLayoutDensity: (density: 'dense' | 'comfortable' | 'spacious') => void;
+  pinnedProjects: string[];
+  togglePinProject: (projectId: string) => void;
+  sidebarWidth: number;
+  setSidebarWidth: (width: number) => void;
 
   fetchData: () => Promise<void>;
   fetchProjects: () => Promise<Project[]>;
   fetchUsers: () => Promise<User[]>;
-  fetchTasks: (projectId?: string) => Promise<void>;
-  fetchLogs: (projectId?: string) => Promise<void>;
+  fetchTasks: (projectId?: string, page?: number, limit?: number) => Promise<void>;
+  fetchLogs: (projectId?: string, page?: number, limit?: number) => Promise<void>;
   setProject: (project: Project) => Promise<void>;
+  taskPage: number;
+  totalTasks: number;
+  taskLimit: number;
+  logPage: number;
+  totalLogs: number;
+  logLimit: number;
+  setTaskPage: (page: number) => void;
+  setLogPage: (page: number) => void;
   toggleTheme: () => void;
   setColorTheme: (theme: ColorTheme) => void;
   setDefaultTheme: (theme: ColorTheme) => Promise<void>;
@@ -239,6 +271,14 @@ export const useStore = create<AppState>((set, get) => ({
   dailyLogs: [],
   notifications: [],
   taskComments: {},
+  taskPage: 1,
+  totalTasks: 0,
+  taskLimit: 50,
+  logPage: 1,
+  totalLogs: 0,
+  logLimit: 50,
+  setTaskPage: (page) => set({ taskPage: page }),
+  setLogPage: (page) => set({ logPage: page }),
   activeView: 'dashboard',
   searchQuery: '',
   filterStatus: 'all',
@@ -250,6 +290,24 @@ export const useStore = create<AppState>((set, get) => ({
   showArchived: false,
   isSidebarCollapsed: false,
   toggleSidebar: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
+  layoutDensity: (localStorage.getItem('kairix_density') as 'dense' | 'comfortable' | 'spacious') || 'comfortable',
+  setLayoutDensity: (density) => {
+    localStorage.setItem('kairix_density', density);
+    set({ layoutDensity: density });
+  },
+  pinnedProjects: JSON.parse(localStorage.getItem('kairix_pinned_projects') || '[]'),
+  togglePinProject: (projectId) => set((state) => {
+    const pinned = state.pinnedProjects.includes(projectId)
+      ? state.pinnedProjects.filter(id => id !== projectId)
+      : [...state.pinnedProjects, projectId];
+    localStorage.setItem('kairix_pinned_projects', JSON.stringify(pinned));
+    return { pinnedProjects: pinned };
+  }),
+  sidebarWidth: parseInt(localStorage.getItem('kairix_sidebar_width') || '256'),
+  setSidebarWidth: (width) => {
+    localStorage.setItem('kairix_sidebar_width', String(width));
+    set({ sidebarWidth: width });
+  },
   selectedTaskId: null,
   setSelectedTaskId: async (id) => {
     set({ selectedTaskId: id });
@@ -349,35 +407,52 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  fetchTasks: async (projectId?: string) => {
+  fetchTasks: async (projectId?: string, page?: number, limit?: number) => {
     const pId = projectId || get().project.id;
     if (pId === 'project-1') return;
     try {
       const sq = get().searchQuery;
-      const taskUrl = `/tasks/${pId}${sq ? `?search=${encodeURIComponent(sq)}` : ''}`;
+      const pg = page || get().taskPage;
+      const lm = limit || get().taskLimit;
+      const status = get().filterStatus !== 'all' ? get().filterStatus : '';
+      const assignee = get().filterAssignee !== 'all' ? get().filterAssignee : '';
+      
+      let taskUrl = `/tasks/${pId}?page=${pg}&limit=${lm}`;
+      if (sq) taskUrl += `&search=${encodeURIComponent(sq)}`;
+      if (status) taskUrl += `&status=${status}`;
+      if (assignee) taskUrl += `&assignedTo=${assignee}`;
+
       const response = await api.get(taskUrl);
       const mappedTasks = (response?.tasks || []).map((t: any) => ({
         ...t,
         id: t._id || t.id,
         assignees: (t.assignees || []).map((a: any) => a._id || a)
       }));
-      set({ tasks: mappedTasks });
+      set({ 
+        tasks: mappedTasks,
+        totalTasks: response?.pagination?.total || mappedTasks.length
+      });
     } catch (error) {
       console.error('Failed to fetch tasks:', error);
     }
   },
 
-  fetchLogs: async (projectId?: string) => {
+  fetchLogs: async (projectId?: string, page?: number, limit?: number) => {
     const pId = projectId || get().project.id;
     if (pId === 'project-1') return;
     try {
-      const response = await api.get(`/logs?projectId=${pId}`);
+      const pg = page || get().logPage;
+      const lm = limit || get().logLimit;
+      const response = await api.get(`/logs?projectId=${pId}&page=${pg}&limit=${lm}`);
       const mappedLogs = (response?.logs || []).map((l: any) => ({
         ...l,
         id: l._id || l.id,
         userId: l.userId?._id || l.userId
       }));
-      set({ dailyLogs: mappedLogs });
+      set({ 
+        dailyLogs: mappedLogs,
+        totalLogs: response?.pagination?.total || mappedLogs.length
+      });
     } catch (error) {
       console.error('Failed to fetch logs:', error);
     }

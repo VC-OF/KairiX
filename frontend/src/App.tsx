@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useStore } from './store/useStore';
 import { useAuth } from './hooks/useAuth';
@@ -10,6 +10,16 @@ import { Header } from './components/layout/Header';
 import { TaskDetail } from './components/tasks/TaskDetail';
 import { TourGuide } from './components/ui/TourGuide';
 import { KairixStudio } from './components/studio/KairixStudio';
+import { ToastProvider, useToast } from './components/ui/Toast';
+import { CommandPalette } from './components/ui/CommandPalette';
+import { ShortcutsModal } from './components/ui/ShortcutsModal';
+import {
+  DashboardSkeleton,
+  KanbanSkeleton,
+  MembersSkeleton,
+  AnalyticsSkeleton,
+  ListSkeleton,
+} from './components/ui/Skeleton';
 
 const Dashboard = React.lazy(() => import('./components/dashboard/Dashboard').then(m => ({ default: m.Dashboard })));
 const KanbanBoard = React.lazy(() => import('./components/board/KanbanBoard').then(m => ({ default: m.KanbanBoard })));
@@ -37,10 +47,15 @@ function AppLayout() {
     selectedTaskId,
     setSelectedTaskId,
     isSidebarCollapsed,
+    sidebarWidth,
+    layoutDensity,
   } = useStore();
   const { token } = useAuth();
+  const toast = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   // Trigger page transition loading indicator on route switch
   useEffect(() => {
@@ -83,6 +98,42 @@ function AppLayout() {
     }
   }, [setActiveView]);
 
+  // Apply density data attribute
+  useEffect(() => {
+    document.documentElement.setAttribute('data-density', layoutDensity);
+  }, [layoutDensity]);
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target as HTMLElement)?.isContentEditable;
+
+      // Ctrl/Cmd + K → command palette
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowCommandPalette(p => !p);
+        return;
+      }
+
+      if (isInput) return; // skip nav shortcuts when typing
+
+      // ? → shortcuts
+      if (e.key === '?') { setShowShortcuts(p => !p); return; }
+      if (e.key === 'Escape') { setShowCommandPalette(false); setShowShortcuts(false); return; }
+
+      // View shortcuts
+      if (e.key === 'd') { setActiveView('dashboard'); }
+      if (e.key === 'b') { setActiveView('board'); }
+      if (e.key === 'm') { setActiveView('members'); }
+      if (e.key === 'a') { setActiveView('analytics'); }
+      if (e.key === 'l') { setActiveView('logs'); }
+      if (e.key === 't') { setActiveView('tracker'); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [setActiveView]);
+
   // Dynamic browser tab title per view
   useEffect(() => {
     const titles: Record<string, string> = {
@@ -108,19 +159,23 @@ function AppLayout() {
     const socket = connectSocket(token, project.id !== 'project-1' ? project.id : undefined);
 
     // Real-time task events → refresh store
-    socket.on('task-created', () => {
+    socket.on('task-created', (task: any) => {
       useStore.getState().fetchData();
+      const title = task?.title || 'A task';
+      toast.success('Task Created', `"${title}" was added to the board`);
     });
     socket.on('task-updated', (task: any) => {
       const mapped = { ...task, id: task._id || task.id, assignees: (task.assignees || []).map((a: any) => a._id || a) };
       useStore.setState((state) => ({
         tasks: state.tasks.map((t) => (t.id === mapped.id ? mapped : t)),
       }));
+      toast.info('Task Updated', `"${task.title}" was updated`);
     });
     socket.on('task-deleted', (taskId: string) => {
       useStore.setState((state) => ({
         tasks: state.tasks.filter((t) => t.id !== taskId),
       }));
+      toast.warning('Task Removed', 'A task was deleted from this board');
     });
 
     // Real-time task comments → append to store
@@ -136,6 +191,7 @@ function AppLayout() {
           }
         };
       });
+      toast.info('New Comment', 'A progress update was added to a task');
     });
 
     // Real-time project updates → update projects state list
@@ -201,6 +257,7 @@ function AppLayout() {
       useStore.setState((state) => ({
         notifications: [notification, ...state.notifications],
       }));
+      toast.info(notification.title || 'New Notification', notification.message || '');
     });
 
     return () => {
@@ -232,14 +289,17 @@ function AppLayout() {
   }, [fetchNotifications]);
 
   const renderView = () => {
+    const skeletons: Record<string, React.ReactNode> = {
+      dashboard: <DashboardSkeleton />,
+      board: <KanbanSkeleton />,
+      members: <MembersSkeleton />,
+      analytics: <AnalyticsSkeleton />,
+    };
+    const fallback = skeletons[activeView] ?? <ListSkeleton rows={6} />;
+
     return (
       <React.Suspense fallback={
-        <div className="flex-1 flex items-center justify-center p-12 bg-white/40 dark:bg-[#090d16]/30 border border-gray-150/45 dark:border-gray-800 rounded-3xl animate-pulse h-full w-full">
-          <div className="flex flex-col items-center gap-3 select-none">
-            <div className="w-8 h-8 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin" />
-            <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Loading workspace view...</p>
-          </div>
-        </div>
+        <div className="flex-1 p-6 h-full w-full">{fallback}</div>
       }>
         {(() => {
           switch (activeView) {
@@ -271,7 +331,9 @@ function AppLayout() {
       )}
 
       {/* Sidebar - Desktop */}
-      <div className={`hidden lg:flex transition-all duration-300 ${isSidebarCollapsed ? 'w-0 overflow-hidden' : 'w-64'}`}>
+      <div className={`hidden lg:flex transition-all duration-300 overflow-hidden ${
+        isSidebarCollapsed ? 'w-0' : ''
+      }`} style={!isSidebarCollapsed ? { width: sidebarWidth } : undefined}>
         <Sidebar />
       </div>
 
@@ -310,6 +372,12 @@ function AppLayout() {
       {/* Onboarding guided tour */}
       <TourGuide />
 
+      {/* Command Palette */}
+      <CommandPalette isOpen={showCommandPalette} onClose={() => setShowCommandPalette(false)} />
+
+      {/* Keyboard Shortcuts Modal */}
+      <ShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
+
       {selectedTaskId && (() => {
         const task = tasks.find(t => t.id === selectedTaskId);
         if (!task) return null;
@@ -339,29 +407,31 @@ const App: React.FC = () => {
   }, [isAuthenticated]);
 
   return (
-    <Router>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
+    <ToastProvider>
+      <Router>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
 
-        {/* Protected Routes */}
-        <Route path="/dashboard" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
-        <Route path="/board" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
-        <Route path="/logs" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
-        <Route path="/members" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
-        <Route path="/analytics" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
-        <Route path="/tracker" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
-        <Route path="/files" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
-        <Route path="/dependency" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
-        <Route path="/calendar" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
+          {/* Protected Routes */}
+          <Route path="/dashboard" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
+          <Route path="/board" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
+          <Route path="/logs" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
+          <Route path="/members" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
+          <Route path="/analytics" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
+          <Route path="/tracker" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
+          <Route path="/files" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
+          <Route path="/dependency" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
+          <Route path="/calendar" element={<ProtectedRoute><AppLayout /></ProtectedRoute>} />
 
-        {/* Public Landing & Redirects */}
-        <Route path="/" element={<KairixStudio />} />
-        <Route path="*" element={<Navigate to={isAuthenticated ? '/dashboard' : '/'} replace />} />
-      </Routes>
-    </Router>
+          {/* Public Landing & Redirects */}
+          <Route path="/" element={<KairixStudio />} />
+          <Route path="*" element={<Navigate to={isAuthenticated ? '/dashboard' : '/'} replace />} />
+        </Routes>
+      </Router>
+    </ToastProvider>
   );
 };
 

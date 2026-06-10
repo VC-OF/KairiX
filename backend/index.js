@@ -7,6 +7,8 @@ const compression = require('compression');
 const path = require('path');
 const dotenv = require('dotenv');
 const fs = require('fs');
+const cookieParser = require('cookie-parser');
+const crypto = require('crypto');
 
 dotenv.config();
 
@@ -44,12 +46,13 @@ const { authenticateToken, requireGlobalRole } = require('./middleware/auth');
 const cron = require('node-cron');
 const analyticsService = require('./services/AnalyticsService');
 const SystemSettings = require('./models/SystemSettings');
+const { setupSwagger } = require('./swagger');
 
 const app = express();
 const http = require('http').createServer(app);
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
-  : ['http://localhost:5173'];
+  : ['http://localhost:5173', 'http://127.0.0.1:5173'];
 
 const io = require('socket.io')(http, {
   cors: {
@@ -66,7 +69,7 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/KairiX
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin) || allowedOrigins.includes('*') || process.env.NODE_ENV === 'development') {
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error(`CORS blocked: ${origin}`));
@@ -75,11 +78,60 @@ app.use(cors({
   credentials: true
 }));
 app.use(helmet({
-  contentSecurityPolicy: false, // Disable for development convenience
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"], // needed for Vite dev HMR in dev
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'", ...allowedOrigins, "ws:", "wss:"],
+      frameSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
+    },
+  },
 }));
 app.use(compression());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(cookieParser());
+
+// CSRF Protection Setup
+function generateCsrfToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+app.use((req, res, next) => {
+  if (!req.cookies || !req.cookies['csrfToken']) {
+    const token = generateCsrfToken();
+    res.cookie('csrfToken', token, {
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      path: '/'
+    });
+  }
+  next();
+});
+
+function csrfProtection(req, res, next) {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    return next();
+  }
+  // Allow authentication routes to bypass CSRF (no session yet exists to spoof)
+  if (req.path.startsWith('/auth/')) {
+    return next();
+  }
+  const cookieToken = req.cookies ? req.cookies['csrfToken'] : null;
+  const headerToken = req.headers['x-csrf-token'];
+  if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+    return res.status(403).json({ message: 'CSRF token validation failed' });
+  }
+  next();
+}
+
+app.use('/api', csrfProtection);
+
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir);
@@ -106,6 +158,20 @@ app.use('/api/auth/signup', authLimiter);
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'Server is running' });
+});
+
+// CSRF endpoint
+app.get('/api/csrf-token', (req, res) => {
+  let token = req.cookies ? req.cookies['csrfToken'] : null;
+  if (!token) {
+    token = generateCsrfToken();
+    res.cookie('csrfToken', token, {
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      path: '/'
+    });
+  }
+  res.json({ csrfToken: token });
 });
 
 // Socket.io integration
@@ -145,6 +211,53 @@ cron.schedule('0 0 * * *', () => {
   console.log('Running daily aggregation cron job...');
   analyticsService.generateDailyReports();
 });
+
+// Cron Job for recurring tasks (runs at 1am daily)
+cron.schedule('0 1 * * *', async () => {
+  console.log('Running recurring tasks cron...');
+  try {
+    const Task = require('./models/Task');
+    const now = new Date();
+    const dueTasks = await Task.find({
+      'recurrence.enabled': true,
+      'recurrence.nextDue': { $lte: now }
+    });
+
+    for (const task of dueTasks) {
+      // Create a new pending task as a copy
+      const newTask = new Task({
+        projectId: task.projectId,
+        title: task.title,
+        description: task.description,
+        createdBy: task.createdBy,
+        assignees: task.assignees,
+        assignedTo: task.assignedTo,
+        priority: task.priority,
+        tags: task.tags,
+        estimatedHours: task.estimatedHours,
+        status: 'pending',
+        recurrence: { enabled: false },
+      });
+      await newTask.save();
+
+      // Update nextDue on original
+      const freq = task.recurrence.frequency;
+      const nextDue = new Date(task.recurrence.nextDue);
+      if (freq === 'daily')   nextDue.setDate(nextDue.getDate() + 1);
+      if (freq === 'weekly')  nextDue.setDate(nextDue.getDate() + 7);
+      if (freq === 'monthly') nextDue.setMonth(nextDue.getMonth() + 1);
+      task.recurrence.nextDue = nextDue;
+      await task.save();
+
+      console.log(`Created recurring task: ${task.title}`);
+    }
+  } catch (err) {
+    console.error('Recurring tasks cron error:', err);
+  }
+});
+
+// Swagger Setup
+setupSwagger(app);
 
 // ... (Routes) ...
 app.use('/api/auth', authRoutes);

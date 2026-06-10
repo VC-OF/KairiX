@@ -96,7 +96,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ status, tasks }) => 
           flex flex-col rounded-2xl border ${cfg.border} ${cfg.bg}
           ${isOver ? `ring-2 ring-offset-1 ${cfg.isOverBg}` : ''}
           transition-all duration-200
-          min-h-[520px] max-h-[calc(100vh-248px)]
+          min-h-[300px] lg:min-h-[520px] max-h-[450px] lg:max-h-[calc(100vh-248px)]
           overflow-hidden
         `}
       >

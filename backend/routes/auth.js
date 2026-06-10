@@ -7,8 +7,36 @@ const router = express.Router();
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
 
 /**
- * POST /api/auth/signup
- * Register a new user
+ * @openapi
+ * /api/auth/signup:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, email, password, confirmPassword]
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               confirmPassword:
+ *                 type: string
+ *               jobTitle:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Registered successfully
+ *       400:
+ *         description: Validation failed
+ *       409:
+ *         description: User already exists
  */
 router.post('/signup', async (req, res) => {
   try {
@@ -38,7 +66,7 @@ router.post('/signup', async (req, res) => {
       name,
       email,
       password,
-      globalRole: globalRole || 'user',
+      globalRole: 'user',
       jobTitle: jobTitle || '',
       avatar: name.charAt(0).toUpperCase() + (name.split(' ')[1]?.charAt(0) || '').toUpperCase()
     });
@@ -51,6 +79,13 @@ router.post('/signup', async (req, res) => {
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 24 * 60 * 60 * 1000
+    });
 
     res.status(201).json({
       message: 'User registered successfully',
@@ -71,8 +106,32 @@ router.post('/signup', async (req, res) => {
 });
 
 /**
- * POST /api/auth/login
- * Login user and return JWT token
+ * @openapi
+ * /api/auth/login:
+ *   post:
+ *     summary: Login user and return JWT token
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password]
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       400:
+ *         description: Email and password are required
+ *       401:
+ *         description: Invalid email or password
+ *       403:
+ *         description: Account is inactive
  */
 router.post('/login', async (req, res) => {
   try {
@@ -107,6 +166,13 @@ router.post('/login', async (req, res) => {
       { expiresIn: JWT_EXPIRES_IN }
     );
 
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 24 * 60 * 60 * 1000
+    });
+
     res.json({
       message: 'Login successful',
       token,
@@ -126,16 +192,35 @@ router.post('/login', async (req, res) => {
 });
 
 /**
- * POST /api/auth/logout
- * Logout user (mainly for frontend to clear token)
+ * @openapi
+ * /api/auth/logout:
+ *   post:
+ *     summary: Logout user
+ *     tags: [Authentication]
+ *     responses:
+ *       200:
+ *         description: Logged out successfully
  */
 router.post('/logout', (req, res) => {
+  res.clearCookie('token');
   res.json({ message: 'Logged out successfully' });
 });
 
 /**
- * GET /api/auth/me
- * Get current user profile
+ * @openapi
+ * /api/auth/me:
+ *   get:
+ *     summary: Get current user profile
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile retrieved
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
  */
 router.get('/me', authenticateToken, async (req, res) => {
   try {
@@ -151,8 +236,35 @@ router.get('/me', authenticateToken, async (req, res) => {
 });
 
 /**
- * PUT /api/auth/profile
- * Update user profile
+ * @openapi
+ * /api/auth/profile:
+ *   put:
+ *     summary: Update user profile
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               bio:
+ *                 type: string
+ *               avatar:
+ *                 type: string
+ *               globalRole:
+ *                 type: string
+ *               jobTitle:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *       401:
+ *         description: Unauthorized
  */
 router.put('/profile', authenticateToken, async (req, res) => {
   try {
@@ -177,8 +289,34 @@ router.put('/profile', authenticateToken, async (req, res) => {
 });
 
 /**
- * PUT /api/auth/change-password
- * Change user password
+ * @openapi
+ * /api/auth/change-password:
+ *   put:
+ *     summary: Change user password
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [currentPassword, newPassword]
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *       400:
+ *         description: Missing fields
+ *       401:
+ *         description: Invalid current password or Unauthorized
+ *       404:
+ *         description: User not found
  */
 router.put('/change-password', authenticateToken, async (req, res) => {
   try {
