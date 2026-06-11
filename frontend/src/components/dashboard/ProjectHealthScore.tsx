@@ -1,16 +1,15 @@
 import React, { useMemo } from 'react';
-import { useStore } from '../../store/useStore';
+import { useStore, Task, DailyLog } from '../../store/useStore';
 import { Activity, TrendingUp, AlertTriangle, CheckCircle2, Users } from 'lucide-react';
 import { isAfter, parseISO } from 'date-fns';
 
 function computeScore(
-  tasks: ReturnType<typeof useStore>['tasks'],
-  dailyLogs: ReturnType<typeof useStore>['dailyLogs']
+  tasks: Task[],
+  dailyLogs: DailyLog[]
 ): { score: number; label: string; color: string; bg: string; ring: string } {
   if (tasks.length === 0) return { score: 0, label: 'No Data', color: 'text-gray-400', bg: 'bg-gray-100 dark:bg-gray-800', ring: '#6b7280' };
 
   const total = tasks.length;
-  const completed = tasks.filter(t => t.status === 'completed').length;
   const stuck = tasks.filter(t => t.status === 'stuck').length;
   const completedOnTime = tasks.filter(t => {
     if (t.status !== 'completed') return false;

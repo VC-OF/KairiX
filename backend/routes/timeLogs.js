@@ -19,6 +19,12 @@ async function hasProjectAccess(req, projectId) {
 async function hasTaskAccess(req, taskId) {
   const task = await Task.findById(taskId);
   if (!task) return false;
+  
+  // Allow access if the user is assigned to the task
+  const isAssigned = (task.assignedTo && task.assignedTo.toString() === req.user.userId) ||
+                     (task.assignees && task.assignees.some(id => id.toString() === req.user.userId));
+  if (isAssigned) return true;
+
   return hasProjectAccess(req, task.projectId);
 }
 
