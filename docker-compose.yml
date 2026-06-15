@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   mongodb:
     image: mongo:6
@@ -12,7 +10,8 @@ services:
       - kairix-network
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
     container_name: kairix-backend
     ports:
       - "5000:5000"
@@ -28,7 +27,10 @@ services:
       - kairix-network
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        - VITE_API_URL=http://localhost:5000/api
     container_name: kairix-frontend
     ports:
       - "80:80"

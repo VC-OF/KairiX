@@ -151,6 +151,9 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
           </g>
         </svg>
         <span className="font-bold text-gray-800 dark:text-gray-100 text-sm tracking-tight">KairiX</span>
+        <span className="px-1 py-0.5 text-[8px] font-black uppercase bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded border border-amber-500/20">
+          Beta
+        </span>
       </div>
 
       {/* Page Title */}

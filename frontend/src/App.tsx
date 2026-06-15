@@ -149,7 +149,7 @@ function AppLayout() {
       calendar: 'Calendar View',
     };
     const viewTitle = titles[activeView] || 'Dashboard';
-    document.title = `${viewTitle} ♾️ KairiX`;
+    document.title = `${viewTitle} ♾️ KairiX Beta`;
   }, [activeView]);
 
   // Socket.io: connect with auth + join project room

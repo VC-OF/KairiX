@@ -129,16 +129,21 @@ export const Logo = ({ className = "", animated = false }: { className?: string;
 
       {/* Text Logo */}
       <div className="flex flex-col items-center cursor-pointer select-none group" onClick={handleShatter}>
-        <h1
-          className={`text-[2.75rem] font-black leading-none tracking-tight transition-all duration-700 ${animated ? "animate-fade-in" : ""} ${isShattered ? "animate-bounce" : "group-hover:scale-105"}`}
-          style={{
-            fontFamily: "'Montserrat', sans-serif",
-            letterSpacing: '0.05em',
-            color: colors.c3[0]
-          }}
-        >
-          KairiX
-        </h1>
+        <div className="flex items-center gap-2">
+          <h1
+            className={`text-[2.75rem] font-black leading-none tracking-tight transition-all duration-700 ${animated ? "animate-fade-in" : ""} ${isShattered ? "animate-bounce" : "group-hover:scale-105"}`}
+            style={{
+              fontFamily: "'Montserrat', sans-serif",
+              letterSpacing: '0.05em',
+              color: colors.c3[0]
+            }}
+          >
+            KairiX
+          </h1>
+          <span className="px-2 py-0.5 text-xs font-black uppercase tracking-widest bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-lg border border-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
+            Beta
+          </span>
+        </div>
         <p
           className="text-[0.6rem] font-bold tracking-widest mt-1 opacity-60 transition-colors duration-700"
           style={{
@@ -200,12 +205,17 @@ export const LogoCompact = ({ className = "" }: { className?: string }) => {
       </svg>
 
       <div className="flex flex-col leading-none">
-        <span
-          className="font-black text-base text-[#A5133C] tracking-wide"
-          style={{ fontFamily: "'Montserrat', sans-serif" }}
-        >
-          KairiX
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span
+            className="font-black text-base text-[#A5133C] tracking-wide"
+            style={{ fontFamily: "'Montserrat', sans-serif" }}
+          >
+            KairiX
+          </span>
+          <span className="px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-wide bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-md border border-amber-500/20 shadow-[0_0_8px_rgba(245,158,11,0.1)]">
+            Beta
+          </span>
+        </div>
         <span className="text-[9px] text-gray-400 dark:text-gray-500 font-medium tracking-widest uppercase mt-0.5">
           Team Workspace
         </span>
