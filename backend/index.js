@@ -63,10 +63,10 @@ const io = require('socket.io')(http, {
 });
 
 const PORT = process.env.PORT || 5000;
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/KairiX?directConnection=true';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/projectflow?directConnection=true';
 
 // Middleware
-app.use(cors({
+const corsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) {
@@ -76,7 +76,10 @@ app.use(cors({
     }
   },
   credentials: true,
-}));
+};
+app.use(cors(corsOptions));
+// Explicitly handle OPTIONS preflight for all routes before any other middleware
+app.options(/.*/, cors(corsOptions));
 app.use(helmet({
   xXssProtection: false,
   frameguard: false,
@@ -113,16 +116,20 @@ if (!fs.existsSync(uploadsDir)) {
 }
 app.use('/uploads', express.static(uploadsDir));
 
-// Rate Limiting
+// Rate Limiting — skip OPTIONS preflight requests so CORS headers are always returned
+const skipPreflight = (req) => req.method === 'OPTIONS';
+
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 1000,
+  skip: skipPreflight,
   message: { message: 'Too many requests from this IP, please try again after 15 minutes' }
 });
 
 const authLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 10,
+  skip: skipPreflight,
   message: { message: 'Too many authentication attempts, please try again after an hour' }
 });
 
@@ -388,7 +395,7 @@ async function seedDatabase() {
       {
         projectId: project1._id,
         title: 'Create user dashboard',
-        description: 'Design and implement user dashboard UI',
+        description: 'Design and implement user dashboard UI',  
         createdBy: admin._id,
         assignedTo: user2._id,
         assignees: [user2._id],
