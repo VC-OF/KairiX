@@ -272,8 +272,7 @@ router.put('/:projectId/:taskId',
 
       const isAdminOrManager = req.user.globalRole === 'admin' ||
         req.user.globalRole === 'executive' ||
-        req.projectRole === 'ProjectManager' ||
-        req.projectRole === 'TeamLead';
+        req.projectRole === 'ProjectManager';
 
       if (!isAdminOrManager && !isAssigned) {
         // Allow project members to update status in Kanban

@@ -2,44 +2,26 @@ import axios, { AxiosInstance } from 'axios';
 
 const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000/api';
 
-// Helper to get cookie value by name
-function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
-  return null;
-}
-
-// Create axios instance
+// ─── Axios Instance ───────────────────────────────────────────────────────────
 const axiosInstance: AxiosInstance = axios.create({
   baseURL: API_URL,
   withCredentials: true,
 });
 
-// Add token and CSRF token to requests
+// Attach JWT token to every request
 axiosInstance.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-
-  // Inject CSRF token on mutating requests
-  if (config.method && !['get', 'head', 'options'].includes(config.method.toLowerCase())) {
-    const csrfToken = getCookie('csrfToken');
-    if (csrfToken) {
-      config.headers['x-csrf-token'] = csrfToken;
-    }
-  }
   return config;
 });
 
-// Handle token expiry
+// Handle token expiry — redirect to login on 401
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
@@ -47,6 +29,7 @@ axiosInstance.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
 
 export const api = {
   async get<T = any>(endpoint: string): Promise<T> {

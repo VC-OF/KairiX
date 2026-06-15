@@ -75,7 +75,7 @@ app.use(cors({
       callback(new Error(`CORS blocked: ${origin}`));
     }
   },
-  credentials: true
+  credentials: true,
 }));
 app.use(helmet({
   xXssProtection: false,
@@ -107,41 +107,6 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser());
 
-// CSRF Protection Setup
-function generateCsrfToken() {
-  return crypto.randomBytes(32).toString('hex');
-}
-
-app.use((req, res, next) => {
-  if (!req.cookies || !req.cookies['csrfToken']) {
-    const token = generateCsrfToken();
-    res.cookie('csrfToken', token, {
-      secure: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      path: '/'
-    });
-  }
-  next();
-});
-
-function csrfProtection(req, res, next) {
-  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
-    return next();
-  }
-  // Allow authentication routes to bypass CSRF (no session yet exists to spoof)
-  if (req.path.startsWith('/auth/')) {
-    return next();
-  }
-  const cookieToken = req.cookies ? req.cookies['csrfToken'] : null;
-  const headerToken = req.headers['x-csrf-token'];
-  if (!cookieToken || !headerToken || cookieToken !== headerToken) {
-    return res.status(403).json({ message: 'CSRF token validation failed' });
-  }
-  next();
-}
-
-app.use('/api', csrfProtection);
-
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir);
@@ -168,20 +133,6 @@ app.use('/api/auth/signup', authLimiter);
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'Server is running' });
-});
-
-// CSRF endpoint
-app.get('/api/csrf-token', (req, res) => {
-  let token = req.cookies ? req.cookies['csrfToken'] : null;
-  if (!token) {
-    token = generateCsrfToken();
-    res.cookie('csrfToken', token, {
-      secure: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      path: '/'
-    });
-  }
-  res.json({ csrfToken: token });
 });
 
 // Socket.io integration
@@ -277,11 +228,11 @@ app.use('/api/tasks', authenticateToken, taskRoutes);
 app.use('/api/time-logs', authenticateToken, timeLogRoutes);
 app.use('/api/analytics', authenticateToken, analyticsRoutes);
 app.use('/api/notifications', authenticateToken, notificationRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/logs', logRoutes);
-app.use('/api/files', fileRoutes);
+app.use('/api/users', authenticateToken, userRoutes);        // Fix #1: was missing auth
+app.use('/api/logs', authenticateToken, logRoutes);           // Fix #1: was missing auth
+app.use('/api/files', authenticateToken, fileRoutes);
 app.use('/api/dependencies', authenticateToken, dependencyRoutes);
-app.use('/api/settings', settingsRoutes);
+app.use('/api/settings', authenticateToken, settingsRoutes); // Fix #5: was missing auth
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {

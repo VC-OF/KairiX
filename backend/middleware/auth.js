@@ -115,7 +115,8 @@ function hasProjectAccess(projectIdParam = 'projectId') {
  */
 function requireProjectRole(...roles) {
   return (req, res, next) => {
-    if (req.user && req.user.globalRole === 'admin') {
+    // Admins and executives bypass project-role checks — they have global authority
+    if (req.user && (req.user.globalRole === 'admin' || req.user.globalRole === 'executive')) {
       return next();
     }
     if (!req.projectRole || !roles.includes(req.projectRole)) {

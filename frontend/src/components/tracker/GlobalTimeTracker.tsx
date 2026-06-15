@@ -264,7 +264,11 @@ export const GlobalTimeTracker: React.FC = () => {
 
   const projectDetails = activeTask ? projects.find(p => p.id === (activeTask as any).projectId) : null;
   const assignedUsers = activeTask ? users.filter(u => activeTask.assignees.includes(u.id)) : [];
-  const isAssigned = currentUser && activeTask && activeTask.assignees.includes(currentUser.id);
+  const isAssigned = currentUser && activeTask && (
+    activeTask.assignees.includes(currentUser.id) ||
+    currentUser.role === 'admin' ||
+    currentUser.role === 'executive'
+  );
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-20">

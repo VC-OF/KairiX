@@ -14,7 +14,11 @@ interface TaskFormProps {
 
 export const TaskForm: React.FC<TaskFormProps> = ({ isOpen, onClose, task, defaultStatus }) => {
   const { addTask, updateTask, users, currentUser, project } = useStore();
-  const projectMembers = users.filter(u => (project.members || []).includes(u.id));
+  const projectMembers = users.filter(u => 
+    (project.members || []).includes(u.id) || 
+    u.role === 'admin' || 
+    u.role === 'executive'
+  );
 
   const [title, setTitle] = useState(task?.title || '');
   const [description, setDescription] = useState(task?.description || '');

@@ -84,7 +84,11 @@ interface KanbanColumnProps {
 export const KanbanColumn: React.FC<KanbanColumnProps> = ({ status, tasks }) => {
   const cfg = columnConfigs[status] || columnConfigs.pending;
   const { currentUser } = useStore();
-  const isAdmin = currentUser?.role === 'admin';
+  const canManageTasks =
+    currentUser?.role === 'admin' ||
+    currentUser?.role === 'executive' ||
+    (currentUser as any)?.projectRole === 'ProjectManager' ||
+    (currentUser as any)?.projectRole === 'TeamLead';
   const [showAddTask, setShowAddTask] = useState(false);
 
   const { setNodeRef, isOver } = useDroppable({ id: status });
@@ -114,7 +118,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ status, tasks }) => 
             </span>
           </div>
 
-          {isAdmin && (
+          {canManageTasks && (
             <button
               onClick={() => setShowAddTask(true)}
               className={`p-1.5 rounded-lg transition-all text-sm font-bold ${cfg.addBtnColor}`}
@@ -152,7 +156,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ status, tasks }) => 
               <p className={`text-xs font-medium ${cfg.headerText} opacity-50`}>
                 No tasks yet
               </p>
-              {isAdmin && (
+              {canManageTasks && (
                 <button
                   onClick={() => setShowAddTask(true)}
                   className={`mt-1 flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${cfg.addBtnColor}`}

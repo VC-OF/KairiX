@@ -14,7 +14,11 @@ interface TaskTimerProps {
 export const TaskTimer: React.FC<TaskTimerProps> = ({ taskId, projectId, onTimeUpdate }) => {
   const { currentUser, tasks } = useStore();
   const task = tasks.find(t => t.id === taskId);
-  const isAssigned = currentUser && task && task.assignees.includes(currentUser.id);
+  const isAssigned = currentUser && task && (
+    task.assignees.includes(currentUser.id) ||
+    currentUser.role === 'admin' ||
+    currentUser.role === 'executive'
+  );
 
   const [isActive, setIsActive] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
