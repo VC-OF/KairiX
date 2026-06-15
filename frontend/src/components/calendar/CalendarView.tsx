@@ -151,6 +151,9 @@ const TASK_COLORS = [
 // ─── Component ───────────────────────────────────────────────────────────────
 export const CalendarView: React.FC = () => {
   const { users, project } = useStore();
+  const projectMembers = useMemo(() => {
+    return users.filter(u => (project.members || []).includes(u.id));
+  }, [users, project.members]);
   const [selectedType, setSelectedType] = useState<'team' | 'employee'>('team');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
   const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0); // index into weekDates
@@ -242,10 +245,10 @@ export const CalendarView: React.FC = () => {
 
   // Select first user if none selected
   useEffect(() => {
-    if (selectedType === 'employee' && !selectedEmployeeId && users.length > 0) {
-      setSelectedEmployeeId(users[0].id);
+    if (selectedType === 'employee' && !selectedEmployeeId && projectMembers.length > 0) {
+      setSelectedEmployeeId(projectMembers[0].id);
     }
-  }, [selectedType, selectedEmployeeId, users]);
+  }, [selectedType, selectedEmployeeId, projectMembers]);
 
   // ─── Derive day summaries from time logs ────────────────────────────────────
   const activeTimerMap = useMemo(() => {
@@ -398,8 +401,8 @@ export const CalendarView: React.FC = () => {
   // Active employee for employee view
   const activeEmployee = useMemo(() => {
     if (selectedType !== 'employee') return null;
-    return users.find(u => u.id === selectedEmployeeId) || users[0] || null;
-  }, [selectedType, selectedEmployeeId, users]);
+    return projectMembers.find(u => u.id === selectedEmployeeId) || projectMembers[0] || null;
+  }, [selectedType, selectedEmployeeId, projectMembers]);
 
   // Employee's task list for the selected day
   const employeeDayData = useMemo(() => {
@@ -561,7 +564,7 @@ export const CalendarView: React.FC = () => {
                 className="appearance-none pr-8 pl-3.5 py-1.5 rounded-lg border border-slate-200 dark:border-gray-800 bg-white dark:bg-obsidian-900 hover:bg-slate-50 dark:hover:bg-gray-800/50 dark:bg-obsidian-950 text-xs font-black text-slate-700 dark:text-slate-300 dark:text-gray-600 focus:outline-none cursor-pointer"
               >
                 <option value="team">Entire Team</option>
-                {users.map(u => (
+                {projectMembers.map(u => (
                   <option key={u.id} value={u.id}>{u.name}</option>
                 ))}
               </select>
@@ -1248,7 +1251,7 @@ export const CalendarView: React.FC = () => {
 
                 {/* Grid table rows - one per team member */}
                 <div className="flex-1 mt-4 space-y-3.5">
-                  {users.map(user => {
+                  {projectMembers.map(user => {
                     const userColor = user.color || '#6366f1';
 
                     return (
