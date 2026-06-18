@@ -48,9 +48,10 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
 
   const getNotificationCategory = (n: any) => {
     const title = (n.title || '').toLowerCase();
+    const type = (n.type || '').toLowerCase();
+    if (type === 'mention' || title.includes('mention') || title.includes('@')) return 'Mention';
     if (title.includes('assigned') || title.includes('new task')) return 'Task Assigned';
     if (title.includes('completed') || title.includes('done')) return 'Task Completed';
-    if (title.includes('mention') || title.includes('@')) return 'Mention';
     if (title.includes('comment')) return 'Comment';
     if (title.includes('due') || title.includes('deadline')) return 'Due Soon';
     if (title.includes('warn') || title.includes('error') || title.includes('fail')) return 'Warning/Error';
@@ -144,7 +145,7 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
               <Bell size={20} className="text-[var(--theme-accent)]" />
               <h3 className="font-bold text-lg text-gray-900 dark:text-white tracking-tight">Notifications</h3>
               {unreadCount > 0 && (
-                <span className="bg-[var(--theme-accent-muted)] text-[var(--theme-accent)] text-xs px-2 py-0.5 rounded-full font-bold border border-[var(--theme-accent-muted)]">
+                <span className="bg-green-500/10 text-green-600 dark:text-green-400 text-xs px-2 py-0.5 rounded-full font-bold border border-green-500/20">
                   {unreadCount} New
                 </span>
               )}

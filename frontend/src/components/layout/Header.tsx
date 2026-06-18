@@ -62,11 +62,11 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
 
   const THEMES = [
     { id: 'default' as const, label: 'Default', swatch: 'linear-gradient(135deg,#6366f1,#a855f7)' },
-    { id: 'ocean'   as const, label: 'Ocean Blue',    swatch: 'linear-gradient(135deg,#0ea5e9,#06b6d4)' },
-    { id: 'forest'  as const, label: 'Forest Green',  swatch: 'linear-gradient(135deg,#22c55e,#10b981)' },
-    { id: 'royal'   as const, label: 'Royal Purple',  swatch: 'linear-gradient(135deg,#a855f7,#7c3aed)' },
-    { id: 'sunset'  as const, label: 'Sunset Orange', swatch: 'linear-gradient(135deg,#fb923c,#f97316)' },
-    { id: 'crimson' as const, label: 'Crimson Dark',  swatch: 'linear-gradient(135deg,#f87171,#dc2626)' },
+    { id: 'ocean' as const, label: 'Ocean Blue', swatch: 'linear-gradient(135deg,#0ea5e9,#06b6d4)' },
+    { id: 'forest' as const, label: 'Forest Green', swatch: 'linear-gradient(135deg,#22c55e,#10b981)' },
+    { id: 'royal' as const, label: 'Royal Purple', swatch: 'linear-gradient(135deg,#a855f7,#7c3aed)' },
+    { id: 'sunset' as const, label: 'Sunset Orange', swatch: 'linear-gradient(135deg,#fb923c,#f97316)' },
+    { id: 'crimson' as const, label: 'Crimson Dark', swatch: 'linear-gradient(135deg,#f87171,#dc2626)' },
   ];
 
   const isAdmin = currentUser?.role === 'admin' || user?.globalRole === 'admin';
@@ -96,7 +96,7 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
       >
         {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
-      
+
       {/* Desktop expand sidebar button */}
       {isSidebarCollapsed && (
         <button
@@ -130,7 +130,7 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
             </g>
             <g transform="translate(20, 60)">
               <path d="M 20 0 L 40 10 L 20 20 L 0 10 Z" fill="#EA580C" />
-              <path d="M 0 10 L 20 20 L 20 40 L 0 30 Z" fill="#991B1B" />
+              <path d="M 0 10 L 20 20 L 20 45 L 0 35 Z" fill="#991B1B" />
               <path d="M 20 20 L 40 10 L 40 30 L 20 40 Z" fill="#B91C1C" />
             </g>
             <g transform="translate(50, 10)">
@@ -199,7 +199,7 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
         >
           <Bell size={20} className={unreadCount > 0 ? 'animate-bounce-subtle' : ''} />
           {unreadCount > 0 && (
-            <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-indigo-600 dark:bg-indigo-500 rounded-full text-white text-[10px] font-bold flex items-center justify-center border-2 border-white dark:border-gray-800">
+            <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-emerald-500 rounded-full text-white text-[10px] font-bold flex items-center justify-center border-2 border-white dark:border-gray-800 shadow-sm animate-pulse">
               {unreadCount}
             </span>
           )}
@@ -229,7 +229,11 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
                   setSelectedTaskId(n.data.taskId);
                 }
               }
-              setActiveView('board');
+              if (n.data && n.data.view === 'logs') {
+                setActiveView('logs');
+              } else {
+                setActiveView('board');
+              }
             }}
           />
         )}
@@ -241,11 +245,10 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
         <button
           id="btn-day-mode"
           onClick={() => { if (theme === 'dark') toggleTheme(); }}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
-            theme === 'light'
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${theme === 'light'
               ? 'bg-white dark:bg-gray-700 text-amber-600 shadow-sm'
               : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-          }`}
+            }`}
           title="Switch to Day Mode"
         >
           <Sun size={14} />
@@ -256,11 +259,10 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
         <button
           id="btn-night-mode"
           onClick={() => { if (theme === 'light') toggleTheme(); }}
-          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
-            theme === 'dark'
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${theme === 'dark'
               ? 'bg-gray-700 text-indigo-400 shadow-sm'
               : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-          }`}
+            }`}
           title="Switch to Night Mode"
         >
           <Moon size={14} />
@@ -271,9 +273,8 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
         <div className="relative">
           <button
             onClick={() => setShowDensityMenu(d => !d)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
-              showDensityMenu ? 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${showDensityMenu ? 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
             title="Layout Density"
           >
             <AlignJustify size={14} />
@@ -288,9 +289,8 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
                     <button
                       key={d}
                       onClick={() => { setLayoutDensity(d); setShowDensityMenu(false); }}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all capitalize ${
-                        layoutDensity === d ? 'bg-gray-100 dark:bg-gray-700/80 text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                      }`}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all capitalize ${layoutDensity === d ? 'bg-gray-100 dark:bg-gray-700/80 text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                        }`}
                     >
                       {d === 'dense' && <AlignJustify size={14} />}
                       {d === 'comfortable' && <AlignCenter size={14} />}
@@ -308,22 +308,23 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
           <button
             id="btn-themes-menu"
             onClick={() => setShowThemeMenu(!showThemeMenu)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
-              showThemeMenu
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${showThemeMenu
                 ? 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-sm'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
+              }`}
           >
             {colorTheme !== 'default' ? (
               <span
                 className="w-3.5 h-3.5 rounded-full inline-block shrink-0"
                 style={{
                   background: (
-                    { ocean: 'linear-gradient(135deg,#0ea5e9,#06b6d4)',
+                    {
+                      ocean: 'linear-gradient(135deg,#0ea5e9,#06b6d4)',
                       forest: 'linear-gradient(135deg,#22c55e,#10b981)',
                       royal: 'linear-gradient(135deg,#a855f7,#7c3aed)',
                       sunset: 'linear-gradient(135deg,#fb923c,#f97316)',
-                      crimson: 'linear-gradient(135deg,#f87171,#dc2626)' } as Record<string,string>
+                      crimson: 'linear-gradient(135deg,#f87171,#dc2626)'
+                    } as Record<string, string>
                   )[colorTheme] || 'linear-gradient(135deg,#6366f1,#a855f7)'
                 }}
               />
@@ -347,11 +348,10 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
                       <button
                         id={`btn-theme-${t.id}`}
                         onClick={() => { setColorTheme(t.id); setShowThemeMenu(false); }}
-                        className={`flex-1 flex items-center gap-2.5 px-2 py-2 rounded-xl text-left text-sm font-medium transition-all duration-150 ${
-                          colorTheme === t.id
+                        className={`flex-1 flex items-center gap-2.5 px-2 py-2 rounded-xl text-left text-sm font-medium transition-all duration-150 ${colorTheme === t.id
                             ? 'bg-gray-100 dark:bg-gray-700/80 text-gray-900 dark:text-white'
                             : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                        }`}
+                          }`}
                       >
                         <span
                           className="w-5 h-5 rounded-full shrink-0 ring-2 ring-white dark:ring-gray-800 shadow-sm"
@@ -367,11 +367,10 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
                           id={`btn-set-default-theme-${t.id}`}
                           onClick={() => setDefaultTheme(t.id)}
                           title={defaultTheme === t.id ? 'Current default' : 'Set as team default'}
-                          className={`shrink-0 p-1.5 rounded-lg transition-all ${
-                            defaultTheme === t.id
+                          className={`shrink-0 p-1.5 rounded-lg transition-all ${defaultTheme === t.id
                               ? 'text-amber-500'
                               : 'text-gray-300 dark:text-gray-600 hover:text-amber-400 opacity-0 group-hover:opacity-100'
-                          }`}
+                            }`}
                         >
                           <Star size={12} fill={defaultTheme === t.id ? 'currentColor' : 'none'} />
                         </button>

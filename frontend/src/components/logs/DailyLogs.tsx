@@ -3,6 +3,31 @@ import { useStore, DailyLog } from '../../store/useStore';
 import { Avatar } from '../ui/Avatar';
 import { Modal } from '../ui/Modal';
 import { ThreadedComment, Reply } from './ThreadedComment';
+import { MentionTextArea } from './MentionTextArea';
+
+const renderTextWithMentions = (text: string) => {
+  if (!text) return null;
+  const regex = /((?:@|u\/)[a-zA-Z0-9_]+)/g;
+  const parts = text.split(regex);
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (regex.test(part)) {
+          return (
+            <span
+              key={index}
+              className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded-lg bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-500/20 text-xs transition-colors"
+            >
+              {part}
+            </span>
+          );
+        }
+        return part;
+      })}
+    </>
+  );
+};
+
 import {
   Plus,
   Calendar,
@@ -81,9 +106,9 @@ const LogForm: React.FC<{
           <label className="text-[10px] font-black text-slate-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-2">
             <BookOpen size={12} /> Progress Update Content
           </label>
-          <textarea
+          <MentionTextArea
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={setContent}
             placeholder="Describe your achievements today..."
             rows={5}
             className="w-full px-4 py-3 rounded-2xl border-2 border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-indigo-500 resize-none transition-all"
@@ -94,9 +119,9 @@ const LogForm: React.FC<{
           <label className="text-[10px] font-black text-amber-500 uppercase tracking-widest flex items-center gap-2">
             <AlertTriangle size={12} /> Blockers or Issues
           </label>
-          <textarea
+          <MentionTextArea
             value={blockers}
-            onChange={(e) => setBlockers(e.target.value)}
+            onChange={setBlockers}
             placeholder="Mention anything slowing you down..."
             rows={2}
             className="w-full px-4 py-3 rounded-2xl border-2 border-amber-100/50 dark:border-amber-900/30 bg-amber-50/30 dark:bg-amber-900/10 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-amber-500 resize-none transition-all"
@@ -281,7 +306,7 @@ const LogCard: React.FC<LogCardProps> = ({
           {/* Post Content */}
           <div className="relative mt-2 pl-0.5">
             <p className="text-sm text-gray-700 dark:text-slate-205 leading-relaxed font-semibold">
-              {log.content}
+              {renderTextWithMentions(log.content)}
             </p>
           </div>
 
@@ -291,7 +316,7 @@ const LogCard: React.FC<LogCardProps> = ({
               <AlertTriangle className="text-amber-500 w-5 h-5 shrink-0" />
               <div>
                 <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest block mb-0.5">Blocker Identified</span>
-                <p className="text-xs text-amber-700 dark:text-amber-400 font-bold leading-relaxed">{log.blockers}</p>
+                <p className="text-xs text-amber-700 dark:text-amber-400 font-bold leading-relaxed">{renderTextWithMentions(log.blockers)}</p>
               </div>
             </div>
           )}
@@ -359,17 +384,17 @@ const LogCard: React.FC<LogCardProps> = ({
               )}
 
               {/* Add Root Comment Form */}
-              <form onSubmit={handleRootCommentSubmit} className="mt-4 flex gap-2 items-stretch">
-                <textarea
+              <form onSubmit={handleRootCommentSubmit} className="mt-4 flex gap-2 items-stretch w-full">
+                <MentionTextArea
                   value={newRootCommentText}
-                  onChange={(e) => setNewRootCommentText(e.target.value)}
+                  onChange={setNewRootCommentText}
                   placeholder="Share a status reply or ask a question..."
                   rows={1}
                   className="flex-1 px-3.5 py-2.5 bg-gray-50 dark:bg-black/30 border border-gray-205 dark:border-gray-800 rounded-xl text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none transition-all"
                 />
                 <button
                   type="submit"
-                  className="px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-sm cursor-pointer transition-all active:scale-95 flex items-center justify-center"
+                  className="px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-sm cursor-pointer transition-all active:scale-95 flex items-center justify-center shrink-0"
                 >
                   Comment
                 </button>

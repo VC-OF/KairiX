@@ -392,7 +392,7 @@ export const Members: React.FC = () => {
                       <p className={`text-xs font-bold truncate ${isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-600 dark:text-gray-400'}`}>
                         {user.name.toLowerCase().includes('jane') ? 'Working on guided onboarding tour' :
                          user.name.toLowerCase().includes('john') ? 'Developing multiplayer sockets' :
-                         user.role === 'admin' ? 'Active: Global Timer Tracking' : 'Idle: Reviewing code reviews'}
+                         user.role === 'admin' ? 'Active: Global Timer Tracking' : 'Idle: No tasks assigned yet'}
                       </p>
                       <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium truncate mt-0.5">
                         {user.name.toLowerCase().includes('jane') ? 'TourGuide.tsx' :
@@ -472,10 +472,10 @@ export const Members: React.FC = () => {
             {otherUsers.map((user) => (
               <div
                 key={user.id}
-                className="bg-white dark:bg-[#0f1623] rounded-2xl border border-gray-100 dark:border-white/8 shadow-sm overflow-hidden p-5 flex items-center gap-4 hover:border-violet-500/20 dark:hover:border-violet-500/20 hover:shadow-md transition-all duration-300 group"
+                className="bg-white dark:bg-[#0f1623] rounded-2xl border border-gray-100 dark:border-white/8 shadow-sm overflow-hidden p-5 flex flex-col gap-4 hover:border-violet-500/20 dark:hover:border-violet-500/20 hover:shadow-md transition-all duration-300 group"
               >
                 <div 
-                  className="flex items-center gap-4 flex-1 min-w-0 cursor-pointer select-none"
+                  className="flex items-center gap-4 min-w-0 cursor-pointer select-none"
                   onClick={() => toggleEmail(user.id)}
                   title="Click to toggle email"
                 >
@@ -493,7 +493,7 @@ export const Members: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between gap-3 pt-3 border-t border-gray-50 dark:border-white/5">
                   {isAdmin && (
                     <select
                       id={`add-role-${user.id}`}
@@ -514,8 +514,9 @@ export const Members: React.FC = () => {
                       const chosenRole = roleSelect ? roleSelect.value : 'TeamMember';
                       addMemberToProject(project.id, user.id, chosenRole);
                     }}
+                    className="ml-auto"
                   >
-                    Add
+                    Add to Project
                   </Button>
                 </div>
               </div>

@@ -238,6 +238,11 @@ export const Dashboard: React.FC = () => {
     .sort((a, b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime())
     .slice(0, 5);
 
+  const canManageTasks =
+    currentUser?.role === 'admin' ||
+    (currentUser as any)?.projectRole === 'ProjectManager' ||
+    (currentUser as any)?.projectRole === 'TeamLead';
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Project Header - Claude Fable Aesthetic */}
@@ -263,30 +268,46 @@ export const Dashboard: React.FC = () => {
           </div>
           
           <div className="flex flex-col items-end justify-between gap-6 shrink-0 mt-2 md:mt-0">
-            {isAdmin && (
-              <div className="flex gap-2">
+            <div className="flex gap-2">
+              {canManageTasks && (
                 <Button
-                  id="tour-edit-project"
-                  variant="ghost"
+                  variant="primary"
                   size="sm"
-                  icon={<Edit3 size={13} />}
-                  onClick={() => setEditingProject(true)}
-                  className="bg-white dark:bg-[#24211f] hover:bg-[#f4eee6] dark:hover:bg-[#2a2622] text-[#2d2926] dark:text-[#edeae5] border border-[#e6e2db] dark:border-[#332f2a] rounded-xl shadow-sm transition-all duration-200"
+                  icon={<Plus size={13} />}
+                  onClick={() => {
+                    sessionStorage.setItem('openAddTaskModal', 'true');
+                    setActiveView('board');
+                  }}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm transition-all duration-200"
                 >
-                  Edit
+                  Add Task
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  icon={<Archive size={13} />}
-                  onClick={() => updateProject({ status: project.status === 'active' ? 'archived' : 'active' })}
-                  className="bg-white dark:bg-[#24211f] hover:bg-[#f4eee6] dark:hover:bg-[#2a2622] text-[#2d2926] dark:text-[#edeae5] border border-[#e6e2db] dark:border-[#332f2a] rounded-xl shadow-sm transition-all duration-200"
-                  title={project.status === 'active' ? "Archive Project" : "Unarchive Project"}
-                >
-                  {project.status === 'active' ? 'Archive' : 'Restore'}
-                </Button>
-              </div>
-            )}
+              )}
+              {isAdmin && (
+                <>
+                  <Button
+                    id="tour-edit-project"
+                    variant="ghost"
+                    size="sm"
+                    icon={<Edit3 size={13} />}
+                    onClick={() => setEditingProject(true)}
+                    className="bg-white dark:bg-[#24211f] hover:bg-[#f4eee6] dark:hover:bg-[#2a2622] text-[#2d2926] dark:text-[#edeae5] border border-[#e6e2db] dark:border-[#332f2a] rounded-xl shadow-sm transition-all duration-200"
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={<Archive size={13} />}
+                    onClick={() => updateProject({ status: project.status === 'active' ? 'archived' : 'active' })}
+                    className="bg-white dark:bg-[#24211f] hover:bg-[#f4eee6] dark:hover:bg-[#2a2622] text-[#2d2926] dark:text-[#edeae5] border border-[#e6e2db] dark:border-[#332f2a] rounded-xl shadow-sm transition-all duration-200"
+                    title={project.status === 'active' ? "Archive Project" : "Unarchive Project"}
+                  >
+                    {project.status === 'active' ? 'Archive' : 'Restore'}
+                  </Button>
+                </>
+              )}
+            </div>
             
             {/* Mini Member Avatars */}
             <div className="flex items-center gap-3 bg-white dark:bg-[#24211f] px-3.5 py-1.5 rounded-2xl border border-[#e6e2db] dark:border-[#332f2a] shadow-sm">
@@ -359,9 +380,21 @@ export const Dashboard: React.FC = () => {
                   </linearGradient>
                 </defs>
               </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">{completionRate}%</span>
-                <span className="text-[9px] uppercase tracking-wider font-extrabold text-gray-400 mt-0.5">Complete</span>
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                {stats.total === 0 ? (
+                  <span className="text-[11px] font-extrabold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-4 leading-tight">
+                    No Tasks<br />Allocated
+                  </span>
+                ) : stats.completed === 0 ? (
+                  <span className="text-[11px] font-extrabold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-4 leading-tight">
+                    No Tasks<br />Done Yet
+                  </span>
+                ) : (
+                  <>
+                    <span className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">{completionRate}%</span>
+                    <span className="text-[9px] uppercase tracking-wider font-extrabold text-gray-400 mt-0.5">Complete</span>
+                  </>
+                )}
               </div>
             </div>
           </div>

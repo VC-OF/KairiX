@@ -245,7 +245,7 @@ export const AnalyticsDashboard: React.FC = () => {
         <StatCard
           icon={AlertTriangle}
           label="Blocked Tasks"
-          value={stuckCount}
+          value={stuckCount === 0 ? "NA" : stuckCount}
           sub={stuckCount > 0 ? "Require immediate attention" : "All clear!"}
           color="bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400"
         />

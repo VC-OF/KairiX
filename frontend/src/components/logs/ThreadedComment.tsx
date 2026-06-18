@@ -1,6 +1,31 @@
 import React, { useState } from 'react';
 import { ArrowBigUp, ArrowBigDown, MessageSquare, Award, Share2, CornerDownRight } from 'lucide-react';
 import { formatDistanceToNow, parseISO } from 'date-fns';
+import { MentionTextArea } from './MentionTextArea';
+
+const renderTextWithMentions = (text: string) => {
+  if (!text) return null;
+  const regex = /((?:@|u\/)[a-zA-Z0-9_]+)/g;
+  const parts = text.split(regex);
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (regex.test(part)) {
+          return (
+            <span
+              key={index}
+              className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded-lg bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-500/20 text-xs transition-colors"
+            >
+              {part}
+            </span>
+          );
+        }
+        return part;
+      })}
+    </>
+  );
+};
+
 
 export interface Reply {
   id: string;
@@ -61,57 +86,52 @@ export const ThreadedComment: React.FC<ThreadedCommentProps> = ({
     <div className="flex flex-col relative select-none animate-fade-in mt-3.5">
       {/* Visual Thread Guide connector - recursive indentation offset */}
       {depth > 0 && (
-        <div 
+        <div
           onMouseEnter={handleLineMouseEnter}
           onMouseLeave={handleLineMouseLeave}
-          className={`absolute top-0 bottom-0 w-[2.5px] transition-colors duration-300 cursor-pointer ${
-            hoveredLine 
-              ? 'bg-indigo-500 dark:bg-indigo-400' 
-              : 'bg-gray-150 dark:bg-gray-800'
-          }`}
+          className={`absolute top-0 bottom-0 w-[2.5px] transition-colors duration-300 cursor-pointer ${hoveredLine
+            ? 'bg-indigo-500 dark:bg-indigo-400'
+            : 'bg-gray-150 dark:bg-gray-800'
+            }`}
           style={{ left: `-${22}px` }}
           title="Highlight sub-thread"
         />
       )}
 
       {/* Main Reply Box */}
-      <div 
-        className={`flex items-start gap-3 p-3.5 rounded-2xl border transition-all duration-300 ${
-          hoveredLine 
-            ? 'bg-indigo-50/20 dark:bg-indigo-950/10 border-indigo-500/20 dark:border-indigo-500/10' 
-            : 'bg-white/40 dark:bg-obsidian-950/20 border-gray-100 dark:border-gray-850 hover:border-gray-200 dark:hover:border-gray-800'
-        }`}
+      <div
+        className={`flex items-start gap-3 p-3.5 rounded-2xl border transition-all duration-300 ${hoveredLine
+          ? 'bg-indigo-50/20 dark:bg-indigo-950/10 border-indigo-500/20 dark:border-indigo-500/10'
+          : 'bg-white/40 dark:bg-obsidian-950/20 border-gray-100 dark:border-gray-850 hover:border-gray-200 dark:hover:border-gray-800'
+          }`}
       >
         {/* Left Side: Vote Rail */}
         <div className="flex flex-col items-center gap-1.5 shrink-0 bg-gray-50/50 dark:bg-black/10 px-1 py-2 rounded-xl border border-gray-100/50 dark:border-gray-800/30">
-          <button 
+          <button
             onClick={() => handleVoteClick('up')}
-            className={`transition-all duration-150 active:scale-125 cursor-pointer ${
-              comment.userVote === 'up' 
-                ? 'text-[#ff4500]' 
-                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
-            }`}
+            className={`transition-all duration-150 active:scale-125 cursor-pointer ${comment.userVote === 'up'
+              ? 'text-[#ff4500]'
+              : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+              }`}
           >
             <ArrowBigUp size={16} fill={comment.userVote === 'up' ? 'currentColor' : 'none'} />
           </button>
-          
-          <span className={`text-[10px] font-black leading-none ${
-            comment.userVote === 'up' 
-              ? 'text-[#ff4500]' 
-              : comment.userVote === 'down' 
-                ? 'text-[#7193ff]' 
-                : 'text-gray-500 dark:text-gray-400'
-          }`}>
+
+          <span className={`text-[10px] font-black leading-none ${comment.userVote === 'up'
+            ? 'text-[#ff4500]'
+            : comment.userVote === 'down'
+              ? 'text-[#7193ff]'
+              : 'text-gray-500 dark:text-gray-400'
+            }`}>
             {comment.score}
           </span>
-          
-          <button 
+
+          <button
             onClick={() => handleVoteClick('down')}
-            className={`transition-all duration-150 active:scale-125 cursor-pointer ${
-              comment.userVote === 'down' 
-                ? 'text-[#7193ff]' 
-                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
-            }`}
+            className={`transition-all duration-150 active:scale-125 cursor-pointer ${comment.userVote === 'down'
+              ? 'text-[#7193ff]'
+              : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+              }`}
           >
             <ArrowBigDown size={16} fill={comment.userVote === 'down' ? 'currentColor' : 'none'} />
           </button>
@@ -125,11 +145,10 @@ export const ThreadedComment: React.FC<ThreadedCommentProps> = ({
               {usernameHandle}
             </span>
             {comment.userRole && (
-              <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase ${
-                comment.userRole === 'admin' 
-                  ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-650 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/30' 
-                  : 'bg-gray-150 dark:bg-gray-850 text-gray-500 dark:text-gray-400'
-              }`}>
+              <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase ${comment.userRole === 'admin'
+                ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-650 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/30'
+                : 'bg-gray-150 dark:bg-gray-850 text-gray-500 dark:text-gray-400'
+                }`}>
                 {comment.userRole}
               </span>
             )}
@@ -139,12 +158,12 @@ export const ThreadedComment: React.FC<ThreadedCommentProps> = ({
 
           {/* Content */}
           <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed font-semibold">
-            {comment.content}
+            {renderTextWithMentions(comment.content)}
           </p>
 
           {/* Action Footer */}
           <div className="flex items-center gap-3.5 mt-3 pt-2.5 border-t border-gray-100 dark:border-gray-850 text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">
-            <button 
+            <button
               onClick={() => setShowReplyForm(!showReplyForm)}
               className="flex items-center gap-1.5 hover:text-indigo-500 transition-colors cursor-pointer"
             >
@@ -164,11 +183,11 @@ export const ThreadedComment: React.FC<ThreadedCommentProps> = ({
           {/* Inline Reply Form */}
           {showReplyForm && (
             <form onSubmit={handleReplySubmit} className="mt-3.5 animate-slide-in-right">
-              <div className="flex items-start gap-2 bg-gray-50/50 dark:bg-black/20 p-2 border border-gray-100 dark:border-gray-850 rounded-xl">
+              <div className="flex items-start gap-2 bg-gray-50/50 dark:bg-black/20 p-2 border border-gray-100 dark:border-gray-850 rounded-xl w-full">
                 <CornerDownRight size={14} className="text-gray-400 mt-2 shrink-0" />
-                <textarea
+                <MentionTextArea
                   value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
+                  onChange={setReplyText}
                   placeholder={`Reply to ${usernameHandle}...`}
                   rows={2}
                   className="flex-1 bg-white dark:bg-gray-800 border border-gray-150 dark:border-gray-700 rounded-lg p-2 text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none min-h-[50px] transition-all"

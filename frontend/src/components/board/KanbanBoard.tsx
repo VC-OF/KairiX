@@ -52,9 +52,15 @@ export const KanbanBoard: React.FC = () => {
   const [showDetail, setShowDetail] = useState(false);
   const [selectedTaskForDetail, setSelectedTaskForDetail] = useState<Task | null>(null);
 
+  React.useEffect(() => {
+    if (sessionStorage.getItem('openAddTaskModal') === 'true') {
+      setShowAddTask(true);
+      sessionStorage.removeItem('openAddTaskModal');
+    }
+  }, []);
+
   const canManageTasks =
     currentUser?.role === 'admin' ||
-    currentUser?.role === 'executive' ||
     (currentUser as any)?.projectRole === 'ProjectManager' ||
     (currentUser as any)?.projectRole === 'TeamLead';
 

@@ -86,7 +86,7 @@ export const ProjectHealthScore: React.FC = () => {
           <div className="space-y-1.5 text-xs">
             {[
               { label: 'On-time rate', value: tasks.length > 0 ? `${Math.round((tasks.filter(t => t.status === 'completed').length / tasks.length) * 100)}%` : '—' },
-              { label: 'Blocked tasks', value: `${tasks.filter(t => t.status === 'stuck').length}` },
+              { label: 'Blocked tasks', value: tasks.filter(t => t.status === 'stuck').length === 0 ? 'NA' : `${tasks.filter(t => t.status === 'stuck').length}` },
               { label: 'Total tasks', value: `${tasks.length}` },
             ].map(row => (
               <div key={row.label} className="flex items-center justify-between">

@@ -2,7 +2,52 @@ const express = require('express');
 const DailyLog = require('../models/DailyLog');
 const DailyLogComment = require('../models/DailyLogComment');
 const { authenticateToken } = require('../middleware/auth');
+const User = require('../models/User');
+const notificationService = require('../services/NotificationService');
 const router = express.Router();
+
+// Helper to notify mentioned users
+async function notifyMentionedUsers(text, authorUser, logId, projectId, io, isComment = false) {
+  if (!text) return;
+  
+  const regex = /(?:^|[^a-zA-Z0-9_])(?:@|u\/)([a-zA-Z0-9_]+)/g;
+  const matches = [];
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    matches.push(match[1].toLowerCase());
+  }
+  
+  if (matches.length === 0) return;
+  const uniqueMatches = [...new Set(matches)];
+  
+  const activeUsers = await User.find({ status: 'active' });
+  const authorUserIdStr = authorUser._id.toString();
+  const mentionedUsers = activeUsers.filter(u => {
+    const username = u.name.toLowerCase().replace(/\s+/g, '_');
+    return uniqueMatches.includes(username) && u._id.toString() !== authorUserIdStr;
+  });
+  
+  if (mentionedUsers.length === 0) return;
+  
+  const authorName = authorUser.name || 'A user';
+  const title = 'You were mentioned';
+  const type = 'mention';
+  const message = isComment 
+    ? `${authorName} mentioned you in a log comment.` 
+    : `${authorName} mentioned you in a daily log.`;
+  
+  for (const user of mentionedUsers) {
+    await notificationService.createNotification(
+      user._id,
+      title,
+      message,
+      type,
+      { view: 'logs', projectId: projectId ? projectId.toString() : null, logId: logId ? logId.toString() : null },
+      io
+    );
+  }
+}
+
 
 // Helper to build recursive threaded comment tree
 function buildCommentTree(comments, currentUserId) {
@@ -175,7 +220,7 @@ router.post('/', authenticateToken, async (req, res) => {
       downvotedBy: []
     });
     await log.populate('userId', 'name email avatar globalRole');
-    
+
     const newLog = {
       ...log.toObject(),
       id: log._id.toString(),
@@ -193,7 +238,17 @@ router.post('/', authenticateToken, async (req, res) => {
         thread: { score: 1, userVote: null, comments: [] }
       });
     }
-    
+
+    // Trigger mention notifications
+    await notifyMentionedUsers(
+      (log.content || '') + ' ' + (log.blockers || ''),
+      log.userId,
+      log._id,
+      log.projectId,
+      io,
+      false
+    );
+
     res.status(201).json(newLog);
   } catch (err) {
     console.error('Create log error:', err);
@@ -243,7 +298,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     const { content, completedTasks, blockers } = req.body;
     const log = await DailyLog.findById(req.params.id);
     if (!log) return res.status(404).json({ message: 'Log not found' });
-    
+
     if (log.userId.toString() !== req.user.userId && req.user.globalRole !== 'admin') {
       return res.status(403).json({ message: 'Not authorized to edit this log' });
     }
@@ -252,9 +307,9 @@ router.put('/:id', authenticateToken, async (req, res) => {
     log.completedTasks = completedTasks !== undefined ? completedTasks : log.completedTasks;
     log.blockers = blockers !== undefined ? blockers : log.blockers;
     await log.save();
-    
+
     await log.populate('userId', 'name email avatar globalRole');
-    
+
     const comments = await DailyLogComment.find({ logId: log._id })
       .populate('userId', 'name email avatar globalRole')
       .sort({ createdAt: 1 });
@@ -287,6 +342,16 @@ router.put('/:id', authenticateToken, async (req, res) => {
         blockers: log.blockers
       });
     }
+
+    // Trigger mention notifications
+    await notifyMentionedUsers(
+      (log.content || '') + ' ' + (log.blockers || ''),
+      log.userId,
+      log._id,
+      log.projectId,
+      io,
+      false
+    );
 
     res.json(updatedLog);
   } catch (err) {
@@ -413,6 +478,18 @@ router.post('/:logId/comments', authenticateToken, async (req, res) => {
         comment: { ...newComment, userVote: null },
         parentId: parentId || null
       });
+    }
+
+    // Trigger mention notifications
+    if (log) {
+      await notifyMentionedUsers(
+        comment.content,
+        comment.userId,
+        logId,
+        log.projectId,
+        io,
+        true
+      );
     }
 
     res.status(201).json(newComment);
