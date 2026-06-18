@@ -157,9 +157,9 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
       </div>
 
       {/* Page Title */}
-      <div className="hidden lg:block flex-1">
-        <h2 className="text-lg font-black text-gray-900 dark:text-white tracking-tight">{viewInfo.title}</h2>
-        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{viewInfo.subtitle}</p>
+      <div className="hidden lg:block flex-1 min-w-0">
+        <h2 className="text-lg font-black text-gray-900 dark:text-white tracking-tight truncate">{viewInfo.title}</h2>
+        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate">{viewInfo.subtitle}</p>
       </div>
 
 

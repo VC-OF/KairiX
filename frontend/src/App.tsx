@@ -260,6 +260,101 @@ function AppLayout() {
       toast.info(notification.title || 'New Notification', notification.message || '');
     });
 
+    // Real-time daily logs
+    socket.on('log-added', (newLog: any) => {
+      useStore.setState((state) => {
+        if (state.dailyLogs.some(l => l.id === newLog.id)) return state;
+        return { dailyLogs: [newLog, ...state.dailyLogs] };
+      });
+    });
+
+    socket.on('log-updated', ({ logId, content, completedTasks, blockers }: any) => {
+      useStore.setState((state) => ({
+        dailyLogs: state.dailyLogs.map(l => l.id === logId ? { ...l, content, completedTasks, blockers } : l)
+      }));
+    });
+
+    socket.on('log-deleted', (logId: string) => {
+      useStore.setState((state) => ({
+        dailyLogs: state.dailyLogs.filter(l => l.id !== logId)
+      }));
+    });
+
+    socket.on('log-voted', ({ logId, score, upvotedBy, downvotedBy }: any) => {
+      useStore.setState((state) => {
+        const myUserId = state.currentUser?.id;
+        const userVote = myUserId && upvotedBy.includes(myUserId) ? 'up' : (myUserId && downvotedBy.includes(myUserId) ? 'down' : null);
+        return {
+          dailyLogs: state.dailyLogs.map(l => l.id === logId ? {
+            ...l,
+            thread: { ...(l.thread || { score: 1, userVote: null, comments: [] }), score, userVote }
+          } : l)
+        };
+      });
+    });
+
+    socket.on('log-comment-added', ({ logId, comment, parentId }: any) => {
+      useStore.setState((state) => {
+        return {
+          dailyLogs: state.dailyLogs.map(log => {
+            if (log.id === logId) {
+              const currentThread = log.thread || { score: 1, userVote: null, comments: [] };
+              let updatedComments;
+              if (!parentId) {
+                if (currentThread.comments?.some((c: any) => c.id === comment.id)) return log;
+                updatedComments = [...(currentThread.comments || []), comment];
+              } else {
+                const addReplyRecursive = (repliesList: any[]): any[] => {
+                  return repliesList.map(item => {
+                    if (item.id === parentId) {
+                      if (item.replies?.some((r: any) => r.id === comment.id)) return item;
+                      return { ...item, replies: [...(item.replies || []), comment] };
+                    }
+                    if (item.replies && item.replies.length > 0) {
+                      return { ...item, replies: addReplyRecursive(item.replies) };
+                    }
+                    return item;
+                  });
+                };
+                updatedComments = addReplyRecursive(currentThread.comments || []);
+              }
+              return { ...log, thread: { ...currentThread, comments: updatedComments } };
+            }
+            return log;
+          })
+        };
+      });
+    });
+
+    socket.on('log-comment-voted', ({ logId, commentId, score, upvotedBy, downvotedBy }: any) => {
+      useStore.setState((state) => {
+        const myUserId = state.currentUser?.id;
+        const userVote = myUserId && upvotedBy.includes(myUserId) ? 'up' : (myUserId && downvotedBy.includes(myUserId) ? 'down' : null);
+
+        const updateVoteRecursive = (repliesList: any[]): any[] => {
+          return repliesList.map(item => {
+            if (item.id === commentId) {
+              return { ...item, score, userVote };
+            }
+            if (item.replies && item.replies.length > 0) {
+              return { ...item, replies: updateVoteRecursive(item.replies) };
+            }
+            return item;
+          });
+        };
+
+        return {
+          dailyLogs: state.dailyLogs.map(log => {
+            if (log.id === logId) {
+              const currentThread = log.thread || { score: 1, userVote: null, comments: [] };
+              return { ...log, thread: { ...currentThread, comments: updateVoteRecursive(currentThread.comments || []) } };
+            }
+            return log;
+          })
+        };
+      });
+    });
+
     return () => {
       socket.off('task-created');
       socket.off('task-updated');
@@ -270,6 +365,12 @@ function AppLayout() {
       socket.off('project-added');
       socket.off('project-removed');
       socket.off('notification');
+      socket.off('log-added');
+      socket.off('log-updated');
+      socket.off('log-deleted');
+      socket.off('log-voted');
+      socket.off('log-comment-added');
+      socket.off('log-comment-voted');
     };
   }, [token]);
 
@@ -331,9 +432,8 @@ function AppLayout() {
       )}
 
       {/* Sidebar - Desktop */}
-      <div className={`hidden lg:flex transition-all duration-300 overflow-hidden ${
-        isSidebarCollapsed ? 'w-0' : ''
-      }`} style={!isSidebarCollapsed ? { width: sidebarWidth } : undefined}>
+      <div className={`hidden lg:flex transition-all duration-300 overflow-hidden ${isSidebarCollapsed ? 'w-0' : ''
+        }`} style={!isSidebarCollapsed ? { width: sidebarWidth } : undefined}>
         <Sidebar />
       </div>
 
@@ -357,11 +457,10 @@ function AppLayout() {
           setMobileMenuOpen={setMobileMenuOpen}
         />
         <main
-          className={`flex-1 ${
-            activeView === 'board' || activeView === 'dependency' || activeView === 'calendar'
+          className={`flex-1 ${activeView === 'board' || activeView === 'dependency' || activeView === 'calendar'
               ? 'flex flex-col overflow-hidden'
               : 'overflow-y-auto p-6'
-          }`}
+            }`}
         >
           <div key={activeView} className={`animate-fade-in-slide h-full w-full ${activeView === 'board' || activeView === 'dependency' || activeView === 'calendar' ? 'flex flex-col overflow-hidden' : ''}`}>
             {renderView()}

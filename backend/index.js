@@ -126,16 +126,17 @@ const generalLimiter = rateLimit({
   message: { message: 'Too many requests from this IP, please try again after 15 minutes' }
 });
 
-const authLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10,
-  skip: skipPreflight,
-  message: { message: 'Too many authentication attempts, please try again after an hour' }
-});
+// Auth limiter removed for unlimited login attempts
+// const authLimiter = rateLimit({
+//   windowMs: 60 * 60 * 1000, // 1 hour
+//   max: 10,
+//   skip: skipPreflight,
+//   message: { message: 'Too many authentication attempts, please try again after an hour' }
+// });
 
 app.use('/api/', generalLimiter);
-app.use('/api/auth/login', authLimiter);
-app.use('/api/auth/signup', authLimiter);
+// app.use('/api/auth/login', authLimiter);
+// app.use('/api/auth/signup', authLimiter);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -211,8 +212,8 @@ cron.schedule('0 1 * * *', async () => {
       // Update nextDue on original
       const freq = task.recurrence.frequency;
       const nextDue = new Date(task.recurrence.nextDue);
-      if (freq === 'daily')   nextDue.setDate(nextDue.getDate() + 1);
-      if (freq === 'weekly')  nextDue.setDate(nextDue.getDate() + 7);
+      if (freq === 'daily') nextDue.setDate(nextDue.getDate() + 1);
+      if (freq === 'weekly') nextDue.setDate(nextDue.getDate() + 7);
       if (freq === 'monthly') nextDue.setMonth(nextDue.getMonth() + 1);
       task.recurrence.nextDue = nextDue;
       await task.save();
@@ -246,11 +247,12 @@ if (process.env.NODE_ENV === 'production') {
   const distPath = path.join(__dirname, '../frontend/dist');
   app.use(express.static(distPath));
 
-  app.get('*', (req, res) => {
+  app.use((req, res, next) => {
     // Exclude API routes from wildcard redirect
     if (!req.path.startsWith('/api/')) {
-      res.sendFile(path.resolve(distPath, 'index.html'));
+      return res.sendFile(path.resolve(distPath, 'index.html'));
     }
+    next();
   });
 }
 
@@ -355,68 +357,7 @@ async function seedDatabase() {
       status: 'active'
     });
 
-    const project1 = await Project.create({
-      name: 'Main Workspace',
-      description: 'Central hub for core team operations.',
-      createdBy: admin._id,
-      members: [
-        { userId: admin._id, role: 'ProjectManager' },
-        { userId: user1._id, role: 'TeamLead' },
-        { userId: user2._id, role: 'TeamMember' }
-      ],
-      status: 'active'
-    });
-
-    const project2 = await Project.create({
-      name: 'Future Initiatives',
-      description: 'Exploratory projects and long-term research.',
-      createdBy: user1._id,
-      members: [
-        { userId: user1._id, role: 'ProjectManager' },
-        { userId: user2._id, role: 'TeamLead' },
-        { userId: user3._id, role: 'TeamMember' }
-      ],
-      status: 'active'
-    });
-
-    await Task.create([
-      {
-        projectId: project1._id,
-        title: 'Setup authentication',
-        description: 'Implement JWT based authentication',
-        createdBy: admin._id,
-        assignedTo: user1._id,
-        assignees: [user1._id],
-        status: 'in-progress',
-        priority: 'high',
-        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        tags: ['backend', 'security']
-      },
-      {
-        projectId: project1._id,
-        title: 'Create user dashboard',
-        description: 'Design and implement user dashboard UI',  
-        createdBy: admin._id,
-        assignedTo: user2._id,
-        assignees: [user2._id],
-        status: 'pending',
-        priority: 'medium',
-        dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-        tags: ['frontend', 'ui']
-      },
-      {
-        projectId: project2._id,
-        title: 'Research new technologies',
-        description: 'Evaluate and document new technologies',
-        createdBy: user1._id,
-        assignedTo: user3._id,
-        assignees: [user3._id],
-        status: 'pending',
-        priority: 'low',
-        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        tags: ['research']
-      }
-    ]);
+    console.log('Database seeded successfully (users only)');
 
     console.log('Database seeded successfully');
     console.log('Test credentials:');

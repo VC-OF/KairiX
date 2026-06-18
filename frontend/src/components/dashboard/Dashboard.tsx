@@ -240,29 +240,29 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Project Header */}
-      <div className={`bg-gradient-to-r ${activeAccent.gradient} rounded-3xl p-6 text-white relative overflow-hidden shadow-xl ${activeAccent.glow} border ${activeAccent.border}`}>
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+      {/* Project Header - Claude Fable Aesthetic */}
+      <div className="bg-[#fdfaf6] dark:bg-[#1f1d1b] rounded-3xl p-8 border border-[#e6e2db] dark:border-[#332f2a] shadow-sm relative overflow-hidden transition-colors">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-start md:justify-between gap-6">
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2 bg-white/10 dark:bg-slate-900/40 backdrop-blur-md px-3 py-1 rounded-full w-fit border border-white/10">
-              <Zap size={14} className="text-amber-300 fill-amber-300 animate-pulse-glow" />
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-100">
+            <div className="flex items-center gap-2 mb-3 px-2.5 py-1 bg-[#f4eee6] dark:bg-[#2a2622] rounded-full w-fit border border-[#e6e2db] dark:border-[#332f2a]">
+              <Zap size={12} className="text-[#d48c46] dark:text-[#e09f58] fill-current" />
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-[#6e6963] dark:text-[#a19d96]">
                 {project.status === 'active' ? 'Active Project' : 'Archived Project'}
               </span>
             </div>
-            <h1 className="text-3xl font-black tracking-tight mb-2 text-gradient-silver bg-clip-text">
+            <h1 className="text-3xl font-semibold tracking-tight mb-2 text-[#2d2926] dark:text-[#edeae5] font-serif">
               {project.name}
             </h1>
-            <p className="text-white/90 text-sm leading-relaxed max-w-2xl font-medium">
+            <p className="text-[#6e6963] dark:text-[#a19d96] text-sm leading-relaxed max-w-2xl">
               {project.description}
             </p>
-            <div className="flex items-center gap-2 text-white/70 text-xs mt-3.5 font-semibold">
-              <span className="w-1.5 h-1.5 rounded-full bg-white/60" />
+            <div className="flex items-center gap-2 text-[#8b857d] dark:text-[#807b74] text-xs mt-4 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#d2cbc0] dark:bg-[#4a453f]" />
               <span>Started {project.createdAt ? format(parseISO(project.createdAt), 'MMMM d, yyyy') : 'Recently'}</span>
             </div>
           </div>
           
-          <div className="flex flex-col items-end justify-between gap-4 shrink-0">
+          <div className="flex flex-col items-end justify-between gap-6 shrink-0 mt-2 md:mt-0">
             {isAdmin && (
               <div className="flex gap-2">
                 <Button
@@ -271,7 +271,7 @@ export const Dashboard: React.FC = () => {
                   size="sm"
                   icon={<Edit3 size={13} />}
                   onClick={() => setEditingProject(true)}
-                  className="bg-white/10 hover:bg-white/20 text-white border border-white/15 rounded-xl transition-all duration-300 hover:scale-105"
+                  className="bg-white dark:bg-[#24211f] hover:bg-[#f4eee6] dark:hover:bg-[#2a2622] text-[#2d2926] dark:text-[#edeae5] border border-[#e6e2db] dark:border-[#332f2a] rounded-xl shadow-sm transition-all duration-200"
                 >
                   Edit
                 </Button>
@@ -280,7 +280,7 @@ export const Dashboard: React.FC = () => {
                   size="sm"
                   icon={<Archive size={13} />}
                   onClick={() => updateProject({ status: project.status === 'active' ? 'archived' : 'active' })}
-                  className="bg-white/10 hover:bg-white/20 text-white border border-white/15 rounded-xl transition-all duration-300 hover:scale-105"
+                  className="bg-white dark:bg-[#24211f] hover:bg-[#f4eee6] dark:hover:bg-[#2a2622] text-[#2d2926] dark:text-[#edeae5] border border-[#e6e2db] dark:border-[#332f2a] rounded-xl shadow-sm transition-all duration-200"
                   title={project.status === 'active' ? "Archive Project" : "Unarchive Project"}
                 >
                   {project.status === 'active' ? 'Archive' : 'Restore'}
@@ -289,11 +289,11 @@ export const Dashboard: React.FC = () => {
             )}
             
             {/* Mini Member Avatars */}
-            <div className="flex items-center gap-3 bg-white/10 dark:bg-slate-900/40 backdrop-blur-md px-3.5 py-1.5 rounded-2xl border border-white/10">
+            <div className="flex items-center gap-3 bg-white dark:bg-[#24211f] px-3.5 py-1.5 rounded-2xl border border-[#e6e2db] dark:border-[#332f2a] shadow-sm">
               <AvatarGroup users={projectMembers} max={4} size="sm" />
-              <div className="text-left leading-none border-l border-white/15 pl-2.5">
-                <p className="text-xs font-black text-white">{projectMembers.length}</p>
-                <p className="text-[9px] text-white/80 font-bold uppercase tracking-wider mt-0.5">members</p>
+              <div className="text-left leading-none border-l border-[#e6e2db] dark:border-[#332f2a] pl-2.5">
+                <p className="text-xs font-bold text-[#2d2926] dark:text-[#edeae5]">{projectMembers.length}</p>
+                <p className="text-[9px] text-[#8b857d] dark:text-[#807b74] font-semibold uppercase tracking-wider mt-0.5">members</p>
               </div>
             </div>
           </div>
@@ -398,7 +398,7 @@ export const Dashboard: React.FC = () => {
                 <div className="p-1.5 bg-indigo-500/10 rounded-xl text-indigo-500">
                   <TrendingUp size={16} />
                 </div>
-                <h3 className="font-bold text-sm text-gray-900 dark:text-slate-100 tracking-tight">Task Cache</h3>
+                <h3 className="font-bold text-sm text-gray-900 dark:text-slate-100 tracking-tight">Recent Tasks</h3>
               </div>
               <Button
                 variant="ghost"

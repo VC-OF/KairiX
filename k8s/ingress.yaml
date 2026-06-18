@@ -1,0 +1,42 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kairix-ingress
+  namespace: default
+  annotations:
+    # k3s uses traefik as its default ingress controller
+    kubernetes.io/ingress.class: "traefik"
+    
+    # If you are using cert-manager for automatic TLS, uncomment the line below
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    
+    # Optional: Increase body size if you handle large file uploads
+    # nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+spec:
+  rules:
+    - host: kairix.oryfolks.com
+      http:
+        paths:
+          # Route all /api traffic to the backend service
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: kairix-backend # Make sure this matches your backend service name
+                port:
+                  number: 5000
+          
+          # Route all other traffic to the frontend service
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kairix-frontend # Make sure this matches your frontend service name
+                port:
+                  number: 80
+  
+  # Optional: Uncomment this block if you want to enable HTTPS/TLS
+  # tls:
+  #   - hosts:
+  #       - kairix.oryfolks.com
+  #     secretName: kairix-tls-cert

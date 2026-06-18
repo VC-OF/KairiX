@@ -30,7 +30,7 @@ services:
     build:
       context: ./frontend
       args:
-        - VITE_API_URL=http://localhost:5000/api
+        - VITE_API_URL=https://kairix.oryfolks.com/api
     container_name: kairix-frontend
     ports:
       - "80:80"

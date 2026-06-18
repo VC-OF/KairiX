@@ -880,7 +880,10 @@ export const useStore = create<AppState>((set, get) => ({
     };
     const saved = await api.post('/logs', newLog);
     const mapped = { ...saved, id: saved._id || saved.id, userId: saved.userId?._id || saved.userId };
-    set((state) => ({ dailyLogs: [mapped, ...state.dailyLogs] }));
+    set((state) => {
+      if (state.dailyLogs.some(l => l.id === mapped.id)) return state;
+      return { dailyLogs: [mapped, ...state.dailyLogs] };
+    });
   },
 
   updateLog: async (id, data) => {
@@ -917,18 +920,6 @@ export const useStore = create<AppState>((set, get) => ({
 
   addLogComment: async (logId, parentCommentId, content) => {
     const saved = await api.post(`/logs/${logId}/comments`, { content, parentId: parentCommentId });
-    
-    const addReplyRecursive = (repliesList: Reply[]): Reply[] => {
-      return repliesList.map(item => {
-        if (item.id === parentCommentId) {
-          return { ...item, replies: [...(item.replies || []), saved] };
-        }
-        if (item.replies && item.replies.length > 0) {
-          return { ...item, replies: addReplyRecursive(item.replies) };
-        }
-        return item;
-      });
-    };
 
     set((state) => ({
       dailyLogs: state.dailyLogs.map((log) => {
@@ -936,8 +927,24 @@ export const useStore = create<AppState>((set, get) => ({
           const currentThread = log.thread || { score: 1, userVote: null, comments: [] };
           let updatedComments: Reply[];
           if (!parentCommentId) {
-            updatedComments = [...(currentThread.comments || []), saved];
+            if (currentThread.comments?.some((c: any) => c.id === saved.id)) {
+              updatedComments = currentThread.comments;
+            } else {
+              updatedComments = [...(currentThread.comments || []), saved];
+            }
           } else {
+            const addReplyRecursive = (repliesList: Reply[]): Reply[] => {
+              return repliesList.map(item => {
+                if (item.id === parentCommentId) {
+                  if (item.replies?.some(r => r.id === saved.id)) return item;
+                  return { ...item, replies: [...(item.replies || []), saved] };
+                }
+                if (item.replies && item.replies.length > 0) {
+                  return { ...item, replies: addReplyRecursive(item.replies) };
+                }
+                return item;
+              });
+            };
             updatedComments = addReplyRecursive(currentThread.comments || []);
           }
           return {

@@ -176,7 +176,7 @@ router.post('/', authenticateToken, async (req, res) => {
     });
     await log.populate('userId', 'name email avatar globalRole');
     
-    res.status(201).json({
+    const newLog = {
       ...log.toObject(),
       id: log._id.toString(),
       thread: {
@@ -184,7 +184,17 @@ router.post('/', authenticateToken, async (req, res) => {
         userVote: 'up',
         comments: []
       }
-    });
+    };
+
+    const io = req.app.get('io');
+    if (io && log.projectId) {
+      io.to(`project:${log.projectId}`).emit('log-added', {
+        ...newLog,
+        thread: { score: 1, userVote: null, comments: [] }
+      });
+    }
+    
+    res.status(201).json(newLog);
   } catch (err) {
     console.error('Create log error:', err);
     res.status(500).json({ message: 'Server error' });
@@ -258,7 +268,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       logUserVote = 'down';
     }
 
-    res.json({
+    const updatedLog = {
       ...log.toObject(),
       id: log._id.toString(),
       thread: {
@@ -266,7 +276,19 @@ router.put('/:id', authenticateToken, async (req, res) => {
         userVote: logUserVote,
         comments: rootComments
       }
-    });
+    };
+
+    const io = req.app.get('io');
+    if (io && log.projectId) {
+      io.to(`project:${log.projectId}`).emit('log-updated', {
+        logId: log._id.toString(),
+        content: log.content,
+        completedTasks: log.completedTasks,
+        blockers: log.blockers
+      });
+    }
+
+    res.json(updatedLog);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -282,8 +304,15 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to delete this log' });
     }
 
+    const projectId = log.projectId;
     await DailyLog.findByIdAndDelete(req.params.id);
     await DailyLogComment.deleteMany({ logId: req.params.id });
+
+    const io = req.app.get('io');
+    if (io && projectId) {
+      io.to(`project:${projectId}`).emit('log-deleted', req.params.id);
+    }
+
     res.json({ message: 'Log deleted' });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
@@ -326,6 +355,16 @@ router.post('/:id/vote', authenticateToken, async (req, res) => {
     log.score = upvoted.length - downvoted.length;
     await log.save();
 
+    const io = req.app.get('io');
+    if (io && log.projectId) {
+      io.to(`project:${log.projectId}`).emit('log-voted', {
+        logId: log._id.toString(),
+        score: log.score,
+        upvotedBy: log.upvotedBy,
+        downvotedBy: log.downvotedBy
+      });
+    }
+
     res.json({
       score: log.score,
       userVote: upvoted.includes(userIdStr) ? 'up' : (downvoted.includes(userIdStr) ? 'down' : null)
@@ -354,7 +393,7 @@ router.post('/:logId/comments', authenticateToken, async (req, res) => {
 
     await comment.populate('userId', 'name email avatar globalRole');
 
-    res.status(201).json({
+    const newComment = {
       id: comment._id.toString(),
       userId: comment.userId._id.toString(),
       userName: comment.userId.name,
@@ -364,7 +403,19 @@ router.post('/:logId/comments', authenticateToken, async (req, res) => {
       score: comment.score,
       userVote: 'up',
       replies: []
-    });
+    };
+
+    const io = req.app.get('io');
+    const log = await DailyLog.findById(logId);
+    if (io && log && log.projectId) {
+      io.to(`project:${log.projectId}`).emit('log-comment-added', {
+        logId: logId,
+        comment: { ...newComment, userVote: null },
+        parentId: parentId || null
+      });
+    }
+
+    res.status(201).json(newComment);
   } catch (err) {
     console.error('Add log comment error:', err);
     res.status(500).json({ message: 'Server error' });
@@ -402,6 +453,18 @@ router.post('/:logId/comments/:commentId/vote', authenticateToken, async (req, r
     comment.downvotedBy = downvoted;
     comment.score = upvoted.length - downvoted.length;
     await comment.save();
+
+    const io = req.app.get('io');
+    const log = await DailyLog.findById(logId);
+    if (io && log && log.projectId) {
+      io.to(`project:${log.projectId}`).emit('log-comment-voted', {
+        logId: logId,
+        commentId: comment._id.toString(),
+        score: comment.score,
+        upvotedBy: comment.upvotedBy,
+        downvotedBy: comment.downvotedBy
+      });
+    }
 
     res.json({
       commentId: comment._id.toString(),
