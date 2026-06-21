@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
 import { useAuth } from '../../hooks/useAuth';
-import { ChevronDown, Bell, Menu, X, Sun, Moon, LogOut, User, Sparkles, Palette, Check, Star, PanelLeftOpen, Command, AlignJustify, AlignCenter, AlignLeft as AlignSpacious } from 'lucide-react';
+import { ChevronDown, Bell, Menu, X, Sun, Moon, LogOut, User, Sparkles, Palette, Check, Star, PanelLeftOpen, Command, AlignJustify, AlignCenter, AlignLeft as AlignSpacious, ClipboardList, AlertTriangle, Users, TrendingUp, MessageSquare, CheckCircle2, Plus, Minus, Clock } from 'lucide-react';
 import { NotificationsPanel } from './NotificationsPanel';
+import { KairixSearchButton } from '../ui/KairixSearchLogo';
 
 interface HeaderProps {
   mobileMenuOpen: boolean;
@@ -47,6 +48,9 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
     toggleSidebar,
     layoutDensity,
     setLayoutDensity,
+    project,
+    tasks,
+    dailyLogs,
   } = useStore();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -56,6 +60,34 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
   const [showDensityMenu, setShowDensityMenu] = useState(false);
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  const getNotificationCategory = (n: any) => {
+    const title = (n.title || '').toLowerCase();
+    const type = (n.type || '').toLowerCase();
+    if (type === 'mention' || title.includes('mention') || title.includes('@')) return 'Mention';
+    if (title.includes('assigned') || title.includes('new task')) return 'Task Assigned';
+    if (title.includes('completed') || title.includes('done')) return 'Task Completed';
+    if (title.includes('comment')) return 'Comment';
+    if (title.includes('due') || title.includes('deadline')) return 'Due Soon';
+    if (title.includes('warn') || title.includes('error') || title.includes('fail')) return 'Warning/Error';
+    return 'System Alert';
+  };
+
+  const tasksMentionedCount = notifications.filter(n => !n.read && getNotificationCategory(n) === 'Mention').length;
+  const overdueTasksCount = notifications.filter(n => !n.read && getNotificationCategory(n) === 'Due Soon').length;
+  
+  const membersCount = notifications.filter(n => {
+    if (n.read) return false;
+    const title = (n.title || '').toLowerCase();
+    const msg = (n.message || '').toLowerCase();
+    return n.type === 'project' || title.includes('member') || msg.includes('member') || title.includes('added') || title.includes('removed');
+  }).length;
+
+  const workflowUpdatesCount = notifications.filter(n => {
+    if (n.read) return false;
+    const cat = getNotificationCategory(n);
+    return cat === 'Task Assigned' || cat === 'Task Completed' || cat === 'Comment' || n.type === 'task' || (n.title || '').toLowerCase().includes('status');
+  }).length;
 
   // const stuckCount = tasks.filter((t) => t.status === 'stuck').length;
   const viewInfo = viewTitles[activeView] || viewTitles.dashboard;
@@ -176,34 +208,88 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
       </button>
 
       {/* Command Palette trigger */}
-      <button
-        onClick={() => {
-          const event = new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true });
-          window.dispatchEvent(event);
-        }}
-        title="Command Palette (Ctrl+K)"
-        className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-gray-200/60 dark:border-gray-700/60 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-all text-xs font-semibold"
-      >
-        <Command size={13} />
-        <span className="hidden md:inline">Search</span>
-        <kbd className="hidden md:inline text-[9px] px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-700 font-mono text-gray-400">⌘K</kbd>
-      </button>
+      <div className="hidden sm:block">
+        <KairixSearchButton
+          onClick={() => {
+            const event = new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true });
+            window.dispatchEvent(event);
+          }}
+        />
+      </div>
 
       <div className="flex-1 lg:flex-none" />
 
       {/* Notifications */}
       <div className="relative">
-        <button
-          onClick={() => setShowNotifications(!showNotifications)}
-          className={`p-2 rounded-xl transition-all duration-300 relative ${showNotifications ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400'}`}
-        >
-          <Bell size={20} className={unreadCount > 0 ? 'animate-bounce-subtle' : ''} />
-          {unreadCount > 0 && (
-            <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-emerald-500 rounded-full text-white text-[10px] font-bold flex items-center justify-center border-2 border-white dark:border-gray-800 shadow-sm animate-pulse">
-              {unreadCount}
-            </span>
-          )}
-        </button>
+        {/* 4 Category Speech Bubbles replacing the Bell icon */}
+        <div className="flex items-center gap-3">
+          {/* Bubble 1: Tasks */}
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="relative bg-blue-600 text-white w-10 h-7 rounded-lg flex items-center justify-center gap-0.5 shadow-md shadow-blue-500/10 transition-all hover:scale-105"
+            title="Tasks Mentioned in Logs"
+          >
+            <ClipboardList size={14} className="stroke-[2.2]" />
+            <MessageSquare size={10} className="fill-current text-white shrink-0" />
+            <div className="absolute bottom-[-3px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[3px] border-t-blue-600" />
+            {tasksMentionedCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[8px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-white dark:border-gray-800 shadow-sm animate-pulse">
+                {tasksMentionedCount}
+              </span>
+            )}
+          </button>
+
+          {/* Bubble 2: Task Overdue */}
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="relative bg-orange-500 text-white w-10 h-7 rounded-lg flex items-center justify-center gap-0.5 shadow-md shadow-orange-500/10 transition-all hover:scale-105"
+            title="Overdue Tasks"
+          >
+            <Clock size={14} className="stroke-[2.2]" />
+            <AlertTriangle size={10} className="fill-current text-white shrink-0" />
+            <div className="absolute bottom-[-3px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[3px] border-t-orange-500" />
+            {overdueTasksCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[8px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-white dark:border-gray-800 shadow-sm animate-pulse">
+                {overdueTasksCount}
+              </span>
+            )}
+          </button>
+
+          {/* Bubble 3: Project Status (Members) */}
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="relative bg-emerald-600 text-white w-10 h-7 rounded-lg flex items-center justify-center gap-1 shadow-md shadow-emerald-500/10 transition-all hover:scale-105"
+            title="Members Activity"
+          >
+            <Users size={14} className="stroke-[2.2]" />
+            <div className="flex flex-col -space-y-0.5 shrink-0">
+              <Plus size={6} className="stroke-[3]" />
+              <Minus size={6} className="stroke-[3]" />
+            </div>
+            <div className="absolute bottom-[-3px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[3px] border-t-emerald-600" />
+            {membersCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[8px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-white dark:border-gray-800 shadow-sm animate-pulse">
+                {membersCount}
+              </span>
+            )}
+          </button>
+
+          {/* Bubble 4: Project Status (Updates) */}
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="relative bg-purple-600 text-white w-10 h-7 rounded-lg flex items-center justify-center gap-0.5 shadow-md shadow-purple-500/10 transition-all hover:scale-105"
+            title="Tasks & Phase Updates"
+          >
+            <TrendingUp size={14} className="stroke-[2.2]" />
+            <CheckCircle2 size={10} className="fill-current text-white shrink-0" />
+            <div className="absolute bottom-[-3px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[3px] border-t-purple-600" />
+            {workflowUpdatesCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[8px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-white dark:border-gray-800 shadow-sm animate-pulse">
+                {workflowUpdatesCount}
+              </span>
+            )}
+          </button>
+        </div>
 
         {showNotifications && (
           <NotificationsPanel

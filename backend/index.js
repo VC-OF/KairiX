@@ -121,7 +121,7 @@ const skipPreflight = (req) => req.method === 'OPTIONS';
 
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000,
+  max: 100,
   skip: skipPreflight,
   message: { message: 'Too many requests from this IP, please try again after 15 minutes' }
 });
@@ -321,15 +321,6 @@ async function seedDatabase() {
       status: 'active'
     });
 
-    const executive = await User.create({
-      name: 'Executive User',
-      email: 'executive@oryfolks.com',
-      password: 'Executive@123',
-      globalRole: 'executive',
-      avatar: 'EU',
-      status: 'active'
-    });
-
     const user1 = await User.create({
       name: 'John Doe',
       email: 'john@oryfolks.com',
@@ -339,30 +330,11 @@ async function seedDatabase() {
       status: 'active'
     });
 
-    const user2 = await User.create({
-      name: 'Jane Smith',
-      email: 'jane@oryfolks.com',
-      password: 'Jane@123',
-      globalRole: 'user',
-      avatar: 'JS',
-      status: 'active'
-    });
-
-    const user3 = await User.create({
-      name: 'Mike Johnson',
-      email: 'mike@oryfolks.com',
-      password: 'Mike@123',
-      globalRole: 'user',
-      avatar: 'MJ',
-      status: 'active'
-    });
-
     console.log('Database seeded successfully (users only)');
 
     console.log('Database seeded successfully');
     console.log('Test credentials:');
     console.log('  Admin: admin@oryfolks.com / Admin@123');
-    console.log('  Executive: executive@oryfolks.com / Executive@123');
     console.log('  User: john@oryfolks.com / John@123');
   } catch (err) {
     console.error('Error seeding database:', err);

@@ -61,16 +61,37 @@ class NotificationService {
     }
   }
 
-  async notifyTaskStatusChange(task, changerName, oldStatus, newStatus, io = null) {
+  async notifyTaskStatusChange(task, changerName, oldStatus, newStatus, changerUserId = null, io = null) {
+    if (changerUserId && typeof changerUserId.to === 'function') {
+      io = changerUserId;
+      changerUserId = null;
+    }
+
     const title = 'Task Status Updated';
     const message = `${changerName} moved "${task.title}" from ${oldStatus} to ${newStatus}`;
 
-    const recipients = new Set([
-      ...task.assignees.map(id => id.toString()),
-      task.createdBy.toString()
-    ]);
+    let recipientIds = [];
+    try {
+      const Project = require('../models/Project');
+      const project = await Project.findById(task.projectId);
+      if (project && project.members && project.members.length > 0) {
+        recipientIds = project.members.map(m => m.userId.toString());
+      }
+    } catch (err) {
+      // fallback
+    }
+
+    if (recipientIds.length === 0) {
+      recipientIds = [
+        ...task.assignees.map(id => id.toString()),
+        task.createdBy.toString()
+      ];
+    }
+
+    const recipients = new Set(recipientIds);
 
     for (const recipientId of recipients) {
+      if (changerUserId && recipientId === changerUserId.toString()) continue;
       await this.createNotification(
         recipientId, title, message, 'task',
         { taskId: task._id, projectId: task.projectId },

@@ -130,18 +130,6 @@ export const TaskDetail: React.FC<TaskDetailProps> = ({ isOpen, onClose, task, o
           <X size={20} />
         </button>
 
-        {/* Presence Alert Banner */}
-        {task.status !== 'completed' && (
-          <div className="flex items-center justify-between bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/30 px-3.5 py-2.5 rounded-xl mb-6 pr-14 select-none">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-              <span className="text-xs font-bold text-indigo-950 dark:text-indigo-200">Jane Smith is also viewing this task right now</span>
-            </div>
-            <div className="flex -space-x-1">
-              <div className="w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center text-white text-[8px] font-black border border-white dark:border-gray-900">JS</div>
-            </div>
-          </div>
-        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
@@ -279,19 +267,6 @@ export const TaskDetail: React.FC<TaskDetailProps> = ({ isOpen, onClose, task, o
                 )}
               </div>
 
-              {/* Mock Multiplayer Typing Indicator inside details drawer */}
-              {task.status !== 'completed' && (
-                <div id="tour-task-typing" className="flex items-center gap-2 px-3 py-1.5 bg-gray-50/50 dark:bg-[#090d16]/30 border border-gray-100 dark:border-gray-800/80 rounded-xl w-fit">
-                  <div className="flex gap-0.5">
-                    <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full typing-dot" />
-                    <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full typing-dot [animation-delay:0.2s]" />
-                    <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full typing-dot [animation-delay:0.4s]" />
-                  </div>
-                  <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400">
-                    Jane Smith is writing a progress update...
-                  </span>
-                </div>
-              )}
 
               {/* Add Comment Form */}
               {task.status !== 'completed' && (

@@ -17,6 +17,8 @@ import {
   Archive,
   Plus,
   Sparkles,
+  MessageSquare,
+  Minus,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ProjectHealthScore } from './ProjectHealthScore';
@@ -201,6 +203,11 @@ export const Dashboard: React.FC = () => {
     setEditingProject(false);
   };
 
+  const overdueTasksCount = tasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'completed').length;
+  const tasksMentionedCount = dailyLogs.reduce((acc, log) => acc + (log.completedTasks?.length || 0), 0);
+  const membersCount = projectMembers.length;
+  const workflowUpdatesCount = stats.completed;
+
   const statCards = [
     {
       label: 'Total Tasks',
@@ -326,15 +333,19 @@ export const Dashboard: React.FC = () => {
         {statCards.map((card) => (
           <div
             key={card.label}
-            className={`glass-panel glass-panel-hover p-5 rounded-2xl relative overflow-hidden group transition-all duration-300 border-t-0 border-x-0 ${card.colorClass}`}
+            className={`glass-panel glass-panel-hover p-5 rounded-2xl relative overflow-hidden group transition-all duration-300 ${card.colorClass}`}
           >
-            <div className="flex items-center justify-between mb-3">
-              <div className={`p-2.5 rounded-2xl ${card.iconBg}`}>
+            <div className="flex justify-between items-start">
+              <div className={`p-2.5 rounded-2xl ${card.iconBg} transition-transform duration-300 group-hover:scale-110`}>
                 {card.icon}
               </div>
-              <span className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">{card.value}</span>
+              <span className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+                {card.value}
+              </span>
             </div>
-            <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{card.label}</p>
+            <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mt-3">
+              {card.label}
+            </p>
           </div>
         ))}
       </div>

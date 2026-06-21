@@ -21,6 +21,7 @@ import {
   PanelLeftClose,
   Pin,
   Search,
+  FolderKanban,
 } from 'lucide-react';
 import { LogoCompact } from '../ui/Logo';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -28,66 +29,86 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { api } from '../../utils/api';
 
+const formatCamelBack = (str: string) => {
+  if (!str) return '';
+  const normalized = str.replace(/&/g, 'n');
+  return normalized
+    .split(/[^a-zA-Z0-9]+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join('');
+};
+
 const navItems = [
   {
     view: 'dashboard' as const,
     label: 'Dashboard',
     icon: LayoutDashboard,
     description: 'Overview & stats',
+    color: '#0ea5e9', // Cyber Cyan / Sky Blue
   },
   {
     view: 'board' as const,
     label: 'Kanban Board',
     icon: Kanban,
     description: 'Task management',
+    color: '#6366f1', // Indigo
   },
   {
     view: 'dependency' as const,
     label: 'Dependency Map',
     icon: Network,
     description: 'Interactive graph',
+    color: '#10b981', // Emerald Green
   },
   {
     view: 'calendar' as const,
     label: 'Calendar View',
     icon: Calendar,
     description: 'Work hours calendar',
+    color: '#f43f5e', // Rose Red
   },
   {
     view: 'analytics' as const,
     label: 'Analytics',
     icon: TrendingUp,
     description: 'Productivity stats',
+    color: '#f97316', // Sunset Orange
   },
   {
     view: 'logs' as const,
     label: 'Daily Logs',
     icon: BookOpen,
     description: 'Status updates',
+    color: '#8b5cf6', // Royal Violet
   },
   {
     view: 'tracker' as const,
     label: 'Time Tracker',
     icon: Clock,
     description: 'Track task time',
+    color: '#ec4899', // Hot Pink
   },
   {
     view: 'members' as const,
     label: 'Team Members',
     icon: Users,
     description: 'Manage team',
+    color: '#3b82f6', // Ocean Blue
   },
   {
     view: 'files' as const,
     label: 'Files & Docs',
     icon: FileText,
     description: 'Project documents',
+    color: '#14b8a6', // Bright Teal
   },
   {
     view: 'profile' as const,
     label: 'My Profile',
     icon: User,
     description: 'Account settings',
+    color: '#d946ef', // Vibrant Fuchsia
   },
 ];
 
@@ -304,9 +325,9 @@ export const Sidebar: React.FC = () => {
               className="w-full flex items-center justify-between px-3 py-2.5 bg-gray-50/50 dark:bg-gray-900/30 hover:bg-indigo-500/5 dark:hover:bg-indigo-500/10 rounded-xl border border-gray-200/40 dark:border-gray-800/40 transition-all duration-300 group hover:border-indigo-500/30 dark:hover:border-indigo-500/20"
             >
               <div className="flex items-center gap-2.5 overflow-hidden">
-                <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 shrink-0 shadow-[0_0_8px_rgba(99,102,241,0.6)] glow-dot-indigo" />
+                <FolderKanban size={16} className="text-indigo-500 dark:text-indigo-400 shrink-0 transition-transform group-hover:scale-110" />
                 <span className="text-sm font-semibold text-gray-800 dark:text-slate-100 truncate">
-                  {project.name}
+                  {formatCamelBack(project.name)}
                 </span>
               </div>
               <ChevronDown size={14} className={`text-gray-400 transition-transform duration-300 ${isProjectDropdownOpen ? 'rotate-180' : ''}`} />
@@ -346,7 +367,7 @@ export const Sidebar: React.FC = () => {
                         >
                           <Pin size={9} className="shrink-0 text-amber-500" />
                           <div className="flex-1 min-w-0">
-                            <p className="truncate leading-none">{p.name}</p>
+                            <p className="truncate leading-none">{formatCamelBack(p.name)}</p>
                           </div>
                         </button>
                         <button onClick={() => togglePinProject(p.id)} className="px-2 text-amber-400 hover:text-amber-600" title="Unpin">
@@ -369,9 +390,9 @@ export const Sidebar: React.FC = () => {
                             project.id === p.id ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100/60 dark:hover:bg-gray-800/60'
                           }`}
                         >
-                          <div className={`w-1.5 h-1.5 rounded-full ${project.id === p.id ? 'bg-white' : 'bg-gray-300 dark:bg-gray-600'}`} />
+                          <FolderKanban size={12} className={`shrink-0 ${project.id === p.id ? 'text-white' : 'text-indigo-500 dark:text-indigo-400 opacity-85 group-hover/proj:opacity-100 transition-opacity'}`} />
                           <div className="flex-1 min-w-0">
-                            <p className="truncate leading-none">{p.name}</p>
+                            <p className="truncate leading-none">{formatCamelBack(p.name)}</p>
                             {p.status === 'archived' && <p className="text-[9px] mt-1 opacity-60">Archived</p>}
                           </div>
                         </button>
@@ -407,22 +428,20 @@ export const Sidebar: React.FC = () => {
               onClick={() => setActiveView(item.view)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 group ${isActive
                 ? 'font-bold shadow-sm border-l-4'
-                : 'hover:translate-x-0.5'
+                : 'hover:translate-x-0.5 hover:bg-gray-50 dark:hover:bg-gray-800/20'
               }`}
               style={isActive ? {
                 background: 'var(--theme-sidebar-active-bg)',
                 color: 'var(--theme-sidebar-active-text)',
-                borderLeftColor: 'var(--theme-sidebar-active-icon)',
+                borderLeftColor: item.color,
               } : {
                 color: 'var(--theme-sidebar-subtext)',
               }}
             >
               <Icon
                 size={18}
-                style={{ color: isActive ? 'var(--theme-sidebar-active-icon)' : undefined }}
-                className={isActive ? '' : 'text-gray-400 dark:text-gray-500 transition-colors'}
-                onMouseEnter={(e) => { if (!isActive) (e.currentTarget as SVGElement).style.color = 'var(--theme-accent)'; }}
-                onMouseLeave={(e) => { if (!isActive) (e.currentTarget as SVGElement).style.color = ''; }}
+                style={{ color: item.color }}
+                className={`transition-all duration-200 ${isActive ? 'scale-110' : 'opacity-70 group-hover:opacity-100 group-hover:scale-110'}`}
               />
               <div className="flex-1 min-w-0">
                 <p

@@ -84,7 +84,9 @@ router.post('/:projectId',
       }
 
       // Notifications (pass io for real-time delivery)
-      await notificationService.notifyTaskAssignment(task, req.user.name || 'A team member', req.user.userId, io);
+      const creator = await User.findById(req.user.userId);
+      const creatorName = creator ? creator.name : 'A team member';
+      await notificationService.notifyTaskAssignment(task, creatorName, req.user.userId, io);
 
       res.status(201).json(task);
     } catch (err) {
@@ -308,8 +310,9 @@ router.put('/:projectId/:taskId',
 
       // Notify on status change
       if (status && status !== oldStatus) {
-        const changerName = req.user.name || 'A team member';
-        await notificationService.notifyTaskStatusChange(task, changerName, oldStatus, status, io);
+        const changer = await User.findById(req.user.userId);
+        const changerName = changer ? changer.name : 'A team member';
+        await notificationService.notifyTaskStatusChange(task, changerName, oldStatus, status, req.user.userId, io);
       }
 
       res.json(task);

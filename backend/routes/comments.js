@@ -68,7 +68,10 @@ router.post('/:taskId/comments', authenticateToken, async (req, res) => {
     // Notification and Real-time
     const io = req.app.get('io');
     const { task } = access;
-    await notificationService.notifyTaskComment(task, req.user.name || 'A team member', content, req.user.userId, io);
+    const User = require('../models/User');
+    const commenter = await User.findById(req.user.userId);
+    const commenterName = commenter ? commenter.name : 'A team member';
+    await notificationService.notifyTaskComment(task, commenterName, content, req.user.userId, io);
     
     if (io) {
       io.to(`project:${task.projectId}`).emit('comment-added', { taskId: task._id, comment });

@@ -723,3 +723,30 @@ html {
 [data-density="dense"]       { --spacing-unit: 0.75rem; }
 [data-density="comfortable"] { --spacing-unit: 1rem; }
 [data-density="spacious"]    { --spacing-unit: 1.25rem; }
+
+/* ─── Kairix Search Button CSS ─── */
+@keyframes rgby-animation {
+  0% { background: linear-gradient(135deg, #ef4444, #f87171); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2); }
+  25% { background: linear-gradient(135deg, #10b981, #34d399); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
+  50% { background: linear-gradient(135deg, #3b82f6, #60a5fa); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2); }
+  75% { background: linear-gradient(135deg, #eab308, #facc15); box-shadow: 0 4px 12px rgba(234, 179, 8, 0.2); }
+  100% { background: linear-gradient(135deg, #ef4444, #f87171); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2); }
+}
+
+.kairix-search-btn {
+  width: 60px;
+  height: 60px;
+  border: none;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  animation: rgby-animation 10s infinite linear;
+}
+
+.kairix-search-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+}
