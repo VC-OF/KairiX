@@ -542,7 +542,7 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({
                 </div>
                 <p className="text-gray-800 dark:text-gray-300 font-bold">All caught up!</p>
                 <p className="text-sm text-gray-500 mt-1">No notifications found in this category.</p>
-              </div>
+              </div> 
             ) : (
               Object.entries(groupedNotifications).map(([groupName, items]) => {
                 if (items.length === 0) return null;
