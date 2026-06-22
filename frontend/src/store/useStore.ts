@@ -123,7 +123,7 @@ export interface TaskComment {
   createdAt: string;
 }
 
-export type ColorTheme = 'default' | 'ocean' | 'forest' | 'royal' | 'sunset' | 'crimson';
+export type ColorTheme = 'default' | 'ocean' | 'forest' | 'royal' | 'sunset' | 'crimson' | 'charcoal' | 'navy' | 'teal' | 'blush' | 'magenta' | 'slate';
 
 interface AppState {
   currentUser: User | null;

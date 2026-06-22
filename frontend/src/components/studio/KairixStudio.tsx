@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useStore } from '../../store/useStore';
 import { 
   Sparkles, 
   Users, 
@@ -35,6 +36,7 @@ const studioColorMap: Record<string, { border: string; bg: string; text: string;
 export const KairixStudio: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const { setIsTourActive, setTourStep } = useStore();
   
   // Studio theme mode (dark vs light)
   const [studioTheme, setStudioTheme] = useState<'dark' | 'light'>('dark');
@@ -181,6 +183,19 @@ export const KairixStudio: React.FC = () => {
               className="px-6 py-3.5 bg-white/5 dark:bg-white/[0.02] border border-gray-250 dark:border-white/[0.08] rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-white/10 transition-all cursor-pointer"
             >
               Claim Free Seat
+            </button>
+            <button
+              onClick={() => {
+                navigate('/dashboard');
+                setTimeout(() => {
+                  setIsTourActive(true);
+                  setTourStep(0);
+                }, 100);
+              }}
+              className="flex items-center gap-2 px-6 py-3.5 bg-white/5 dark:bg-white/[0.02] border border-indigo-500/30 rounded-2xl text-xs font-black uppercase tracking-widest text-indigo-500 hover:bg-indigo-500/10 transition-all cursor-pointer"
+            >
+              <Sparkles size={13} className="animate-pulse" />
+              <span>Interactive Tour</span>
             </button>
           </div>
         </div>

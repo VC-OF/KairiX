@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
 import { useAuth } from '../../hooks/useAuth';
-import { ChevronDown, Bell, Menu, X, Sun, Moon, LogOut, User, Sparkles, Palette, Check, Star, PanelLeftOpen, Command, AlignJustify, AlignCenter, AlignLeft as AlignSpacious, ClipboardList, AlertTriangle, Users, TrendingUp, MessageSquare, CheckCircle2, Plus, Minus, Clock } from 'lucide-react';
+import { ChevronDown, Bell, Menu, X, Sun, Moon, LogOut, User, Sparkles, Palette, Check, Star, PanelLeftOpen, Command, AlignJustify, AlignCenter, AlignLeft as AlignSpacious, ClipboardList, AlertTriangle, Users, TrendingUp, MessageSquare, CheckCircle2, Plus, Minus, Clock, Droplets, TreePine, Crown, Flame, Anchor, Wind, Heart, Mountain } from 'lucide-react';
 import { NotificationsPanel } from './NotificationsPanel';
 import { KairixSearchButton } from '../ui/KairixSearchLogo';
 
@@ -93,12 +93,18 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
   const viewInfo = viewTitles[activeView] || viewTitles.dashboard;
 
   const THEMES = [
-    { id: 'default' as const, label: 'Default', swatch: 'linear-gradient(135deg,#6366f1,#a855f7)' },
-    { id: 'ocean' as const, label: 'Ocean Blue', swatch: 'linear-gradient(135deg,#0ea5e9,#06b6d4)' },
-    { id: 'forest' as const, label: 'Forest Green', swatch: 'linear-gradient(135deg,#22c55e,#10b981)' },
-    { id: 'royal' as const, label: 'Royal Purple', swatch: 'linear-gradient(135deg,#a855f7,#7c3aed)' },
-    { id: 'sunset' as const, label: 'Sunset Orange', swatch: 'linear-gradient(135deg,#fb923c,#f97316)' },
-    { id: 'crimson' as const, label: 'Crimson Dark', swatch: 'linear-gradient(135deg,#f87171,#dc2626)' },
+    { id: 'default' as const, label: 'Default', swatch: 'linear-gradient(135deg,#6366f1,#a855f7)', icon: Sparkles },
+    { id: 'charcoal' as const, label: 'Charcoal Dark', swatch: 'linear-gradient(135deg,#1f2937,#111827)', icon: Moon },
+    { id: 'navy' as const, label: 'Navy Blue', swatch: 'linear-gradient(135deg,#1e3a8a,#172554)', icon: Anchor },
+    { id: 'ocean' as const, label: 'Ocean Blue', swatch: 'linear-gradient(135deg,#0ea5e9,#06b6d4)', icon: Droplets },
+    { id: 'teal' as const, label: 'Turquoise Teal', swatch: 'linear-gradient(135deg,#14b8a6,#0d9488)', icon: Wind },
+    { id: 'forest' as const, label: 'Forest Green', swatch: 'linear-gradient(135deg,#22c55e,#10b981)', icon: TreePine },
+    { id: 'blush' as const, label: 'Blush Pink', swatch: 'linear-gradient(135deg,#f472b6,#db2777)', icon: Heart },
+    { id: 'magenta' as const, label: 'Hot Magenta', swatch: 'linear-gradient(135deg,#d946ef,#c026d3)', icon: Palette },
+    { id: 'royal' as const, label: 'Royal Purple', swatch: 'linear-gradient(135deg,#a855f7,#7c3aed)', icon: Crown },
+    { id: 'sunset' as const, label: 'Sunset Orange', swatch: 'linear-gradient(135deg,#fb923c,#f97316)', icon: Sun },
+    { id: 'crimson' as const, label: 'Crimson Dark', swatch: 'linear-gradient(135deg,#f87171,#dc2626)', icon: Flame },
+    { id: 'slate' as const, label: 'Slate Grey', swatch: 'linear-gradient(135deg,#64748b,#475569)', icon: Mountain },
   ];
 
   const isAdmin = currentUser?.role === 'admin' || user?.globalRole === 'admin';
@@ -195,17 +201,7 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
       </div>
 
 
-      {/* Onboarding Tour Trigger */}
-      <button
-        onClick={() => {
-          setIsTourActive(true);
-          setTourStep(0);
-        }}
-        className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-500/10 hover:shadow-indigo-500/20 transition-all cursor-pointer"
-      >
-        <Sparkles size={13} className="animate-pulse" />
-        <span>Interactive Tour</span>
-      </button>
+
 
       {/* Command Palette trigger */}
       <div className="hidden sm:block">
@@ -403,15 +399,7 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
               <span
                 className="w-3.5 h-3.5 rounded-full inline-block shrink-0"
                 style={{
-                  background: (
-                    {
-                      ocean: 'linear-gradient(135deg,#0ea5e9,#06b6d4)',
-                      forest: 'linear-gradient(135deg,#22c55e,#10b981)',
-                      royal: 'linear-gradient(135deg,#a855f7,#7c3aed)',
-                      sunset: 'linear-gradient(135deg,#fb923c,#f97316)',
-                      crimson: 'linear-gradient(135deg,#f87171,#dc2626)'
-                    } as Record<string, string>
-                  )[colorTheme] || 'linear-gradient(135deg,#6366f1,#a855f7)'
+                  background: THEMES.find(t => t.id === colorTheme)?.swatch || 'linear-gradient(135deg,#6366f1,#a855f7)'
                 }}
               />
             ) : (
@@ -440,9 +428,11 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
                           }`}
                       >
                         <span
-                          className="w-5 h-5 rounded-full shrink-0 ring-2 ring-white dark:ring-gray-800 shadow-sm"
+                          className="w-6 h-6 rounded-full shrink-0 ring-2 ring-white dark:ring-gray-800 shadow-sm flex items-center justify-center"
                           style={{ background: t.swatch }}
-                        />
+                        >
+                          <t.icon size={12} className="text-white drop-shadow-sm opacity-90" />
+                        </span>
                         <span className="flex-1">{t.label}</span>
                         {colorTheme === t.id && (
                           <Check size={13} className="text-gray-600 dark:text-gray-300 shrink-0" />
