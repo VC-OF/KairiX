@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useStore } from './store/useStore';
 import { useAuth } from './hooks/useAuth';
@@ -66,9 +66,16 @@ function AppLayout() {
     return () => clearTimeout(timer);
   }, [activeView]);
 
-  // Initial data fetch
+  // Global automatic background syncing
   useEffect(() => {
-    fetchData();
+    fetchData(); // Initial fetch
+
+    // Background polling every 60 seconds to keep the app live without refreshing (fallback to websockets)
+    const intervalId = setInterval(() => {
+      fetchData(true); // true = silent fetch, no loading spinner
+    }, 60000);
+
+    return () => clearInterval(intervalId);
   }, [fetchData]);
 
   // Theme toggle

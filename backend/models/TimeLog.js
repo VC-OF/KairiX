@@ -18,10 +18,6 @@ TimeLogSchema.index({ userId: 1, workDate: 1 });
 TimeLogSchema.index({ taskId: 1 });
 TimeLogSchema.index({ projectId: 1 });
 
-// Ensure a user can only have one active time log at any given time
-TimeLogSchema.index(
-  { userId: 1, status: 1 },
-  { unique: true, partialFilterExpression: { status: 'active' } }
-);
+// User can now have multiple active logs
 
 module.exports = mongoose.model('TimeLog', TimeLogSchema);

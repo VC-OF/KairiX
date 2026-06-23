@@ -341,14 +341,14 @@ router.get('/calendar-data', authenticateToken, async (req, res) => {
 router.get('/current', authenticateToken, async (req, res) => {
   try {
     const TimeLog = require('../models/TimeLog');
-    const log = await TimeLog.findOne({ 
+    const logs = await TimeLog.find({ 
       userId: req.user.userId, 
       status: { $in: ['active', 'paused'] } 
     })
     .populate('taskId', 'title status priority')
     .sort({ updatedAt: -1 });
 
-    res.json(log);
+    res.json(logs);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

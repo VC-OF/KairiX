@@ -18,7 +18,7 @@ import {
   Pause,
   Square,
   Calendar,
-  PanelLeftClose,
+  Menu,
   Pin,
   Search,
   FolderKanban,
@@ -124,8 +124,8 @@ export const Sidebar: React.FC = () => {
     addProject,
     showArchived,
     setShowArchived,
-    globalActiveTimer,
-    setGlobalActiveTimer,
+    globalActiveTimers,
+    setGlobalActiveTimers,
     teamLeadEnabled,
     toggleSidebar,
     pinnedProjects,
@@ -137,6 +137,7 @@ export const Sidebar: React.FC = () => {
   const [newProjectDesc, setNewProjectDesc] = useState('');
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
   const [projectSearch, setProjectSearch] = useState('');
+  const [isTimersExpanded, setIsTimersExpanded] = useState(false);
   const dragHandleRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
 
@@ -165,63 +166,67 @@ export const Sidebar: React.FC = () => {
     document.body.style.userSelect = 'none';
   }, [setSidebarWidth]);
 
-  const [seconds, setSeconds] = useState(0);
+  // Local state for seconds to avoid spamming the global store every second
+  const [localSeconds, setLocalSeconds] = useState<Record<string, number>>({});
 
-  // Synchronize local timer seconds when store updates
   useEffect(() => {
-    if (globalActiveTimer) {
-      setSeconds(globalActiveTimer.seconds);
-    }
-  }, [globalActiveTimer?.taskId, globalActiveTimer?.isPaused]);
+    const initialSeconds: Record<string, number> = {};
+    globalActiveTimers.forEach(t => {
+      initialSeconds[t.taskId] = t.seconds;
+    });
+    setLocalSeconds(prev => ({ ...initialSeconds, ...prev }));
+  }, [globalActiveTimers]);
 
-  // Tick seconds every second
   useEffect(() => {
-    if (!globalActiveTimer || globalActiveTimer.isPaused) return;
+    const activeTimers = globalActiveTimers.filter(t => !t.isPaused);
+    if (activeTimers.length === 0) return;
 
     const interval = setInterval(() => {
-      setSeconds((s) => {
-        const next = s + 1;
-        // Keep Zustand store seconds in sync occasionally
-        if (next % 5 === 0) {
-          useStore.setState((state) => {
-            if (state.globalActiveTimer) {
-              return {
-                globalActiveTimer: {
-                  ...state.globalActiveTimer,
-                  seconds: next,
-                }
-              };
-            }
-            return state;
-          });
+      setLocalSeconds(prev => {
+        const next = { ...prev };
+        let syncStore = false;
+        activeTimers.forEach(t => {
+          next[t.taskId] = (next[t.taskId] || t.seconds) + 1;
+          if (next[t.taskId] % 5 === 0) syncStore = true;
+        });
+
+        if (syncStore) {
+           useStore.setState(state => {
+              const updated = state.globalActiveTimers.map(t => {
+                 if (!t.isPaused && next[t.taskId]) {
+                    return { ...t, seconds: next[t.taskId] };
+                 }
+                 return t;
+              });
+              return { globalActiveTimers: updated };
+           });
         }
         return next;
       });
     }, 1000);
-
     return () => clearInterval(interval);
-  }, [globalActiveTimer?.taskId, globalActiveTimer?.isPaused]);
+  }, [globalActiveTimers]);
 
-  const handleHUDPauseToggle = async () => {
-    if (!globalActiveTimer) return;
+  const handleHUDPauseToggle = async (taskId: string) => {
+    const timer = globalActiveTimers.find(t => t.taskId === taskId);
+    if (!timer) return;
     try {
-      if (globalActiveTimer.isPaused) {
-        await api.post('/time-logs/resume', { taskId: globalActiveTimer.taskId, projectId: globalActiveTimer.projectId });
-        setGlobalActiveTimer({ ...globalActiveTimer, isPaused: false });
+      if (timer.isPaused) {
+        await api.post('/time-logs/resume', { taskId: timer.taskId, projectId: timer.projectId });
+        useStore.getState().updateGlobalActiveTimer(taskId, { isPaused: false });
       } else {
-        await api.post('/time-logs/pause', { taskId: globalActiveTimer.taskId });
-        setGlobalActiveTimer({ ...globalActiveTimer, isPaused: true, seconds });
+        await api.post('/time-logs/pause', { taskId: timer.taskId });
+        useStore.getState().updateGlobalActiveTimer(taskId, { isPaused: true, seconds: localSeconds[taskId] });
       }
     } catch (err) {
       console.error('HUD Timer sync failed:', err);
     }
   };
 
-  const handleHUDStop = async () => {
-    if (!globalActiveTimer) return;
+  const handleHUDStop = async (taskId: string) => {
     try {
-      await api.post('/time-logs/stop', { taskId: globalActiveTimer.taskId });
-      setGlobalActiveTimer(null);
+      await api.post('/time-logs/stop', { taskId });
+      useStore.getState().removeGlobalActiveTimer(taskId);
       // Refresh active view data to update completed counters
       useStore.getState().fetchData();
     } catch (err) {
@@ -269,7 +274,7 @@ export const Sidebar: React.FC = () => {
   return (
     <aside
       ref={sidebarRef}
-      className="backdrop-blur-md flex flex-col h-full shrink-0 transition-colors duration-300 relative"
+      className="w-full backdrop-blur-md flex flex-col h-full shrink-0 transition-colors duration-300 relative"
       style={{
         background: 'var(--theme-sidebar-bg)',
         borderRight: '1px solid var(--theme-sidebar-border)',
@@ -415,7 +420,17 @@ export const Sidebar: React.FC = () => {
 
       {/* Middle Section: Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1 custom-scrollbar">
-        <p className="text-gray-400 dark:text-gray-500 text-[10px] uppercase tracking-[0.2em] font-extrabold px-3 mb-3">Workspace</p>
+        <div className="flex items-center gap-3 px-3 mb-4">
+          <button
+            onClick={toggleSidebar}
+            className="p-1.5 -ml-1 rounded-lg bg-gray-900 text-white dark:bg-white dark:text-gray-900 hover:bg-black dark:hover:bg-gray-100 hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-md shrink-0"
+            title="Collapse Sidebar"
+          >
+            <Menu size={18} strokeWidth={2.5} />
+          </button>
+          <p className="text-gray-400 dark:text-gray-500 text-[10px] uppercase tracking-[0.2em] font-extrabold shrink-0">Workspace</p>
+          <div className="flex-1 h-[1px] bg-gray-200 dark:bg-gray-800 rounded-full" />
+        </div>
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeView === item.view;
@@ -473,41 +488,60 @@ export const Sidebar: React.FC = () => {
         }}
       >
 
-        {/* Global Active Time Tracker HUD */}
-        {globalActiveTimer && (
-          <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 dark:from-emerald-500/5 dark:to-teal-500/5 border border-emerald-500/20 dark:border-emerald-500/10 rounded-2xl p-3 shadow-md shadow-emerald-500/5 space-y-2 animate-fade-in select-none">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className={`w-1.5 h-1.5 bg-emerald-500 rounded-full ${globalActiveTimer.isPaused ? '' : 'animate-ping'}`} />
-                <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest truncate">
-                  {globalActiveTimer.isPaused ? 'Timer Paused' : 'Active Tracking'}
-                </span>
+        {/* Global Active Time Tracker HUDs */}
+        {globalActiveTimers.length > 0 && (
+          <div className="space-y-2">
+            <button
+              onClick={() => setIsTimersExpanded(!isTimersExpanded)}
+              className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+            >
+              <div className="flex items-center gap-2 text-xs font-bold text-gray-700 dark:text-gray-300">
+                <Clock size={14} className="text-emerald-500" />
+                Active Timers ({globalActiveTimers.length})
               </div>
-              <span className="text-[11px] font-mono font-black text-emerald-600 dark:text-emerald-400">
-                {formatTime(seconds)}
-              </span>
-            </div>
+              <ChevronDown size={14} className={`text-gray-400 transition-transform ${isTimersExpanded ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {isTimersExpanded && (
+              <div className="space-y-2 pl-2">
+                {globalActiveTimers.map(timer => (
+                  <div key={timer.taskId} className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 dark:from-emerald-500/5 dark:to-teal-500/5 border border-emerald-500/20 dark:border-emerald-500/10 rounded-2xl p-3 shadow-md shadow-emerald-500/5 space-y-2 animate-fade-in select-none">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className={`w-1.5 h-1.5 bg-emerald-500 rounded-full ${timer.isPaused ? '' : 'animate-ping'}`} />
+                        <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest truncate">
+                          {timer.isPaused ? 'Timer Paused' : 'Active Tracking'}
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-mono font-black text-emerald-600 dark:text-emerald-400">
+                        {formatTime(localSeconds[timer.taskId] || timer.seconds)}
+                      </span>
+                    </div>
 
-            <p className="text-xs font-bold text-gray-800 dark:text-slate-100 truncate pr-1">
-              {globalActiveTimer.taskTitle}
-            </p>
+                    <p className="text-xs font-bold text-gray-800 dark:text-slate-100 truncate pr-1">
+                      {timer.taskTitle}
+                    </p>
 
-            <div className="flex gap-2 pt-1">
-              <button
-                onClick={handleHUDPauseToggle}
-                className="flex-1 py-1 px-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-[10px] font-black text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
-              >
-                {globalActiveTimer.isPaused ? <Play size={10} className="fill-current text-emerald-500" /> : <Pause size={10} className="fill-current text-amber-500" />}
-                {globalActiveTimer.isPaused ? 'Resume' : 'Pause'}
-              </button>
-              <button
-                onClick={handleHUDStop}
-                className="py-1 px-2 rounded-lg bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-black flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95 shadow-sm"
-              >
-                <Square size={10} className="fill-current" />
-                Stop
-              </button>
-            </div>
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        onClick={() => handleHUDPauseToggle(timer.taskId)}
+                        className="flex-1 py-1 px-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-[10px] font-black text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
+                      >
+                        {timer.isPaused ? <Play size={10} className="fill-current text-emerald-500" /> : <Pause size={10} className="fill-current text-amber-500" />}
+                        {timer.isPaused ? 'Resume' : 'Pause'}
+                      </button>
+                      <button
+                        onClick={() => handleHUDStop(timer.taskId)}
+                        className="py-1 px-2 rounded-lg bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-black flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95 shadow-sm"
+                      >
+                        <Square size={10} className="fill-current" />
+                        Stop
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -586,14 +620,6 @@ export const Sidebar: React.FC = () => {
           </div>
         )}
         
-        {/* Collapse Button */}
-        <button
-          onClick={toggleSidebar}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/40 hover:text-gray-700 dark:hover:text-gray-200 transition-all cursor-pointer font-bold text-xs uppercase tracking-wider border border-transparent hover:border-gray-200/40 dark:hover:border-gray-800/40 mt-1"
-        >
-          <PanelLeftClose size={16} className="text-gray-400 shrink-0" />
-          <span>Collapse Sidebar</span>
-        </button>
       </div>
       {/* Project Modal */}
       <Modal isOpen={showProjectModal} onClose={() => setShowProjectModal(false)} title="Create New Project" size="sm">

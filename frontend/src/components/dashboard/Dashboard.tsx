@@ -127,7 +127,7 @@ export const Dashboard: React.FC = () => {
     recentTasks: cachedRecentTasks, 
     setSelectedTaskId, 
     projects, 
-    globalActiveTimer 
+    globalActiveTimers 
   } = useStore();
   const [editingProject, setEditingProject] = useState(false);
   const [projName, setProjName] = useState(project.name);
@@ -456,7 +456,7 @@ export const Dashboard: React.FC = () => {
             <div className="space-y-2.5 max-h-[360px] overflow-y-auto pr-1 custom-scrollbar">
               {cachedRecentTasks.map((task) => {
                 const proj = projects.find((p: any) => p.id === task.projectId);
-                const isActiveTimer = globalActiveTimer && globalActiveTimer.taskId === task.id;
+                const isActiveTimer = globalActiveTimers.some(t => t.taskId === task.id);
                 return (
                   <div
                     key={task.id}

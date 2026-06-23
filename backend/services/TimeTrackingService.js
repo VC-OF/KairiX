@@ -11,11 +11,10 @@ class TimeTrackingService {
                        (task.assignees && task.assignees.some(id => id.toString() === userId));
     if (!isAssigned) throw new Error('Only assigned members can start the task timer');
 
-    // Check if there's an already active timer for this user
-    const activeLog = await TimeLog.findOne({ userId, status: 'active' });
+    // Check if there's an already active timer for this user on this task
+    const activeLog = await TimeLog.findOne({ userId, taskId, status: 'active' });
     if (activeLog) {
-      // Stop the previous active log
-      await this.stopTimer(userId, activeLog.taskId);
+      return activeLog;
     }
 
     const now = new Date();
@@ -35,18 +34,19 @@ class TimeTrackingService {
   }
 
   async pauseTimer(userId, taskId) {
-    const log = await TimeLog.findOne({ userId, taskId, status: 'active' });
-    if (!log) return null;
+    const activeLogs = await TimeLog.find({ userId, taskId, status: 'active' });
+    if (!activeLogs.length) return null;
 
     const endTime = new Date();
-    const duration = Math.floor((endTime - log.startTime) / 1000);
+    for (const log of activeLogs) {
+      const duration = Math.floor((endTime - log.startTime) / 1000);
+      log.endTime = endTime;
+      log.duration = duration;
+      log.status = 'paused';
+      await log.save();
+    }
 
-    log.endTime = endTime;
-    log.duration = duration;
-    log.status = 'paused';
-    await log.save();
-
-    return log;
+    return activeLogs[0];
   }
 
   async resumeTimer(userId, taskId, projectId) {
@@ -57,10 +57,10 @@ class TimeTrackingService {
                        (task.assignees && task.assignees.some(id => id.toString() === userId));
     if (!isAssigned) throw new Error('Only assigned members can resume the task timer');
 
-    // Check for active timer
-    const activeLog = await TimeLog.findOne({ userId, status: 'active' });
+    // Check for active timer for this task
+    const activeLog = await TimeLog.findOne({ userId, taskId, status: 'active' });
     if (activeLog) {
-      await this.stopTimer(userId, activeLog.taskId);
+      return activeLog;
     }
 
     // Find the last paused log to get the workDate
@@ -82,10 +82,11 @@ class TimeTrackingService {
   }
 
   async stopTimer(userId, taskId) {
-    // Find active log
-    const activeLog = await TimeLog.findOne({ userId, taskId, status: 'active' });
-    if (activeLog) {
-      const endTime = new Date();
+    // Find all active logs
+    const activeLogs = await TimeLog.find({ userId, taskId, status: 'active' });
+    const endTime = new Date();
+    
+    for (const activeLog of activeLogs) {
       const duration = Math.floor((endTime - activeLog.startTime) / 1000);
       activeLog.endTime = endTime;
       activeLog.duration = duration;
@@ -113,7 +114,7 @@ class TimeTrackingService {
     const workDate = lastLog ? lastLog.workDate : new Date().toISOString().split('T')[0];
     await this.updateDailyReport(userId, workDate);
 
-    return activeLog || { status: 'completed' };
+    return activeLogs.length > 0 ? activeLogs[0] : { status: 'completed' };
   }
 
   async updateDailyReport(userId, date) {
@@ -150,15 +151,32 @@ class TimeTrackingService {
     const taskSummary = Array.from(taskSummaryMap.values());
     const projectBreakdown = Array.from(projectBreakdownMap.values());
 
-    await DailyReport.findOneAndUpdate(
-      { userId, date },
-      {
-        totalDuration,
-        taskSummary,
-        projectBreakdown
-      },
-      { upsert: true, new: true }
-    );
+    try {
+      await DailyReport.findOneAndUpdate(
+        { userId, date },
+        {
+          totalDuration,
+          taskSummary,
+          projectBreakdown
+        },
+        { upsert: true, new: true }
+      );
+    } catch (err) {
+      if (err.code === 11000) {
+        // Retry on duplicate key error caused by concurrent upserts
+        await DailyReport.findOneAndUpdate(
+          { userId, date },
+          {
+            totalDuration,
+            taskSummary,
+            projectBreakdown
+          },
+          { upsert: true, new: true }
+        );
+      } else {
+        throw err;
+      }
+    }
   }
 
   async addManualLog(userId, taskId, projectId, data) {
@@ -209,7 +227,8 @@ class TimeTrackingService {
       taskId,
       $or: [
         { workDate: today },
-        { status: 'active' }
+        { status: 'active' },
+        { status: 'paused' }
       ]
     });
     
@@ -222,6 +241,7 @@ class TimeTrackingService {
         status = 'active';
         startTime = log.startTime;
       } else if (log.status === 'paused') {
+        if (status !== 'active') status = 'paused';
         if (log.workDate === today) {
           totalDuration += log.duration;
         }

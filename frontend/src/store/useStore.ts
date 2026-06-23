@@ -152,7 +152,7 @@ interface AppState {
   sidebarWidth: number;
   setSidebarWidth: (width: number) => void;
 
-  fetchData: () => Promise<void>;
+  fetchData: (isSilent?: boolean) => Promise<void>;
   fetchProjects: () => Promise<Project[]>;
   fetchUsers: () => Promise<User[]>;
   fetchTasks: (projectId?: string, page?: number, limit?: number) => Promise<void>;
@@ -227,8 +227,10 @@ interface AppState {
   setIsTourActive: (active: boolean) => void;
   tourStep: number;
   setTourStep: (step: number) => void;
-  globalActiveTimer: { taskId: string; taskTitle: string; isPaused: boolean; projectId: string; seconds: number; workDate: string } | null;
-  setGlobalActiveTimer: (timer: any) => void;
+  globalActiveTimers: Array<{ taskId: string; taskTitle: string; isPaused: boolean; projectId: string; seconds: number; workDate: string }>;
+  setGlobalActiveTimers: (timers: any[]) => void;
+  updateGlobalActiveTimer: (taskId: string, data: any) => void;
+  removeGlobalActiveTimer: (taskId: string) => void;
 
   // Dependencies state
   dependencies: any[];
@@ -340,35 +342,42 @@ export const useStore = create<AppState>((set, get) => ({
   },
   fetchActiveTimer: async () => {
     try {
-      const log = await api.get('/time-logs/current');
-      if (log && log.taskId) {
-        let elapsed = 0;
-        if (log.status === 'active') {
-          elapsed = Math.floor((new Date().getTime() - new Date(log.startTime).getTime()) / 1000);
-        }
-        set({
-          globalActiveTimer: {
-            taskId: log.taskId._id || log.taskId.id || log.taskId,
-            taskTitle: log.taskId.title || 'Active Focus Task',
+      const logs = await api.get('/time-logs/current');
+      if (logs && Array.isArray(logs) && logs.length > 0) {
+        const timers = logs.map((log: any) => {
+          let elapsed = 0;
+          if (log.status === 'active') {
+            elapsed = Math.floor((new Date().getTime() - new Date(log.startTime).getTime()) / 1000);
+          }
+          return {
+            taskId: log.taskId?._id || log.taskId?.id || log.taskId,
+            taskTitle: log.taskId?.title || 'Active Focus Task',
             isPaused: log.status === 'paused',
             projectId: log.projectId,
             seconds: (log.duration || 0) + elapsed,
             workDate: log.workDate
-          }
+          };
         });
+        set({ globalActiveTimers: timers });
       } else {
-        set({ globalActiveTimer: null });
+        set({ globalActiveTimers: [] });
       }
     } catch (err) {
-      console.error('Failed to fetch active timer:', err);
+      console.error('Failed to fetch active timers:', err);
     }
   },
   isTourActive: false,
   setIsTourActive: (active) => set({ isTourActive: active }),
   tourStep: 0,
   setTourStep: (step) => set({ tourStep: step }),
-  globalActiveTimer: null,
-  setGlobalActiveTimer: (timer) => set({ globalActiveTimer: timer }),
+  globalActiveTimers: [],
+  setGlobalActiveTimers: (timers) => set({ globalActiveTimers: timers }),
+  updateGlobalActiveTimer: (taskId, data) => set((state) => ({
+    globalActiveTimers: state.globalActiveTimers.map(t => t.taskId === taskId ? { ...t, ...data } : t)
+  })),
+  removeGlobalActiveTimer: (taskId) => set((state) => ({
+    globalActiveTimers: state.globalActiveTimers.filter(t => t.taskId !== taskId)
+  })),
 
   fetchProjects: async () => {
     try {
@@ -497,8 +506,8 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  fetchData: async () => {
-    set({ isLoading: true });
+  fetchData: async (isSilent = false) => {
+    if (!isSilent) set({ isLoading: true });
     try {
       await get().fetchSettings();
       const [mappedProjects, mappedUsers] = await Promise.all([

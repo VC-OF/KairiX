@@ -20,6 +20,7 @@ interface TaskDetailProps {
 export const TaskDetail: React.FC<TaskDetailProps> = ({ isOpen, onClose, task, onEdit }) => {
   const { users, currentUser, taskComments, fetchTaskComments, addTaskComment, project } = useStore();
   const [newComment, setNewComment] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showManualLog, setShowManualLog] = useState(false);
   const [subtasks, setSubtasks] = useState<any[]>(task.subtasks || []);
@@ -108,6 +109,37 @@ export const TaskDetail: React.FC<TaskDetailProps> = ({ isOpen, onClose, task, o
     setSubmitting(false);
   };
 
+  const handleCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    let val = e.target.value;
+    
+    // Replace @today with today's date
+    if (val.includes('@today')) {
+      const todayStr = format(new Date(), 'MMM d, yyyy');
+      val = val.replace(/@today\b/g, todayStr);
+    }
+    
+    // Detect @date
+    if (val.includes('@date')) {
+      setShowDatePicker(true);
+    } else {
+      setShowDatePicker(false);
+    }
+    
+    setNewComment(val);
+  };
+
+  const handleDatePicked = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedDate = e.target.value;
+    if (!selectedDate) {
+      setShowDatePicker(false);
+      return;
+    }
+    
+    const formattedDate = format(parseISO(selectedDate), 'MMM d, yyyy');
+    setNewComment(prev => prev.replace(/@date\b/g, formattedDate));
+    setShowDatePicker(false);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -119,7 +151,7 @@ export const TaskDetail: React.FC<TaskDetailProps> = ({ isOpen, onClose, task, o
       />
       
       {/* Sliding Right-side Drawer Sheet */}
-      <div id="tour-task-detail-sheet" className="relative w-full max-w-2xl bg-white dark:bg-[#0a0d16] border-l border-gray-100 dark:border-gray-850 shadow-2xl h-full flex flex-col overflow-y-auto custom-scrollbar animate-slide-in-right z-10 p-6 lg:p-8 text-gray-900 dark:text-gray-100">
+      <div id="tour-task-detail-sheet" className="relative w-full max-w-4xl bg-white dark:bg-[#0a0d16] border-l border-gray-100 dark:border-gray-850 shadow-2xl h-full flex flex-col overflow-y-auto custom-scrollbar animate-slide-in-right z-10 p-6 lg:p-8 text-gray-900 dark:text-gray-100">
         
         {/* Absolute Close Button */}
         <button 
@@ -271,10 +303,25 @@ export const TaskDetail: React.FC<TaskDetailProps> = ({ isOpen, onClose, task, o
               {/* Add Comment Form */}
               {task.status !== 'completed' && (
                 <form onSubmit={handleAddComment} className="relative">
+                  {showDatePicker && (
+                    <div className="absolute left-3 bottom-full mb-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-2 shadow-xl z-20 animate-fade-in flex items-center gap-2">
+                      <Calendar size={14} className="text-indigo-500" />
+                      <span className="text-xs font-bold text-gray-700 dark:text-gray-300 whitespace-nowrap">Pick date:</span>
+                      <input 
+                        type="date"
+                        onChange={handleDatePicked}
+                        className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                        autoFocus
+                      />
+                      <button type="button" onClick={() => setShowDatePicker(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                        <X size={12} className="text-gray-400" />
+                      </button>
+                    </div>
+                  )}
                   <textarea
                     value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="Add a daily update or progress note..."
+                    onChange={handleCommentChange}
+                    placeholder="Add a daily update or progress note... (Type @today or @date)"
                     className="w-full pl-3 pr-12 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none min-h-[80px] transition-colors"
                   />
                   <button

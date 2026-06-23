@@ -419,7 +419,6 @@ export const DailyLogs: React.FC = () => {
     dailyLogs, 
     users, 
     project, 
-    currentUser, 
     voteLogPost, 
     voteLogComment, 
     addLogComment,
@@ -431,6 +430,20 @@ export const DailyLogs: React.FC = () => {
   } = useStore();
   const [showAdd, setShowAdd] = useState(false);
   const [filterUser, setFilterUser] = useState<string>('all');
+
+  useEffect(() => {
+    if (project?.id) {
+      // Initial fetch
+      fetchLogs(project.id, logPage);
+      
+      // Setup polling for real-time updates
+      const intervalId = setInterval(() => {
+        fetchLogs(project.id, logPage);
+      }, 5000);
+      
+      return () => clearInterval(intervalId);
+    }
+  }, [project?.id, logPage, fetchLogs]);
 
   const filteredLogs = dailyLogs
     .filter((l) => filterUser === 'all' || l.userId === filterUser)

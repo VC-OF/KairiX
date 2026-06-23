@@ -132,17 +132,17 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
       >
-        {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+        {mobileMenuOpen ? <X size={20} strokeWidth={2.5} /> : <Menu size={20} strokeWidth={2.5} />}
       </button>
 
-      {/* Desktop expand sidebar button */}
+      {/* Desktop toggle sidebar button */}
       {isSidebarCollapsed && (
         <button
           onClick={toggleSidebar}
-          className="hidden lg:flex p-2 rounded-xl border border-gray-200/40 dark:border-gray-800/40 hover:bg-gray-100 dark:hover:bg-gray-800/45 text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition-all cursor-pointer shadow-sm"
+          className="hidden lg:flex p-1.5 rounded-lg bg-gray-900 text-white dark:bg-white dark:text-gray-900 hover:bg-black dark:hover:bg-gray-100 hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-md"
           title="Expand Sidebar"
         >
-          <PanelLeftOpen size={18} />
+          <Menu size={20} strokeWidth={3} />
         </button>
       )}
 
@@ -351,41 +351,7 @@ export const Header: React.FC<HeaderProps> = ({ mobileMenuOpen, setMobileMenuOpe
           <span className="hidden sm:inline">Night</span>
         </button>
 
-        {/* Density Switcher */}
-        <div className="relative">
-          <button
-            onClick={() => setShowDensityMenu(d => !d)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${showDensityMenu ? 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-            title="Layout Density"
-          >
-            <AlignJustify size={14} />
-            <span className="hidden sm:inline capitalize">{layoutDensity}</span>
-          </button>
-          {showDensityMenu && (
-            <>
-              <div className="fixed inset-0 z-20" onClick={() => setShowDensityMenu(false)} />
-              <div className="absolute right-0 top-full mt-2 w-44 glass-panel rounded-2xl shadow-2xl z-30 overflow-hidden animate-dropdown">
-                <div className="p-2">
-                  {(['dense', 'comfortable', 'spacious'] as const).map(d => (
-                    <button
-                      key={d}
-                      onClick={() => { setLayoutDensity(d); setShowDensityMenu(false); }}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all capitalize ${layoutDensity === d ? 'bg-gray-100 dark:bg-gray-700/80 text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                        }`}
-                    >
-                      {d === 'dense' && <AlignJustify size={14} />}
-                      {d === 'comfortable' && <AlignCenter size={14} />}
-                      {d === 'spacious' && <AlignSpacious size={14} />}
-                      {d}
-                      {layoutDensity === d && <Check size={12} className="ml-auto" />}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+
         <div className="relative">
           <button
             id="btn-themes-menu"

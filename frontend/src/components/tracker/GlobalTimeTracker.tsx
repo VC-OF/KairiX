@@ -8,7 +8,6 @@ import {
   Filter,
   MoreVertical,
   Timer,
-  Target,
   Calendar,
   Search,
 } from 'lucide-react';
@@ -17,7 +16,7 @@ import { api } from '../../utils/api';
 import { format, parseISO } from 'date-fns';
 
 export const GlobalTimeTracker: React.FC = () => {
-  const { tasks, users, projects, currentUser, globalActiveTimer } = useStore();
+  const { tasks, users, projects, currentUser, globalActiveTimers } = useStore();
   const [searchId, setSearchId] = useState('');
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
@@ -63,30 +62,12 @@ export const GlobalTimeTracker: React.FC = () => {
         const elapsed = Math.floor((new Date().getTime() - new Date(status.startTime).getTime()) / 1000);
         const totalSec = status.accumulatedTime + elapsed;
         setSeconds(totalSec);
-        useStore.setState({
-          globalActiveTimer: {
-            taskId,
-            taskTitle: activeTask?.title || 'Active Focus Task',
-            isPaused: false,
-            projectId: (activeTask as any).projectId || projects[0]?.id || 'project-1',
-            seconds: totalSec,
-            workDate: status.workDate || new Date().toISOString().split('T')[0]
-          }
-        });
+        useStore.getState().fetchActiveTimer();
       } else if (status.status === 'paused') {
         setIsActive(true);
         setIsPaused(true);
         setSeconds(status.accumulatedTime);
-        useStore.setState({
-          globalActiveTimer: {
-            taskId,
-            taskTitle: activeTask?.title || 'Active Focus Task',
-            isPaused: true,
-            projectId: (activeTask as any).projectId || projects[0]?.id || 'project-1',
-            seconds: status.accumulatedTime,
-            workDate: status.workDate || new Date().toISOString().split('T')[0]
-          }
-        });
+        useStore.getState().fetchActiveTimer();
       } else {
         setIsActive(false);
         setIsPaused(false);
@@ -110,21 +91,21 @@ export const GlobalTimeTracker: React.FC = () => {
     };
   }, [isActive, isPaused]);
 
-  // Synchronize layout with globalActiveTimer store updates (e.g. from Sidebar HUD controls)
+  // Synchronize layout with globalActiveTimers store updates (e.g. from Sidebar HUD controls)
   useEffect(() => {
     if (activeTask) {
-      const gTimer = useStore.getState().globalActiveTimer;
-      if (gTimer && gTimer.taskId === activeTask.id) {
+      const gTimer = useStore.getState().globalActiveTimers.find(t => t.taskId === activeTask.id);
+      if (gTimer) {
         setIsActive(true);
         setIsPaused(gTimer.isPaused);
         setSeconds(gTimer.seconds);
-      } else if (!gTimer) {
+      } else {
         setIsActive(false);
         setIsPaused(false);
         setSeconds(0);
       }
     }
-  }, [globalActiveTimer, activeTask]);
+  }, [globalActiveTimers, activeTask]);
 
   const handleStart = async () => {
     if (!activeTask || loading) return;
@@ -139,14 +120,7 @@ export const GlobalTimeTracker: React.FC = () => {
       setIsActive(true);
       setIsPaused(false);
       setSeconds(0);
-      useStore.getState().setGlobalActiveTimer({
-        taskId: activeTask.id,
-        taskTitle: activeTask.title,
-        isPaused: false,
-        projectId: (activeTask as any).projectId || projects[0]?.id || 'project-1',
-        seconds: 0,
-        workDate: todayStr
-      });
+      await useStore.getState().fetchActiveTimer();
     } catch (err) {
       console.error('Error starting timer:', err);
     } finally {
@@ -160,14 +134,7 @@ export const GlobalTimeTracker: React.FC = () => {
     try {
       await api.post('/time-logs/pause', { taskId: activeTask.id });
       setIsPaused(true);
-      const gTimer = useStore.getState().globalActiveTimer;
-      if (gTimer) {
-        useStore.getState().setGlobalActiveTimer({
-          ...gTimer,
-          isPaused: true,
-          seconds
-        });
-      }
+      useStore.getState().updateGlobalActiveTimer(activeTask.id, { isPaused: true, seconds });
     } catch (err) {
       console.error('Error pausing timer:', err);
     } finally {
@@ -184,13 +151,7 @@ export const GlobalTimeTracker: React.FC = () => {
         projectId: (activeTask as any).projectId || projects[0]?.id 
       });
       setIsPaused(false);
-      const gTimer = useStore.getState().globalActiveTimer;
-      if (gTimer) {
-        useStore.getState().setGlobalActiveTimer({
-          ...gTimer,
-          isPaused: false
-        });
-      }
+      useStore.getState().updateGlobalActiveTimer(activeTask.id, { isPaused: false });
     } catch (err) {
       console.error('Error resuming timer:', err);
     } finally {
@@ -207,7 +168,7 @@ export const GlobalTimeTracker: React.FC = () => {
       setIsPaused(false);
       setSeconds(0);
       await fetchLogs(activeTask.id);
-      useStore.getState().setGlobalActiveTimer(null);
+      useStore.getState().removeGlobalActiveTimer(activeTask.id);
     } catch (err) {
       console.error('Error stopping timer:', err);
     } finally {
@@ -237,13 +198,13 @@ export const GlobalTimeTracker: React.FC = () => {
 
   const stats = [
     {
-      label: 'Today',
+      label: "Today's Time",
       value: formatDuration(todayDuration),
       trend: '+18%',
       color: 'text-emerald-400',
     },
     {
-      label: 'Total Logged',
+      label: 'Total Time',
       value: formatDuration(totalDuration),
       trend: '+12%',
       color: 'text-cyan-400',
@@ -273,21 +234,7 @@ export const GlobalTimeTracker: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-20">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-violet-600 to-fuchsia-600 rounded-2xl flex items-center justify-center shadow-lg shadow-violet-500/20">
-            <Timer className="w-7 h-7 text-white" />
-          </div>
-
-          <div>
-            <h1 className="text-4xl font-black tracking-tighter text-gray-900 dark:text-white">
-              TimeForge
-            </h1>
-            <p className="text-slate-400 text-sm -mt-1 font-medium">
-              Professional Time Tracking
-            </p>
-          </div>
-        </div>
+      <div className="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-4">
 
         <div className="flex items-center gap-3">
           <button className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 rounded-2xl transition-all font-semibold text-sm shadow-sm">
@@ -308,7 +255,7 @@ export const GlobalTimeTracker: React.FC = () => {
           <div className="flex items-center gap-3">
             <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse shadow-sm"></div>
             <span>
-              Recording time for:{' '}
+              Tracking:{' '}
               <span className="opacity-90">{activeTask?.title || 'Unknown Task'}</span>
             </span>
           </div>
@@ -326,44 +273,71 @@ export const GlobalTimeTracker: React.FC = () => {
         <div className="col-span-12 lg:col-span-8 space-y-6">
           
           {/* Main Tracker Core Hero */}
-          <div className="relative bg-white dark:bg-gradient-to-br dark:from-zinc-900 dark:to-slate-950 border border-gray-200 dark:border-white/10 rounded-[2.5rem] p-8 md:p-10 shadow-xl overflow-hidden">
+          <div className="relative bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-3xl border border-gray-200/50 dark:border-white/[0.05] rounded-[2.5rem] p-8 md:p-10 shadow-[0_8px_32px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.2)] overflow-hidden group">
+            {/* Animated Ambient Glow */}
+            <div className="absolute -top-32 -left-32 w-64 h-64 bg-violet-500/20 rounded-full blur-[80px] group-hover:bg-violet-500/30 transition-colors duration-700 pointer-events-none" />
+            <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-fuchsia-500/20 rounded-full blur-[80px] group-hover:bg-fuchsia-500/30 transition-colors duration-700 pointer-events-none" />
+            
             <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12 relative z-10">
               
               {/* Dial Wheel */}
-              <div className="relative flex-shrink-0">
-                <svg className="w-52 h-52 -rotate-12 drop-shadow-2xl" viewBox="0 0 120 120">
+              <div className="relative flex-shrink-0 group/dial">
+                {/* Outer decorative glowing ring */}
+                <div className={`absolute -inset-4 rounded-full border border-violet-500/20 dark:border-violet-400/20 ${isActive && !isPaused ? 'animate-[spin_4s_linear_infinite]' : ''} opacity-0 group-hover/dial:opacity-100 transition-opacity duration-500 pointer-events-none`} />
+                <div className={`absolute -inset-8 rounded-full border border-fuchsia-500/10 dark:border-fuchsia-400/10 ${isActive && !isPaused ? 'animate-[spin_6s_linear_infinite_reverse]' : ''} opacity-0 group-hover/dial:opacity-100 transition-opacity duration-700 pointer-events-none`} />
+
+                <svg className="w-56 h-56 -rotate-90 drop-shadow-2xl" viewBox="0 0 120 120">
+                  {/* Track */}
                   <circle
                     cx="60"
                     cy="60"
                     r="54"
                     fill="none"
                     stroke="currentColor"
-                    className="text-gray-100 dark:text-white/5"
-                    strokeWidth="8"
+                    className="text-gray-100 dark:text-white/[0.03]"
+                    strokeWidth="6"
                   />
+                  {/* Inner Track Glow */}
                   <circle
                     cx="60"
                     cy="60"
                     r="54"
                     fill="none"
-                    stroke="#a855f7"
-                    strokeWidth="8"
+                    stroke="currentColor"
+                    className="text-transparent dark:text-white/[0.01]"
+                    strokeWidth="12"
+                    filter="blur(4px)"
+                  />
+                  {/* Progress Arc */}
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="54"
+                    fill="none"
+                    stroke="url(#gradient)"
+                    strokeWidth="6"
                     strokeDasharray="339"
                     strokeDashoffset={339 - (progress * 339)}
                     strokeLinecap="round"
                     style={{
-                      filter: 'drop-shadow(0 0 12px rgba(168,85,247,0.4))',
+                      filter: 'drop-shadow(0 0 16px rgba(139,92,246,0.6))',
                       transition: 'stroke-dashoffset 1s linear'
                     }}
                   />
+                  <defs>
+                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#8b5cf6" />
+                      <stop offset="100%" stopColor="#d946ef" />
+                    </linearGradient>
+                  </defs>
                 </svg>
 
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <div className="text-[9px] font-bold tracking-[3px] text-slate-400 mb-1 uppercase">
+                  <div className="text-[9px] font-black tracking-[4px] text-slate-400 dark:text-slate-500 mb-1.5 uppercase">
                     Elapsed
                   </div>
 
-                  <div className="text-3xl font-bold font-mono text-gray-900 dark:text-white tracking-tighter">
+                  <div className="text-4xl font-black font-mono text-gray-900 dark:text-white tracking-tighter drop-shadow-md">
                     {formatTime(seconds)}
                   </div>
 
@@ -389,17 +363,30 @@ export const GlobalTimeTracker: React.FC = () => {
               {/* Task Details & Action Panel */}
               <div className="flex-1 w-full">
                 <div className="mb-6">
-                  <div className="flex items-center gap-2 text-xs font-bold text-violet-500 dark:text-violet-400 mb-1.5 tracking-widest uppercase">
-                    <Target className="w-4 h-4" /> Current Task
-                  </div>
+                  {activeTask ? (
+                    <>
+                      <div className="flex items-center gap-2 text-xs font-bold text-violet-500 dark:text-violet-400 mb-1.5 tracking-widest uppercase">
+                        <div className="w-1.5 h-1.5 rounded-full bg-violet-500" /> Selected Task
+                      </div>
 
-                  <h2 className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
-                    {activeTask?.title || 'Select a Task to Focus'}
-                  </h2>
+                      <h2 className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
+                        {activeTask.title}
+                      </h2>
 
-                  <p className="text-slate-400 mt-1 font-mono text-xs">
-                    ID: <span className="text-violet-500 dark:text-violet-300 font-bold">{activeTask?.id || '—'}</span>
-                  </p>
+                      <p className="text-slate-400 mt-1 font-mono text-xs">
+                        {activeTask.id}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2 text-xs font-bold text-slate-400 mb-1.5 tracking-widest uppercase">
+                        <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" /> No task selected
+                      </div>
+                      <h2 className="text-2xl font-black text-gray-300 dark:text-slate-700 leading-tight">
+                        Select a task below
+                      </h2>
+                    </>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 mb-6">
@@ -431,7 +418,7 @@ export const GlobalTimeTracker: React.FC = () => {
                     value={searchId}
                     onChange={(e) => setSearchId(e.target.value)}
                     className="h-14 bg-gray-50 dark:bg-white/5 border-2 border-gray-100 dark:border-white/10 rounded-2xl px-5 font-mono text-sm focus:outline-none focus:border-violet-500 dark:focus:border-violet-500 w-full pr-16 transition-all dark:text-white"
-                    placeholder="Enter Task ID or search title..."
+                    placeholder="Find a task..."
                   />
                   <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 bg-violet-600 hover:bg-violet-700 text-white p-2.5 rounded-xl transition-all shadow-lg shadow-violet-500/20 active:scale-95">
                     <Search className="w-4 h-4" />
@@ -443,7 +430,7 @@ export const GlobalTimeTracker: React.FC = () => {
                     <button
                       onClick={handleStart}
                       disabled={!activeTask || loading || !isAssigned}
-                      className="flex-1 h-14 rounded-2xl font-black text-base flex items-center justify-center gap-3 transition-all active:scale-[0.98] bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-xl shadow-violet-500/20 hover:brightness-110 disabled:opacity-30 disabled:cursor-not-allowed disabled:grayscale"
+                      className="flex-1 h-14 rounded-2xl font-black text-base flex items-center justify-center gap-3 transition-all active:scale-95 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 text-white shadow-[0_8px_24px_rgba(139,92,246,0.3)] hover:shadow-[0_12px_32px_rgba(139,92,246,0.5)] disabled:opacity-30 disabled:cursor-not-allowed disabled:grayscale"
                     >
                       <Play className="w-5 h-5 fill-current" />
                       {!isAssigned && activeTask ? 'Not Assigned' : loading ? 'Starting...' : 'Start Tracking'}
@@ -453,11 +440,11 @@ export const GlobalTimeTracker: React.FC = () => {
                       <button
                         onClick={isPaused ? handleResume : handlePause}
                         disabled={loading || !isAssigned}
-                        className={`flex-1 h-14 rounded-2xl font-black text-base flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-xl ${
+                        className={`flex-1 h-14 rounded-2xl font-black text-base flex items-center justify-center gap-3 transition-all active:scale-95 shadow-[0_8px_24px_rgba(0,0,0,0.15)] ${
                           isPaused
-                            ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-emerald-500/20'
-                            : 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-amber-500/20'
-                        } hover:brightness-110 disabled:opacity-50`}
+                            ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:shadow-[0_12px_32px_rgba(16,185,129,0.4)]'
+                            : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:shadow-[0_12px_32px_rgba(245,158,11,0.4)]'
+                        } disabled:opacity-50 hover:brightness-110`}
                       >
                         {isPaused ? <Play className="w-5 h-5 fill-current" /> : <Pause className="w-5 h-5 fill-current" />}
                         {loading ? 'Processing...' : isPaused ? 'Resume Session' : 'Pause Session'}
@@ -466,7 +453,7 @@ export const GlobalTimeTracker: React.FC = () => {
                       <button
                         onClick={handleStop}
                         disabled={loading || !isAssigned}
-                        className="h-14 w-14 rounded-2xl bg-white dark:bg-white/5 hover:bg-red-500/10 text-gray-400 hover:text-red-500 border-2 border-gray-100 dark:border-white/10 transition-all active:scale-95 flex items-center justify-center group disabled:opacity-50"
+                        className="h-14 w-14 rounded-2xl bg-white dark:bg-white/5 hover:bg-rose-500 hover:border-rose-500 text-gray-400 hover:text-white border border-gray-200 dark:border-white/10 transition-all active:scale-95 flex items-center justify-center group disabled:opacity-50 shadow-sm hover:shadow-[0_8px_24px_rgba(244,63,94,0.4)]"
                       >
                         <Square className="w-5 h-5 fill-current group-hover:scale-110 transition-transform" />
                       </button>
@@ -477,8 +464,48 @@ export const GlobalTimeTracker: React.FC = () => {
             </div>
           </div>
 
+          {/* Running Instances List */}
+          {globalActiveTimers.length > 0 && (
+            <div className="bg-white/70 dark:bg-[#0c1018]/70 backdrop-blur-2xl border border-gray-200/50 dark:border-white/[0.05] rounded-[2rem] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.2)] mb-6 p-6 md:p-8">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="p-3 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl shadow-[0_4px_16px_rgba(16,185,129,0.3)]">
+                  <Play className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-gray-900 dark:text-white">Running Instances</h3>
+                  <p className="text-sm text-gray-500 font-medium mt-1">Currently active or paused timers</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {globalActiveTimers.map((timer) => (
+                  <div 
+                    key={timer.taskId}
+                    onClick={() => {
+                      setSearchId(timer.taskId);
+                      handleSearch({ preventDefault: () => {} } as any);
+                    }}
+                    className={`p-4 rounded-2xl border cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.3)] ${
+                      activeTask?.id === timer.taskId 
+                        ? 'border-violet-500/50 bg-gradient-to-br from-violet-50/50 to-fuchsia-50/50 dark:from-violet-500/10 dark:to-fuchsia-500/10 shadow-[0_4px_20px_rgba(139,92,246,0.15)]' 
+                        : 'border-gray-200/50 dark:border-white/5 bg-white/50 dark:bg-white/[0.02] hover:border-gray-300/50 dark:hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-white dark:bg-black/20 shadow-sm border border-gray-100 dark:border-white/5">
+                         <span className={`w-2 h-2 rounded-full ${timer.isPaused ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]' : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse'}`} />
+                         <span className={`text-[9px] font-black uppercase tracking-wider ${timer.isPaused ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{timer.isPaused ? 'Paused' : 'Active'}</span>
+                      </div>
+                    </div>
+                    <h4 className="font-bold text-gray-900 dark:text-white text-sm truncate pr-2 mb-1">{timer.taskTitle}</h4>
+                    <p className="text-[10px] text-gray-400 font-mono tracking-widest">{timer.taskId}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Session History Table */}
-          <div className="bg-white dark:bg-[#0c1018] border border-gray-150 dark:border-gray-850 rounded-[2rem] overflow-hidden shadow-sm">
+          <div className="bg-white/70 dark:bg-[#0c1018]/70 backdrop-blur-2xl border border-gray-200/50 dark:border-white/[0.05] rounded-[2rem] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.2)]">
             <div className="p-6 md:p-8 border-b border-gray-100 dark:border-white/5 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-violet-500/10 rounded-2xl">
@@ -487,7 +514,7 @@ export const GlobalTimeTracker: React.FC = () => {
 
                 <div>
                   <h3 className="font-black text-xl text-gray-900 dark:text-white">
-                    Work Session History
+                    Session History
                   </h3>
                   <p className="text-xs text-slate-400 font-medium">
                     Total tracked sessions: {logs.length}
@@ -584,18 +611,18 @@ export const GlobalTimeTracker: React.FC = () => {
         <div className="col-span-12 lg:col-span-4 space-y-6">
           
           {/* Active Workspace / Project Card */}
-          <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[2rem] p-6 shadow-sm">
-            <h3 className="text-[10px] font-bold uppercase tracking-[2px] text-slate-400 mb-4">
-              Current Project
+          <div className="bg-white/70 dark:bg-[#0c1018]/70 backdrop-blur-2xl border border-gray-200/50 dark:border-white/[0.05] rounded-[2rem] p-6 shadow-[0_8px_32px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.2)] transition-transform hover:-translate-y-1 duration-300">
+            <h3 className="text-[10px] font-black uppercase tracking-[2px] text-slate-400 dark:text-slate-500 mb-4 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-violet-500" /> Project
             </h3>
 
-            <div className="flex items-center gap-3 bg-gray-50 dark:bg-white/5 rounded-2xl p-4 border border-gray-100 dark:border-transparent">
-              <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-xl text-white shadow-md shrink-0">
+            <div className="flex items-center gap-3 bg-white dark:bg-black/20 rounded-2xl p-4 border border-gray-100/50 dark:border-white/[0.02] shadow-sm">
+              <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center text-xl text-white shadow-[0_4px_12px_rgba(99,102,241,0.3)] shrink-0">
                 {projectDetails?.name?.[0] || '🚀'}
               </div>
 
               <div className="min-w-0">
-                <p className="font-bold text-gray-900 dark:text-white truncate">{projectDetails?.name || 'No Project'}</p>
+                <p className="font-black text-gray-900 dark:text-white truncate tracking-tight">{projectDetails?.name || 'No Project'}</p>
                 <p className="text-xs text-slate-400 truncate font-medium">
                   {projectDetails?.description || 'Active workspace'}
                 </p>
@@ -604,29 +631,29 @@ export const GlobalTimeTracker: React.FC = () => {
           </div>
 
           {/* Today's Focus Card */}
-          <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[2rem] p-6 shadow-sm">
-            <h3 className="text-[10px] font-bold uppercase tracking-[2px] text-slate-400 mb-4">
-              Today's Focus
+          <div className="bg-white/70 dark:bg-[#0c1018]/70 backdrop-blur-2xl border border-gray-200/50 dark:border-white/[0.05] rounded-[2rem] p-6 shadow-[0_8px_32px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.2)] transition-transform hover:-translate-y-1 duration-300">
+            <h3 className="text-[10px] font-black uppercase tracking-[2px] text-slate-400 dark:text-slate-500 mb-4 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-orange-500" /> To Do
             </h3>
 
             <div className="space-y-4">
               {tasks.filter(t => t.status !== 'completed').slice(0, 3).map((task) => (
                 <div 
                   key={task.id} 
-                  className="flex items-center gap-3 text-sm cursor-pointer group" 
+                  className="flex items-center gap-3 text-sm cursor-pointer group p-2 -mx-2 rounded-xl hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors" 
                   onClick={() => { setSearchId(task.id); handleSearch(); }}
                 >
-                  <div className="w-2 h-2 rounded-full bg-violet-500 group-hover:scale-125 transition-transform" />
-                  <span className="text-slate-600 dark:text-slate-300 font-medium group-hover:text-violet-500 transition-colors truncate">
+                  <div className="w-2 h-2 rounded-full bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.5)] group-hover:scale-125 transition-transform" />
+                  <span className="text-slate-700 dark:text-slate-200 font-semibold group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors truncate">
                     {task.title}
                   </span>
                 </div>
               ))}
-              {tasks.length === 0 && <p className="text-xs text-slate-500 italic">No pending tasks</p>}
+              {tasks.length === 0 && <p className="text-xs text-slate-500 italic">You're all caught up</p>}
             </div>
 
-            <button className="mt-6 w-full py-3 text-xs font-bold border-2 border-dashed border-gray-200 dark:border-white/10 rounded-2xl text-gray-400 hover:border-violet-500/50 hover:text-violet-500 transition-all flex items-center justify-center gap-2 uppercase tracking-wider">
-              <Plus className="w-4 h-4" /> Add Focus Item
+            <button className="mt-6 w-full py-3 text-xs font-black border border-dashed border-gray-300 dark:border-white/10 rounded-2xl text-gray-500 hover:border-violet-500/50 hover:bg-violet-50/50 dark:hover:bg-violet-500/10 hover:text-violet-600 transition-all flex items-center justify-center gap-2 uppercase tracking-wider">
+              <Plus className="w-4 h-4" /> New Task
             </button>
           </div>
 
@@ -635,24 +662,25 @@ export const GlobalTimeTracker: React.FC = () => {
             {stats.map((stat, i) => (
               <div
                 key={i}
-                className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-[1.5rem] p-5 hover:border-violet-500/30 transition-all group shadow-sm flex flex-col justify-between"
+                className="bg-white/70 dark:bg-[#0c1018]/70 backdrop-blur-2xl border border-gray-200/50 dark:border-white/[0.05] rounded-[1.5rem] p-5 hover:border-violet-500/30 transition-all duration-300 hover:-translate-y-1 shadow-[0_4px_24px_rgba(0,0,0,0.03)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.15)] flex flex-col justify-between group"
               >
                 <div>
                   <div className="flex justify-between items-start">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{stat.label}</span>
+                    <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{stat.label}</span>
                     {stat.trend && (
-                      <span className={`text-[8px] font-black px-1.5 py-0.5 rounded bg-current bg-opacity-10 ${stat.color}`}>
+                      <span className={`text-[8px] font-black px-1.5 py-0.5 rounded shadow-sm bg-current bg-opacity-[0.15] ${stat.color}`}>
                         {stat.trend}
                       </span>
                     )}
                   </div>
-                  <p className="text-2xl font-black mt-2 font-mono text-gray-900 dark:text-white leading-none">
+                  <p className="text-2xl font-black mt-3 font-mono text-gray-900 dark:text-white tracking-tighter drop-shadow-sm">
                     {stat.value}
                   </p>
                 </div>
 
-                <div className="h-1 bg-gray-100 dark:bg-white/10 rounded-full mt-4 overflow-hidden">
-                  <div className="h-full w-2/3 bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-full" />
+                <div className="h-1 bg-gray-100 dark:bg-white/5 rounded-full mt-4 overflow-hidden relative">
+                  <div className={`absolute top-0 left-0 h-full w-2/3 rounded-full opacity-50 ${stat.color.replace('text-', 'bg-')} transition-all duration-1000 group-hover:w-[80%]`} />
+                  <div className={`absolute top-0 left-0 h-full w-2/3 rounded-full ${stat.color.replace('text-', 'bg-')} transition-all duration-1000 group-hover:w-[75%]`} />
                 </div>
               </div>
             ))}

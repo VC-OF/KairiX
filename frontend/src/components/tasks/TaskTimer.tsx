@@ -102,6 +102,7 @@ export const TaskTimer: React.FC<TaskTimerProps> = ({ taskId, projectId, onTimeU
       setIsPickingDate(false);
       setAccumulatedTime(0);
       setTime(0);
+      await useStore.getState().fetchActiveTimer();
     } catch (err) {
       console.error('Error starting timer:', err);
     } finally {
@@ -115,6 +116,7 @@ export const TaskTimer: React.FC<TaskTimerProps> = ({ taskId, projectId, onTimeU
       await api.post('/time-logs/pause', { taskId });
       setIsPaused(true);
       setAccumulatedTime(time);
+      await useStore.getState().fetchActiveTimer();
     } catch (err) {
       console.error('Error pausing timer:', err);
     } finally {
@@ -127,6 +129,7 @@ export const TaskTimer: React.FC<TaskTimerProps> = ({ taskId, projectId, onTimeU
     try {
       await api.post('/time-logs/resume', { taskId, projectId });
       setIsPaused(false);
+      await useStore.getState().fetchActiveTimer();
     } catch (err) {
       console.error('Error resuming timer:', err);
     } finally {
@@ -143,6 +146,7 @@ export const TaskTimer: React.FC<TaskTimerProps> = ({ taskId, projectId, onTimeU
       setTime(0);
       setAccumulatedTime(0);
       await fetchLogs();
+      await useStore.getState().fetchActiveTimer();
       if (onTimeUpdate) onTimeUpdate();
     } catch (err) {
       console.error('Error stopping timer:', err);
@@ -182,7 +186,7 @@ export const TaskTimer: React.FC<TaskTimerProps> = ({ taskId, projectId, onTimeU
           <select
             value={historyDate}
             onChange={(e) => setHistoryDate(e.target.value)}
-            className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="flex-1 min-w-0 px-2 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             {uniqueDates.map(date => (
               <option key={date} value={date}>{date === todayStr ? 'Today' : date}</option>

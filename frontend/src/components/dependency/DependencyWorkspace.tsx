@@ -154,10 +154,10 @@ export const DependencyWorkspace: React.FC = () => {
     const newPos: Record<string, { x: number; y: number }> = {};
     Object.entries(groups).forEach(([lvlStr, ids]) => {
       const lvl = parseInt(lvlStr);
-      const x = 80 + lvl * 300;
-      const totalH = (ids.length - 1) * 150;
+      const x = 80 + lvl * 340;
+      const totalH = (ids.length - 1) * 160;
       const startY = 160 - totalH / 2;
-      ids.forEach((id, i) => { newPos[id] = { x, y: startY + i * 150 }; });
+      ids.forEach((id, i) => { newPos[id] = { x, y: startY + i * 160 }; });
     });
     setPositions(newPos);
     setPan({ x: 60, y: 160 });
@@ -617,11 +617,13 @@ export const DependencyWorkspace: React.FC = () => {
                     />
                     {/* Main stroke */}
                     <path d={path} fill="none" stroke={strokeColor} strokeWidth={strokeW}
-                      strokeDasharray={isDashed ? '6,5' : undefined}
+                      strokeDasharray={isDashed ? '6,5' : '10,8'}
                       markerEnd={`url(#arrow-${d.dependencyType})`}
                       style={{ filter: isCriticalEdge ? 'url(#glow-red)' : undefined }}
                       className="group-hover/edge:opacity-60 transition-opacity"
-                    />
+                    >
+                      <animate attributeName="stroke-dashoffset" from={isDashed ? "11" : "18"} to="0" dur={isCriticalEdge ? "0.5s" : "1.5s"} repeatCount="indefinite" />
+                    </path>
                   </g>
                 );
               })}
@@ -632,8 +634,9 @@ export const DependencyWorkspace: React.FC = () => {
                   <path
                     d={`M ${positions[connectSource].x + NODE_W} ${positions[connectSource].y + NODE_H / 2} L ${mousePos.x} ${mousePos.y}`}
                     fill="none" stroke={DEP_CONFIGS[selectedDepType].color} strokeWidth="2" strokeDasharray="6,4"
-                    className="animate-pulse"
-                  />
+                  >
+                    <animate attributeName="stroke-dashoffset" from="10" to="0" dur="0.5s" repeatCount="indefinite" />
+                  </path>
                   <circle cx={mousePos.x} cy={mousePos.y} r="5" fill={DEP_CONFIGS[selectedDepType].color} opacity={0.8} />
                 </g>
               )}
@@ -656,10 +659,10 @@ export const DependencyWorkspace: React.FC = () => {
                     onMouseDown={e => handleNodeMouseDown(e, t.id)}
                     onClick={e => { e.stopPropagation(); setSelectedTaskId(t.id); }}
                     onMouseUp={() => handleEndConnect(t.id)}
-                    className={`absolute rounded-2xl border pointer-events-auto cursor-grab active:cursor-grabbing group select-none transition-all duration-200
+                    className={`absolute rounded-2xl border pointer-events-auto cursor-grab active:cursor-grabbing group select-none transition-all duration-300
                       ${cfg.bg} ${cfg.glow} ${cfg.ring} ring-1 border-gray-200/40 dark:border-white/[0.08]
                       ${isSelected ? 'ring-2 ring-indigo-500/70 !shadow-[0_0_24px_rgba(99,102,241,0.3)]' : ''}
-                      ${dimmed ? 'opacity-20 scale-95' : 'opacity-100'}
+                      ${dimmed ? 'opacity-20 scale-95' : 'opacity-100 hover:-translate-y-1 hover:shadow-xl'}
                     `}
                     style={{ left: pos.x, top: pos.y, width: NODE_W, height: NODE_H, backdropFilter: 'blur(8px)', backgroundColor: theme === 'light' ? 'rgba(255,255,255,0.92)' : 'rgba(10,13,22,0.88)' }}
                   >
@@ -673,17 +676,17 @@ export const DependencyWorkspace: React.FC = () => {
                     {/* Input handle */}
                     <div
                       onMouseUp={() => handleEndConnect(t.id)}
-                      className="absolute -left-2 top-[40px] w-4 h-4 rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#080b12] flex items-center justify-center hover:bg-indigo-500 hover:border-white transition-all cursor-crosshair opacity-0 group-hover:opacity-100 z-20"
+                      className="absolute -left-3 top-[40px] w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-[#080b12] flex items-center justify-center hover:bg-indigo-500 hover:border-white transition-all cursor-crosshair opacity-0 group-hover:opacity-100 z-20 shadow-lg"
                     >
-                      <div className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500" />
+                      <div className="w-2 h-2 rounded-full bg-gray-400 dark:bg-gray-500" />
                     </div>
 
                     {/* Output handle */}
                     <div
                       onMouseDown={e => handleStartConnect(e, t.id)}
-                      className="absolute -right-2 top-[40px] w-4 h-4 rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#080b12] flex items-center justify-center hover:bg-indigo-500 hover:border-white transition-all cursor-crosshair opacity-0 group-hover:opacity-100 z-20"
+                      className="absolute -right-3 top-[40px] w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-[#080b12] flex items-center justify-center hover:bg-indigo-500 hover:border-white transition-all cursor-crosshair opacity-0 group-hover:opacity-100 z-20 shadow-lg"
                     >
-                      <Plus size={8} className="text-gray-400" />
+                      <Plus size={12} className="text-gray-400" />
                     </div>
 
                     {/* Card content */}
