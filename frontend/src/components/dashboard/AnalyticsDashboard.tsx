@@ -259,37 +259,35 @@ export const AnalyticsDashboard: React.FC = () => {
       </div>
 
       {/* ── Performance Champions ─────────────────────────────────────────────── */}
-      <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-700 p-8 shadow-2xl shadow-violet-500/20">
-        {/* decorative orbs */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/3 blur-2xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/4 blur-2xl pointer-events-none" />
-        <div className="absolute top-0 right-0 opacity-10 pointer-events-none p-8">
+      <div className="relative rounded-3xl overflow-hidden bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 p-8 shadow-sm">
+        {/* Faint watermark */}
+        <div className="absolute top-0 right-0 opacity-[0.05] pointer-events-none p-8 text-stone-400">
           <TrendingUp size={100} />
         </div>
 
         <div className="relative z-10">
-          <div className="flex items-center gap-2 text-violet-200/80 text-[10px] font-black uppercase tracking-[0.25em] mb-6">
-            <Trophy size={13} />
-            Performance Champions
+          <div className="flex items-center gap-2 text-stone-400 dark:text-stone-500 text-[10px] font-black uppercase tracking-[0.25em] mb-6">
+            <Trophy size={13} className="text-amber-500" />
+            <span>Performance Champions</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
-              <p className="text-violet-200/70 text-xs font-bold mb-2">Most Working Hours</p>
-              <h3 className="text-3xl font-black text-white tracking-tight mb-3 truncate">
+              <p className="text-stone-400 dark:text-stone-500 text-xs font-bold mb-2">Most Working Hours</p>
+              <h3 className="text-3xl font-black text-stone-800 dark:text-stone-100 tracking-tight mb-3 truncate">
                 {comprehensive?.highlights?.mostHours?.name || '—'}
               </h3>
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/15 backdrop-blur rounded-full text-sm font-bold text-white border border-white/10">
-                <Clock size={13} />
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white dark:bg-stone-900 rounded-full text-sm font-bold text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-stone-700 shadow-sm">
+                <Clock size={13} className="text-amber-500" />
                 {comprehensive?.highlights?.mostHours?.value || 0}h Logged
               </div>
             </div>
-            <div className="md:border-l border-white/10 md:pl-8">
-              <p className="text-violet-200/70 text-xs font-bold mb-2">Top Task Finisher</p>
-              <h3 className="text-3xl font-black text-white tracking-tight mb-3 truncate">
+            <div className="md:border-l border-stone-200 dark:border-stone-800 md:pl-8">
+              <p className="text-stone-400 dark:text-stone-500 text-xs font-bold mb-2">Top Task Finisher</p>
+              <h3 className="text-3xl font-black text-stone-800 dark:text-stone-100 tracking-tight mb-3 truncate">
                 {comprehensive?.highlights?.mostTasks?.name || '—'}
               </h3>
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/15 backdrop-blur rounded-full text-sm font-bold text-white border border-white/10">
-                <CheckCircle size={13} />
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white dark:bg-stone-900 rounded-full text-sm font-bold text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-stone-700 shadow-sm">
+                <CheckCircle size={13} className="text-emerald-500" />
                 {comprehensive?.highlights?.mostTasks?.value || 0} Completed
               </div>
             </div>

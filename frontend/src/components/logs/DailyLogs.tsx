@@ -463,21 +463,42 @@ export const DailyLogs: React.FC = () => {
     <div className="space-y-8 p-2 animate-in fade-in slide-in-from-bottom-4 duration-700">
       
       {/* Community Subreddit Banner */}
-      <div className="relative h-28 w-full bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 rounded-3xl overflow-hidden shadow-md">
-        <div className="absolute inset-0 bg-black/10 dark:bg-black/35 backdrop-blur-[1px]" />
-        <div className="absolute bottom-4 left-6 flex items-center gap-4 text-white">
-          <div className="w-14 h-14 bg-indigo-600 border-4 border-white dark:border-obsidian-900 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-600/30">
+      <div
+        className="relative w-full rounded-3xl overflow-hidden border shadow-sm"
+        style={{ height: '140px', backgroundColor: '#faf8f4', borderColor: '#e8e3db' }}
+      >
+        {/* Decorative right-side pattern */}
+        <div className="absolute right-0 top-0 bottom-0 w-64 pointer-events-none" style={{ background: 'linear-gradient(to left, rgba(232,227,219,0.4), transparent)' }} />
+        <div className="absolute top-4 right-6 opacity-[0.08] pointer-events-none" style={{ color: '#78716c' }}>
+          <Users size={100} />
+        </div>
+
+        {/* Content */}
+        <div className="absolute inset-0 flex items-center px-8 gap-5 z-10">
+          {/* KX Badge */}
+          <div
+            className="w-16 h-16 rounded-2xl flex items-center justify-center font-black text-xl shadow-md flex-shrink-0"
+            style={{ backgroundColor: '#292524', color: '#faf8f4', border: '2px solid #44403c' }}
+          >
             KX
           </div>
+
+          {/* Text */}
           <div>
-            <h1 className="text-2xl font-black tracking-tight flex items-center gap-2">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-1" style={{ color: '#a8a29e' }}>
+              Community Feed
+            </p>
+            <h1 className="text-3xl font-black tracking-tight" style={{ color: '#1c1917' }}>
               {subredditName}
             </h1>
-            <p className="text-[10px] uppercase font-black tracking-widest text-slate-100/80">
-              KairiX Workspace operational stream
+            <p className="text-[10px] uppercase font-black tracking-widest mt-1" style={{ color: '#a8a29e' }}>
+              KairiX Workspace Operational Stream
             </p>
           </div>
         </div>
+
+        {/* Bottom accent line */}
+        <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ background: 'linear-gradient(to right, #d6cfc6, transparent)' }} />
       </div>
 
       {/* Main Reddit Grid Layout (Feed + Subreddit widgets) */}

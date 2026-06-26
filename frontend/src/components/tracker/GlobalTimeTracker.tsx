@@ -251,16 +251,15 @@ export const GlobalTimeTracker: React.FC = () => {
 
       {/* Active Recording Strip */}
       {isActive && !isPaused && (
-        <div className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold px-6 py-4 rounded-3xl flex items-center justify-between shadow-xl shadow-emerald-500/20 animate-fade-in">
+        <div className="bg-gray-900 dark:bg-gray-950 border border-gray-800 text-white font-bold px-6 py-4 rounded-3xl flex items-center justify-between shadow-lg animate-fade-in">
           <div className="flex items-center gap-3">
-            <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse shadow-sm"></div>
-            <span>
+            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+            <span className="text-sm">
               Tracking:{' '}
-              <span className="opacity-90">{activeTask?.title || 'Unknown Task'}</span>
+              <span className="text-gray-300 font-medium">{activeTask?.title || 'Unknown Task'}</span>
             </span>
           </div>
-
-          <span className="font-mono text-2xl tracking-tight">
+          <span className="font-mono text-xl tracking-tight text-gray-100">
             {formatTime(seconds)}
           </span>
         </div>
@@ -274,9 +273,9 @@ export const GlobalTimeTracker: React.FC = () => {
           
           {/* Main Tracker Core Hero */}
           <div className="relative bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-3xl border border-gray-200/50 dark:border-white/[0.05] rounded-[2.5rem] p-8 md:p-10 shadow-[0_8px_32px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.2)] overflow-hidden group">
-            {/* Animated Ambient Glow */}
-            <div className="absolute -top-32 -left-32 w-64 h-64 bg-violet-500/20 rounded-full blur-[80px] group-hover:bg-violet-500/30 transition-colors duration-700 pointer-events-none" />
-            <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-fuchsia-500/20 rounded-full blur-[80px] group-hover:bg-fuchsia-500/30 transition-colors duration-700 pointer-events-none" />
+            {/* Subtle Ambient Glow */}
+            <div className="absolute -top-32 -left-32 w-64 h-64 bg-indigo-500/8 rounded-full blur-[80px] transition-colors duration-700 pointer-events-none" />
+            <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-slate-500/6 rounded-full blur-[80px] transition-colors duration-700 pointer-events-none" />
             
             <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12 relative z-10">
               
@@ -320,14 +319,14 @@ export const GlobalTimeTracker: React.FC = () => {
                     strokeDashoffset={339 - (progress * 339)}
                     strokeLinecap="round"
                     style={{
-                      filter: 'drop-shadow(0 0 16px rgba(139,92,246,0.6))',
+                      filter: isActive && !isPaused ? 'drop-shadow(0 0 6px rgba(99,102,241,0.35))' : 'none',
                       transition: 'stroke-dashoffset 1s linear'
                     }}
                   />
                   <defs>
                     <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#8b5cf6" />
-                      <stop offset="100%" stopColor="#d946ef" />
+                      <stop offset="0%" stopColor="#6366f1" />
+                      <stop offset="100%" stopColor="#818cf8" />
                     </linearGradient>
                   </defs>
                 </svg>
@@ -430,7 +429,7 @@ export const GlobalTimeTracker: React.FC = () => {
                     <button
                       onClick={handleStart}
                       disabled={!activeTask || loading || !isAssigned}
-                      className="flex-1 h-14 rounded-2xl font-black text-base flex items-center justify-center gap-3 transition-all active:scale-95 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 text-white shadow-[0_8px_24px_rgba(139,92,246,0.3)] hover:shadow-[0_12px_32px_rgba(139,92,246,0.5)] disabled:opacity-30 disabled:cursor-not-allowed disabled:grayscale"
+                      className="flex-1 h-14 rounded-2xl font-black text-base flex items-center justify-center gap-3 transition-all active:scale-95 bg-indigo-600 hover:bg-indigo-700 text-white shadow-[0_4px_16px_rgba(99,102,241,0.25)] hover:shadow-[0_8px_24px_rgba(99,102,241,0.35)] disabled:opacity-30 disabled:cursor-not-allowed disabled:grayscale"
                     >
                       <Play className="w-5 h-5 fill-current" />
                       {!isAssigned && activeTask ? 'Not Assigned' : loading ? 'Starting...' : 'Start Tracking'}
@@ -468,8 +467,8 @@ export const GlobalTimeTracker: React.FC = () => {
           {globalActiveTimers.length > 0 && (
             <div className="bg-white/70 dark:bg-[#0c1018]/70 backdrop-blur-2xl border border-gray-200/50 dark:border-white/[0.05] rounded-[2rem] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.2)] mb-6 p-6 md:p-8">
               <div className="flex items-center gap-4 mb-6">
-                <div className="p-3 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl shadow-[0_4px_16px_rgba(16,185,129,0.3)]">
-                  <Play className="w-6 h-6 text-white" />
+                <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">
+                  <Play className="w-6 h-6 text-gray-600 dark:text-gray-300" />
                 </div>
                 <div>
                   <h3 className="text-xl font-black text-gray-900 dark:text-white">Running Instances</h3>
@@ -552,7 +551,7 @@ export const GlobalTimeTracker: React.FC = () => {
 
                       <td className="py-5">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-[10px] font-black text-white shadow-md shrink-0">
+                          <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-xl flex items-center justify-center text-[10px] font-black text-gray-600 dark:text-gray-300 shrink-0">
                              {log.userId?.name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
                           </div>
                           <span className="text-sm font-bold text-gray-900 dark:text-white truncate">{log.userId?.name || 'Unknown User'}</span>
